@@ -88,3 +88,29 @@ CUDA void* operator new[](size_t bytes, PoolAllocator& p) {
 // For now, we don't support freeing the memory in the pool.
 CUDA void operator delete(void* ptr, PoolAllocator& p) {}
 CUDA void operator delete[](void* ptr, PoolAllocator& p) {}
+
+StandardAllocator standard_allocator;
+
+void* StandardAllocator::allocate(size_t bytes) {
+ return ::operator new(bytes);
+}
+
+void StandardAllocator::deallocate(void* data) {
+  ::operator delete(data);
+}
+
+void* operator new(size_t bytes, StandardAllocator& p) {
+  return p.allocate(bytes);
+}
+
+void* operator new[](size_t bytes, StandardAllocator& p) {
+  return p.allocate(bytes);
+}
+
+void operator delete(void* ptr, StandardAllocator& p) {
+  p.deallocate(ptr);
+}
+
+void operator delete[](void* ptr, StandardAllocator& p) {
+  p.deallocate(ptr);
+}

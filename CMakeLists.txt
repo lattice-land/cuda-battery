@@ -63,8 +63,20 @@ target_link_libraries(
   gtest_main
 )
 
+add_executable(
+  darray_test
+  tests/darray_test.cpp
+)
+
+target_link_libraries(
+  darray_test
+  cuda_battery
+  gtest_main
+)
+
 include(GoogleTest)
 gtest_discover_tests(utility_test)
+gtest_discover_tests(darray_test)
 
 # Documentation
 

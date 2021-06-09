@@ -3,9 +3,9 @@
 #ifndef ALLOCATOR_HPP
 #define ALLOCATOR_HPP
 
-/** We provide a bunch of allocator compatible with the structure of the _lattice land_ project.
+/** \file allocator.hpp
+We provide a bunch of allocator compatible with the structure of the _lattice land_ project.
 The allocators are aimed to be used to distinguish in which memory (shared, global, managed or the "standard" C++ memory) we should allocate data.
-Use std::allocator as a standard allocator on the host side.
 This allows us to provide uniform interfaces for both host (C++) and device (CUDA) code.
 */
 
@@ -65,5 +65,21 @@ CUDA void* operator new(size_t bytes, PoolAllocator& p);
 CUDA void* operator new[](size_t bytes, PoolAllocator& p);
 CUDA void operator delete(void* ptr, PoolAllocator& p);
 CUDA void operator delete[](void* ptr, PoolAllocator& p);
+
+/** This allocator calls the standard C++ allocation function.
+It is similar to `std::allocator` but we have the operators `new` and `new[]` compatible with our current allocator design. */
+class StandardAllocator {
+public:
+  void* allocate(size_t bytes);
+  void deallocate(void* data);
+};
+
+extern StandardAllocator standard_allocator;
+
+void* operator new(size_t bytes, StandardAllocator& p);
+void* operator new[](size_t bytes, StandardAllocator& p);
+void operator delete(void* ptr, StandardAllocator& p);
+void operator delete[](void* ptr, StandardAllocator& p);
+
 
 #endif // ALLOCATOR_HPP
