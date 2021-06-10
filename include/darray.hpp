@@ -4,6 +4,8 @@
 #define ARRAY_HPP
 
 #include "utility.hpp"
+#include "allocator.hpp"
+#include <vector>
 
 namespace impl {
 
@@ -11,11 +13,11 @@ namespace impl {
 template<typename T>
 struct TypeAllocatorDispatch {
   template<typename Allocator>
-  CUDA static void build(T* placement, const T& from, const Allocator& allocator) {
+  CUDA static void build(T* placement, const T& from, Allocator& allocator) {
     if constexpr(std::is_pointer_v<T> && std::is_polymorphic_v<std::remove_pointer_t<T>>) {
-      *placement = from->clone_in(allocator);
+      *placement = from->clone(allocator);
     }
-    if constexpr(std::is_constructible<T, const T&, const Allocator&>{}) {
+    else if constexpr(std::is_constructible<T, const T&, const Allocator&>{}) {
       new(placement) T(from, allocator);
     }
     else {
@@ -24,13 +26,14 @@ struct TypeAllocatorDispatch {
   }
 
   template<typename Allocator>
-  CUDA static void destroy(T* ptr, const Allocator& allocator) {
+  CUDA static void destroy(T& data, Allocator& allocator) {
     if constexpr(std::is_pointer_v<T> && std::is_polymorphic_v<std::remove_pointer_t<T>>) {
-      (*ptr)->~T();
-      delete *ptr;
+      typedef std::remove_pointer_t<T> U;
+      data->~U();
+      delete data;
     }
     if constexpr(std::is_destructible_v<T>) {
-      ptr->~T();
+      data.~T();
     }
   }
 };
@@ -38,15 +41,19 @@ struct TypeAllocatorDispatch {
 }
 
 /** `DArray<T, Allocator>` is a dynamic array (so the size can depends on runtime value), but once created, the size cannot be modified (no `push_back` method).
-Note that this class is also usable on CPU using the `StandardAllocator` (see allocator.hpp).
+It has some dedicated support for collection of _polymorphic objects_.
+`DArray` is also usable on CPU using the `StandardAllocator` (see allocator.hpp).
 
-Initialization/Copy semantics: The elements of the array are initialized by using the following of the provided parameter:
-  - If `T` is polymorphic, we use a dedicated `clone_in` method, the polymorphic objects are automatically freed in the destructor of DArray.
-  - `T(const T&, const Allocator&)` if such a copy constructor is available.
-  - The normal copy constructor `T(const T&)` otherwise.
+In order to make the usage of collection as uniform as possible in host and device code, and with polymorphic objects or not, a `DArray` is initialized and copied following a set of rules:
+- Case of non-polymorphic types `T` (i.e., `is_polymorphic_v<remove_pointer_t<T>>` is false):
+  - Elements are copied using `T(const T&, const Allocator&)` if such a copy constructor is available, otherwise the normal copy constructor `T(const T&)` is used.
+- Case of polymorphic type `T`: The objects of type `T` are always copied using a method `T* clone(const Allocator&)` where the `clone` method is supposed to be overloaded for the relevant/necessary allocator types.
+  Note that for `T* clone(GlobalAllocator)`, we suppose the object vtable is initialized on the device.
+  The polymorphic objects are automatically freed in the destructor of DArray.
 
 Hence, _polymorphic objects are owned by DArray_.
-If you use this class to store an array of polymorphic objects, the polymorphic objects will be deleted when the destructor of the array is called. */
+If you use this class to store an array of polymorphic objects, the polymorphic objects will be deleted when the destructor of the array is called.
+See also `tests/polymorphic_darray_test.cpp` for example on how to implement the `clone` methods and using DArray as a polymorphic container. */
 template<typename T, typename Allocator>
 class DArray {
   T* data_;
@@ -60,10 +67,21 @@ public:
     n(n), allocator(alloc), data_(new(allocator) T[n]) {}
 
   /** Allocate an array of size `n` using `allocator`.
-      Initialize the elements of the array with those of `from`.*/
+      Initialize the elements of the array with those of `from`.
+      NOTE: If the constructor is called from host side, with `GlobalAllocator`, then we still initialize the array in managed memory (but the polymorphic object are initialized in global memory). */
   CUDA DArray(size_t n, const T* from, const Allocator& alloc = Allocator()):
-    n(n), allocator(alloc), data_(new(allocator) T[n])
+    n(n), allocator(alloc)
   {
+    #if ON_CPU() && __NVCC__
+      if constexpr(std::is_same_v<Allocator, GlobalAllocator>) {
+        data_ = new(managed_allocator) T[n];
+      }
+      else {
+        data_ = new(allocator) T[n];
+      }
+    #else
+      data_ = new(allocator) T[n];
+    #endif
     for(size_t i = 0; i < n; ++i) {
       impl::TypeAllocatorDispatch<T>::build(&data_[i], from[i], allocator);
     }
@@ -72,7 +90,7 @@ public:
   /** Copy constructor with an allocator. */
   template <typename Allocator2>
   CUDA DArray(const DArray<T, Allocator2>& from, const Allocator& alloc = Allocator()):
-    DArray(from.n, from.data_, alloc) {}
+    DArray(from.size(), from.data(), alloc) {}
 
   /** Redefine the copy constructor to be sure it calls a constructor with an allocator. */
   CUDA DArray(const DArray<T, Allocator>& from): DArray(from, Allocator()) {}
@@ -91,7 +109,7 @@ public:
 
   CUDA ~DArray() {
     for(int i = 0; i < n; ++i) {
-      impl::TypeAllocatorDispatch<T>::destroy(&data_[i], allocator);
+      impl::TypeAllocatorDispatch<T>::destroy(data_[i], allocator);
     }
     operator delete[](data_, allocator);
   }

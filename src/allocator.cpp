@@ -32,13 +32,11 @@ void operator delete[](void* ptr, ManagedAllocator& p) {
   p.deallocate(ptr);
 }
 
-GlobalAllocator global_allocator;
-
 CUDA void* GlobalAllocator::allocate(size_t bytes) {
   void* data;
   cudaError_t rc = cudaMalloc(&data, bytes);
   if (rc != cudaSuccess) {
-    printf("Could not allocate the stack (error = %d)\n", rc);
+    printf("Allocation in global memory failed (error = %d)\n", rc);
     assert(0);
   }
   return data;
@@ -91,26 +89,26 @@ CUDA void operator delete[](void* ptr, PoolAllocator& p) {}
 
 StandardAllocator standard_allocator;
 
-void* StandardAllocator::allocate(size_t bytes) {
+CUDA void* StandardAllocator::allocate(size_t bytes) {
  return ::operator new(bytes);
 }
 
-void StandardAllocator::deallocate(void* data) {
+CUDA void StandardAllocator::deallocate(void* data) {
   ::operator delete(data);
 }
 
-void* operator new(size_t bytes, StandardAllocator& p) {
+CUDA void* operator new(size_t bytes, StandardAllocator& p) {
   return p.allocate(bytes);
 }
 
-void* operator new[](size_t bytes, StandardAllocator& p) {
+CUDA void* operator new[](size_t bytes, StandardAllocator& p) {
   return p.allocate(bytes);
 }
 
-void operator delete(void* ptr, StandardAllocator& p) {
+CUDA void operator delete(void* ptr, StandardAllocator& p) {
   p.deallocate(ptr);
 }
 
-void operator delete[](void* ptr, StandardAllocator& p) {
+CUDA void operator delete[](void* ptr, StandardAllocator& p) {
   p.deallocate(ptr);
 }

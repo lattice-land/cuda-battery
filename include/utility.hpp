@@ -8,6 +8,9 @@
 #include <cassert>
 #include <limits>
 
+#define ON_GPU() (defined(__CUDA_ARCH__) && (__CUDA_ARCH__ > 0))
+#define ON_CPU() (!defined(__CUDA_ARCH__) || (__CUDA_ARCH__ == 0))
+
 #ifdef __NVCC__
   #define CUDA_GLOBAL __global__
   #define DEVICE __device__

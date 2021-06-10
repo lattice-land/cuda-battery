@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.20)
 include(FetchContent)
 include(CMakePrintHelpers)
 
-project(cuda-battery LANGUAGES CUDA CXX)
+project(cuda-battery LANGUAGES CXX CUDA)
 option(GPU "GPU" ON)
 
 if(NOT DEFINED CMAKE_CXX_STANDARD)
@@ -77,6 +77,16 @@ target_link_libraries(
 include(GoogleTest)
 gtest_discover_tests(utility_test)
 gtest_discover_tests(darray_test)
+
+if(GPU)
+  set_source_files_properties(tests/polymorphic_darray_test.cpp PROPERTIES LANGUAGE CUDA)
+  add_executable(polymorphic_darray_test tests/polymorphic_darray_test.cpp)
+  set_property(TARGET polymorphic_darray_test APPEND PROPERTY CUDA_SEPARABLE_COMPILATION ON)
+  set_property(TARGET polymorphic_darray_test PROPERTY CUDA_ARCHITECTURES 75)
+  target_compile_options(polymorphic_darray_test PRIVATE --expt-relaxed-constexpr -rdc=true)
+  target_link_libraries(polymorphic_darray_test cuda_battery)
+  add_test(polymorphic_darray_test polymorphic_darray_test)
+endif()
 
 # Documentation
 

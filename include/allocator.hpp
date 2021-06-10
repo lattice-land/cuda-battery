@@ -38,8 +38,6 @@ public:
   CUDA void deallocate(void* data);
 };
 
-extern GlobalAllocator global_allocator;
-
 CUDA void* operator new(size_t bytes, GlobalAllocator& p);
 CUDA void* operator new[](size_t bytes, GlobalAllocator& p);
 CUDA void operator delete(void* ptr, GlobalAllocator& p);
@@ -70,16 +68,16 @@ CUDA void operator delete[](void* ptr, PoolAllocator& p);
 It is similar to `std::allocator` but we have the operators `new` and `new[]` compatible with our current allocator design. */
 class StandardAllocator {
 public:
-  void* allocate(size_t bytes);
-  void deallocate(void* data);
+  CUDA void* allocate(size_t bytes);
+  CUDA void deallocate(void* data);
 };
 
 extern StandardAllocator standard_allocator;
 
-void* operator new(size_t bytes, StandardAllocator& p);
-void* operator new[](size_t bytes, StandardAllocator& p);
-void operator delete(void* ptr, StandardAllocator& p);
-void operator delete[](void* ptr, StandardAllocator& p);
+CUDA void* operator new(size_t bytes, StandardAllocator& p);
+CUDA void* operator new[](size_t bytes, StandardAllocator& p);
+CUDA void operator delete(void* ptr, StandardAllocator& p);
+CUDA void operator delete[](void* ptr, StandardAllocator& p);
 
 
 #endif // ALLOCATOR_HPP
