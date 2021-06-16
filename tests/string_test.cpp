@@ -27,3 +27,27 @@ TEST(String, Constructor) {
   String<StandardAllocator> a5("");
   test_string(a5, "");
 }
+
+TEST(String, Equality) {
+  String<StandardAllocator> a1("abc");
+  String<StandardAllocator> a2(a1);
+  String<StandardAllocator> a3("abcd");
+  String<StandardAllocator> a4("ab");
+  EXPECT_EQ(a1 == a2, true);
+  EXPECT_EQ(a2 == a1, true);
+  EXPECT_EQ(a1 == a3, false);
+  EXPECT_EQ(a3 == a1, false);
+  EXPECT_EQ(a1 == a4, false);
+  EXPECT_EQ(a3 == a4, false);
+  EXPECT_EQ(a4 == a3, false);
+  EXPECT_EQ(a3 == a4, false);
+  String<StandardAllocator> a5("");
+  EXPECT_EQ(a5 == a1, false);
+  EXPECT_EQ(a5 == a2, false);
+  EXPECT_EQ(a5 == a3, false);
+  EXPECT_EQ(a5 == a4, false);
+  EXPECT_EQ(a1 == a5, false);
+  EXPECT_EQ(a2 == a5, false);
+  EXPECT_EQ(a3 == a5, false);
+  EXPECT_EQ(a4 == a5, false);
+}

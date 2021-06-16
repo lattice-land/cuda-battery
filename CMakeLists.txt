@@ -89,6 +89,7 @@ target_link_libraries(
 include(GoogleTest)
 gtest_discover_tests(utility_test)
 gtest_discover_tests(darray_test)
+gtest_discover_tests(string_test)
 
 if(GPU)
   set_source_files_properties(tests/polymorphic_darray_test.cpp PROPERTIES LANGUAGE CUDA)

@@ -93,7 +93,7 @@ public:
     DArray(from.size(), from.data(), alloc) {}
 
   /** Redefine the copy constructor to be sure it calls a constructor with an allocator. */
-  CUDA DArray(const DArray<T, Allocator>& from): DArray(from, Allocator()) {}
+  CUDA DArray(const DArray<T, Allocator>& from): DArray(from, allocator) {}
 
   /** Initialize of an array of size `n` with each element initialized to `from` using `allocator`. */
   CUDA DArray(size_t n, const T& from, const Allocator& alloc = Allocator()):

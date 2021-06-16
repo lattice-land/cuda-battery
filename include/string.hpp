@@ -37,6 +37,21 @@ public:
   CUDA const char& operator[](size_t i) const { return data_[i]; }
   CUDA char* data() { return data_.data(); }
   CUDA const char* data() const { return data_.data(); }
+
+  template<typename Allocator2>
+  CUDA bool operator==(const String<Allocator2>& other) {
+    if(size() != other.size()) {
+      return false;
+    }
+    else {
+      for(size_t i = 0; i < size(); ++i) {
+        if((*this)[i] != other[i]) {
+          return false;
+        }
+      }
+    }
+    return true;
+  }
 };
 
 #endif
