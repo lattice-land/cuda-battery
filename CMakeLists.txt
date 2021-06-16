@@ -31,10 +31,11 @@ FetchContent_MakeAvailable(googletest)
 if(GPU)
     set_source_files_properties(
         src/allocator.cpp
+        src/utility.cpp
         PROPERTIES LANGUAGE CUDA)
 endif()
 
-add_library(cuda_battery src/allocator.cpp)
+add_library(cuda_battery src/allocator.cpp src/utility.cpp)
 target_include_directories(cuda_battery PUBLIC include)
 
 if(GPU)
@@ -70,6 +71,17 @@ add_executable(
 
 target_link_libraries(
   darray_test
+  cuda_battery
+  gtest_main
+)
+
+add_executable(
+  string_test
+  tests/string_test.cpp
+)
+
+target_link_libraries(
+  string_test
   cuda_battery
   gtest_main
 )

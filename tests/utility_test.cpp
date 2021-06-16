@@ -27,3 +27,9 @@ TEST(Utility, Limits) {
   EXPECT_EQ(Limits<float>::bot(), -INFINITY);
   EXPECT_EQ(Limits<float>::top(), INFINITY);
 }
+
+TEST(Utility, Strlen) {
+  EXPECT_EQ(impl::strlen("abc"), 3);
+  EXPECT_EQ(impl::strlen(""), 0);
+  EXPECT_EQ(impl::strlen("1"), 1);
+}

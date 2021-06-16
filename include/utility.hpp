@@ -4,7 +4,6 @@
 #define UTILITY_HPP
 
 #include <cstdio>
-#include <iostream>
 #include <cassert>
 #include <limits>
 
@@ -33,11 +32,14 @@
   #define CUDIE0
 
   #include <algorithm>
+  #include <cstring> // for strlen
   using std::min;
   using std::max;
   using std::swap;
+  namespace battery {
+    using std::strlen;
+  }
 #endif
-
 
 namespace impl {
   template<typename T> CUDA void swap(T& a, T& b) {
@@ -45,10 +47,15 @@ namespace impl {
     a = std::move(b);
     b = std::move(c);
   }
+
+  CUDA size_t strlen(const char* str);
 }
 
 #ifdef __NVCC__
   using impl::swap;
+  namespace battery { // otherwise strlen conflicts with another declaration... (I don't know why).
+    using impl::strlen;
+  }
 #endif
 
 template<typename N>
