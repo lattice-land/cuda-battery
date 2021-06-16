@@ -67,7 +67,7 @@ public:
     n(n), allocator(alloc), data_(new(allocator) T[n]) {}
 
   /** Default constructor. Since the size is 0 and the array cannot be extended, the allocator does not matter.*/
-  CUDA DArray(): DArray(0) {}
+  CUDA DArray(): data_(nullptr), n(0), allocator(Allocator()) {}
 
   /** Allocate an array of size `n` using `allocator`.
       Initialize the elements of the array with those of `from`.
@@ -111,10 +111,12 @@ public:
     DArray(from.size(), from.data(), alloc) {}
 
   CUDA ~DArray() {
-    for(int i = 0; i < n; ++i) {
-      impl::TypeAllocatorDispatch<T>::destroy(data_[i], allocator);
+    if(data_ != nullptr) {
+      for(int i = 0; i < n; ++i) {
+        impl::TypeAllocatorDispatch<T>::destroy(data_[i], allocator);
+      }
+      operator delete[](data_, allocator);
     }
-    operator delete[](data_, allocator);
   }
 
   CUDA size_t size() const { return n; }

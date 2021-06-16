@@ -26,6 +26,8 @@ TEST(String, Constructor) {
   test_string(a4, "0");
   String<StandardAllocator> a5("");
   test_string(a5, "");
+  String<StandardAllocator> a6;
+  test_string(a6, "");
 }
 
 TEST(String, Equality) {
@@ -50,4 +52,7 @@ TEST(String, Equality) {
   EXPECT_EQ(a2 == a5, false);
   EXPECT_EQ(a3 == a5, false);
   EXPECT_EQ(a4 == a5, false);
+  String<StandardAllocator> a6;
+  EXPECT_EQ(a5 == a6, true);
+  EXPECT_EQ(a6 == a5, true);
 }

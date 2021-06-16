@@ -24,6 +24,8 @@ TEST(DArray, Constructor) {
   test_array(a4, 3, 2);
   DArray<int, StandardAllocator> a5(3);
   test_array(a5, 3, 0);
+  DArray<int, StandardAllocator> a6;
+  test_array(a6, 0, 0);
 }
 
 class A {
