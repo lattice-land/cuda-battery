@@ -40,7 +40,7 @@ public:
   CUDA const char* data() const { return data_.data(); }
 
   template<typename Allocator2>
-  CUDA bool operator==(const String<Allocator2>& other) {
+  CUDA bool operator==(const String<Allocator2>& other) const {
     if(size() != other.size()) {
       return false;
     }
