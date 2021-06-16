@@ -113,7 +113,7 @@ set(DOXYGEN_STRIP_CODE_COMMENTS NO)
 set(DOXYGEN_USE_MATHJAX YES)
 set(DOXYGEN_EXTRA_PACKAGES stmaryrd)
 
-doxygen_add_docs(doc
+doxygen_add_docs(doc_cuda_battery
                  "include/"
                  ALL
                  COMMENT "Generate HTML documentation")
