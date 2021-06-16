@@ -18,6 +18,9 @@ public:
   CUDA String(size_t n, const Allocator& alloc = Allocator()):
     data_(n, alloc) {}
 
+  /** Default constructor. Since the size is 0 and the string cannot be extended, the allocator does not matter. */
+  CUDA String(): String(0) {}
+
   /** Allocate a string from `raw_string` using `allocator`. */
   CUDA String(const char* raw_string, const Allocator& alloc = Allocator()):
     data_(strlen(raw_string), raw_string, alloc) {}

@@ -66,6 +66,9 @@ public:
   CUDA DArray(size_t n, const Allocator& alloc = Allocator()):
     n(n), allocator(alloc), data_(new(allocator) T[n]) {}
 
+  /** Default constructor. Since the size is 0 and the array cannot be extended, the allocator does not matter.*/
+  CUDA DArray(): DArray(0) {}
+
   /** Allocate an array of size `n` using `allocator`.
       Initialize the elements of the array with those of `from`.
       NOTE: If the constructor is called from host side, with `GlobalAllocator`, then we still initialize the array in managed memory (but the polymorphic object are initialized in global memory). */
