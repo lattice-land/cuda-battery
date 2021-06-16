@@ -3,6 +3,7 @@
 #ifndef STRING_HPP
 #define STRING_HPP
 
+#include <string>
 #include "utility.hpp"
 #include "darray.hpp"
 
