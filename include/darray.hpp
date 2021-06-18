@@ -64,29 +64,31 @@ public:
 
   /** Allocate an array of size `n` using `allocator`. */
   CUDA DArray(size_t n, const Allocator& alloc = Allocator()):
-    n(n), allocator(alloc), data_(new(allocator) T[n]) {}
+    n(n), allocator(alloc), data_(n > 0 ? new(allocator) T[n] : nullptr) {}
 
   /** Default constructor. Since the size is 0 and the array cannot be extended, the allocator does not matter.*/
-  CUDA DArray(): data_(nullptr), n(0), allocator(Allocator()) {}
+  CUDA DArray(): DArray(0) {}
 
   /** Allocate an array of size `n` using `allocator`.
       Initialize the elements of the array with those of `from`.
       NOTE: If the constructor is called from host side, with `GlobalAllocator`, then we still initialize the array in managed memory (but the polymorphic object are initialized in global memory). */
   CUDA DArray(size_t n, const T* from, const Allocator& alloc = Allocator()):
-    n(n), allocator(alloc)
+    n(n), allocator(alloc), data_(nullptr)
   {
-    #if ON_CPU() && __NVCC__
-      if constexpr(std::is_same_v<Allocator, GlobalAllocator>) {
-        data_ = new(managed_allocator) T[n];
-      }
-      else {
+    if(n > 0) {
+      #if ON_CPU() && __NVCC__
+        if constexpr(std::is_same_v<Allocator, GlobalAllocator>) {
+          data_ = new(managed_allocator) T[n];
+        }
+        else {
+          data_ = new(allocator) T[n];
+        }
+      #else
         data_ = new(allocator) T[n];
+      #endif
+      for(size_t i = 0; i < n; ++i) {
+        impl::TypeAllocatorDispatch<T>::build(&data_[i], from[i], allocator);
       }
-    #else
-      data_ = new(allocator) T[n];
-    #endif
-    for(size_t i = 0; i < n; ++i) {
-      impl::TypeAllocatorDispatch<T>::build(&data_[i], from[i], allocator);
     }
   }
 
@@ -100,7 +102,7 @@ public:
 
   /** Initialize of an array of size `n` with each element initialized to `from` using `allocator`. */
   CUDA DArray(size_t n, const T& from, const Allocator& alloc = Allocator()):
-    n(n), allocator(alloc), data_(new(allocator) T[n])
+    n(n), allocator(alloc), data_(n > 0 ? new(allocator) T[n] : nullptr)
   {
     for(size_t i = 0; i < n; ++i) {
       impl::TypeAllocatorDispatch<T>::build(&data_[i], from, allocator);

@@ -53,6 +53,8 @@ TEST(String, Equality) {
   EXPECT_EQ(a3 == a5, false);
   EXPECT_EQ(a4 == a5, false);
   String<StandardAllocator> a6;
+  EXPECT_EQ(a5.size(), 0);
+  EXPECT_EQ(a6.size(), 0);
   EXPECT_EQ(a5 == a6, true);
   EXPECT_EQ(a6 == a5, true);
 }

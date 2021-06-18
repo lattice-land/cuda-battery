@@ -7,6 +7,7 @@
 ManagedAllocator managed_allocator;
 
 void* ManagedAllocator::allocate(size_t bytes) {
+  assert(bytes != 0);
   void* data;
   cudaMallocManaged(&data, bytes);
   return data;
@@ -33,6 +34,7 @@ void operator delete[](void* ptr, ManagedAllocator& p) {
 }
 
 CUDA void* GlobalAllocator::allocate(size_t bytes) {
+  assert(bytes != 0);
   void* data;
   cudaError_t rc = cudaMalloc(&data, bytes);
   if (rc != cudaSuccess) {
@@ -68,6 +70,7 @@ CUDA PoolAllocator::PoolAllocator(const PoolAllocator& other):
   mem(other.mem), capacity(other.capacity), offset(other.offset) {}
 
 CUDA void* PoolAllocator::allocate(size_t bytes) {
+  assert(bytes != 0);
   assert(offset < capacity);
   void* m = (void*)&mem[offset];
   offset += bytes / sizeof(int);
@@ -90,7 +93,8 @@ CUDA void operator delete[](void* ptr, PoolAllocator& p) {}
 StandardAllocator standard_allocator;
 
 CUDA void* StandardAllocator::allocate(size_t bytes) {
- return ::operator new(bytes);
+  assert(bytes != 0);
+  return ::operator new(bytes);
 }
 
 CUDA void StandardAllocator::deallocate(void* data) {
