@@ -33,8 +33,8 @@ public:
   int uid;
   A(int i): uid(i){}
   virtual int id() { return uid; }
-  virtual A* clone(StandardAllocator& standard_allocator) const {
-    return new(standard_allocator) A(uid);
+  virtual A* clone(StandardAllocator& alloc) const {
+    return new(alloc) A(uid);
   }
 };
 
@@ -42,17 +42,17 @@ class B: public A {
 public:
   B(int i): A(i) {}
   virtual int id() { return uid * 10; }
-  virtual B* clone(StandardAllocator& standard_allocator) const {
-    return new(standard_allocator) B(uid);
+  virtual B* clone(StandardAllocator& alloc) const {
+    return new(alloc) B(uid);
   }
 };
 
 
 TEST(DArray, PolymorphicStorage) {
   DArray<A*, StandardAllocator> poly(3);
-  poly[0] = new A(1);
-  poly[1] = new B(2);
-  poly[2] = new B(3);
+  poly[0] = new(standard_allocator) A(1);
+  poly[1] = new(standard_allocator) B(2);
+  poly[2] = new(standard_allocator) B(3);
   int uids[3] = {1,20,30};
   for(int i = 0; i < poly.size(); ++i) {
     EXPECT_EQ(poly[i]->id(), uids[i]);
@@ -80,7 +80,7 @@ TEST(DArray, PolymorphicStorage) {
   }
 
   B* b = new B(2);
-  DArray<A*, StandardAllocator> poly5(3, new B(2));
+  DArray<A*, StandardAllocator> poly5(3, b);
   EXPECT_EQ(poly5.size(), 3);
   for(int i = 0; i < poly5.size(); ++i) {
     EXPECT_EQ(poly5[i]->id(), 20);
@@ -89,4 +89,9 @@ TEST(DArray, PolymorphicStorage) {
       EXPECT_NE(poly5[i], poly5[j]);
     }
   }
+
+  for(auto x : poly3) {
+    delete x;
+  }
+  delete b;
 }

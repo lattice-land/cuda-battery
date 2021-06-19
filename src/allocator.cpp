@@ -1,13 +1,14 @@
 // Copyright 2021 Pierre Talbot, Frédéric Pinel
 
 #include "allocator.hpp"
+#include <cstdlib>
 
 #ifdef __NVCC__
 
-ManagedAllocator managed_allocator;
-
 void* ManagedAllocator::allocate(size_t bytes) {
-  assert(bytes != 0);
+  if(bytes == 0) {
+    return nullptr;
+  }
   void* data;
   cudaMallocManaged(&data, bytes);
   return data;
@@ -21,48 +22,13 @@ void* operator new(size_t bytes, ManagedAllocator& p) {
   return p.allocate(bytes);
 }
 
-void* operator new[](size_t bytes, ManagedAllocator& p) {
-  return p.allocate(bytes);
-}
-
 void operator delete(void* ptr, ManagedAllocator& p) {
-  p.deallocate(ptr);
+  return p.deallocate(ptr);
 }
 
-void operator delete[](void* ptr, ManagedAllocator& p) {
-  p.deallocate(ptr);
-}
-
-CUDA void* GlobalAllocator::allocate(size_t bytes) {
-  assert(bytes != 0);
-  void* data;
-  cudaError_t rc = cudaMalloc(&data, bytes);
-  if (rc != cudaSuccess) {
-    printf("Allocation in global memory failed (error = %d)\n", rc);
-    assert(0);
-  }
-  return data;
-}
-
-CUDA void GlobalAllocator::deallocate(void* data) {
-  cudaFree(data);
-}
-
-CUDA void* operator new(size_t bytes, GlobalAllocator& p) {
-  return p.allocate(bytes);
-}
-
-CUDA void* operator new[](size_t bytes, GlobalAllocator& p) {
-  return p.allocate(bytes);
-}
-
-CUDA void operator delete(void* ptr, GlobalAllocator& p) {
-  p.deallocate(ptr);
-}
-
-CUDA void operator delete[](void* ptr, GlobalAllocator& p) {
-  p.deallocate(ptr);
-}
+ManagedAllocator managed_allocator;
+GlobalAllocatorGPU global_allocator_gpu;
+GlobalAllocatorCPU global_allocator_cpu;
 
 #endif // __NVCC__
 
@@ -70,7 +36,9 @@ CUDA PoolAllocator::PoolAllocator(const PoolAllocator& other):
   mem(other.mem), capacity(other.capacity), offset(other.offset) {}
 
 CUDA void* PoolAllocator::allocate(size_t bytes) {
-  assert(bytes != 0);
+  if(bytes == 0) {
+    return nullptr;
+  }
   assert(offset < capacity);
   void* m = (void*)&mem[offset];
   offset += bytes / sizeof(int);
@@ -78,41 +46,30 @@ CUDA void* PoolAllocator::allocate(size_t bytes) {
   return m;
 }
 
+CUDA void PoolAllocator::deallocate(void*) {}
+
 CUDA void* operator new(size_t bytes, PoolAllocator& p) {
   return p.allocate(bytes);
 }
 
-CUDA void* operator new[](size_t bytes, PoolAllocator& p) {
+CUDA void operator delete(void* ptr, PoolAllocator& p) {
+  return p.deallocate(ptr);
+}
+
+void* StandardAllocator::allocate(size_t bytes) {
+  return bytes == 0 ? nullptr : std::malloc(bytes);
+}
+
+void StandardAllocator::deallocate(void* data) {
+  std::free(data);
+}
+
+void* operator new(size_t bytes, StandardAllocator& p) {
   return p.allocate(bytes);
 }
 
-// For now, we don't support freeing the memory in the pool.
-CUDA void operator delete(void* ptr, PoolAllocator& p) {}
-CUDA void operator delete[](void* ptr, PoolAllocator& p) {}
+void operator delete(void* ptr, StandardAllocator& p) {
+  return p.deallocate(ptr);
+}
 
 StandardAllocator standard_allocator;
-
-CUDA void* StandardAllocator::allocate(size_t bytes) {
-  assert(bytes != 0);
-  return ::operator new(bytes);
-}
-
-CUDA void StandardAllocator::deallocate(void* data) {
-  ::operator delete(data);
-}
-
-CUDA void* operator new(size_t bytes, StandardAllocator& p) {
-  return p.allocate(bytes);
-}
-
-CUDA void* operator new[](size_t bytes, StandardAllocator& p) {
-  return p.allocate(bytes);
-}
-
-CUDA void operator delete(void* ptr, StandardAllocator& p) {
-  p.deallocate(ptr);
-}
-
-CUDA void operator delete[](void* ptr, StandardAllocator& p) {
-  p.deallocate(ptr);
-}

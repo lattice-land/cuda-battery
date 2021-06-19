@@ -28,7 +28,7 @@
   #define DEVICE
   #define HOST
   #define CUDA
-  #define CUDIE
+  #define CUDIE(S) S
   #define CUDIE0
 
   #include <algorithm>

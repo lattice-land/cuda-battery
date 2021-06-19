@@ -3,8 +3,10 @@ cmake_minimum_required(VERSION 3.20)
 include(FetchContent)
 include(CMakePrintHelpers)
 
-project(cuda-battery LANGUAGES CXX CUDA)
+project(cuda-battery LANGUAGES CUDA CXX)
 option(GPU "GPU" ON)
+
+add_link_options ($<DEVICE_LINK:-arch=sm_75>)
 
 if(NOT DEFINED CMAKE_CXX_STANDARD)
     set(CMAKE_CXX_STANDARD 20)
@@ -40,7 +42,7 @@ target_include_directories(cuda_battery PUBLIC include)
 
 if(GPU)
     set_property(TARGET cuda_battery PROPERTY CUDA_ARCHITECTURES 75)
-    set_property(TARGET cuda_battery APPEND PROPERTY CUDA_SEPARABLE_COMPILATION ON)
+    set_property(TARGET cuda_battery PROPERTY CUDA_SEPARABLE_COMPILATION ON)
 endif()
 
 target_compile_options(cuda_battery PRIVATE
@@ -94,9 +96,11 @@ gtest_discover_tests(string_test)
 if(GPU)
   set_source_files_properties(tests/polymorphic_darray_test.cpp PROPERTIES LANGUAGE CUDA)
   add_executable(polymorphic_darray_test tests/polymorphic_darray_test.cpp)
-  set_property(TARGET polymorphic_darray_test APPEND PROPERTY CUDA_SEPARABLE_COMPILATION ON)
+  set_property(TARGET polymorphic_darray_test PROPERTY CUDA_SEPARABLE_COMPILATION ON)
   set_property(TARGET polymorphic_darray_test PROPERTY CUDA_ARCHITECTURES 75)
-  target_compile_options(polymorphic_darray_test PRIVATE --expt-relaxed-constexpr -rdc=true)
+  target_compile_options(polymorphic_darray_test PRIVATE --expt-relaxed-constexpr -rdc=true
+    $<$<CONFIG:Debug>:-g -DDEBUG>
+    $<$<CONFIG:LDebug>:-g -DTRACE>)
   target_link_libraries(polymorphic_darray_test cuda_battery)
   add_test(polymorphic_darray_test polymorphic_darray_test)
 endif()

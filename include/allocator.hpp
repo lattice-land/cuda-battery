@@ -15,7 +15,7 @@ This allows us to provide uniform interfaces for both host (C++) and device (CUD
 
 #ifdef __NVCC__
 
-/** A stateless allocator using the managed memory of CUDA.
+/** An allocator using the managed memory of CUDA.
 This can only be used from the host side since managed memory cannot be allocated in device functions. */
 class ManagedAllocator {
 public:
@@ -23,25 +23,48 @@ public:
   void deallocate(void* data);
 };
 
+void* operator new(size_t bytes, ManagedAllocator& p);
+void operator delete(void* ptr, ManagedAllocator& p);
+
 extern ManagedAllocator managed_allocator;
 
-void* operator new(size_t bytes, ManagedAllocator& p);
-void* operator new[](size_t bytes, ManagedAllocator& p);
-void operator delete(void* ptr, ManagedAllocator& p);
-void operator delete[](void* ptr, ManagedAllocator& p);
-
-/** A stateless allocator using the global memory of CUDA.
+/** An allocator using the global memory of CUDA.
 This can be used from both the host and device side, but the memory can only be accessed when in a device function. */
+template<bool on_gpu>
 class GlobalAllocator {
 public:
-  CUDA void* allocate(size_t bytes);
-  CUDA void deallocate(void* data);
+  CUDA void* allocate(size_t bytes) {
+    if(bytes == 0) {
+      return nullptr;
+    }
+    void* data;
+    cudaError_t rc = cudaMalloc(&data, bytes);
+    if (rc != cudaSuccess) {
+      printf("Allocation in global memory failed (error = %d)\n", rc);
+      assert(0);
+    }
+    return data;
+  }
+
+  CUDA void deallocate(void* data) {
+    cudaFree(data);
+  }
 };
 
-CUDA void* operator new(size_t bytes, GlobalAllocator& p);
-CUDA void* operator new[](size_t bytes, GlobalAllocator& p);
-CUDA void operator delete(void* ptr, GlobalAllocator& p);
-CUDA void operator delete[](void* ptr, GlobalAllocator& p);
+template<bool on_gpu>
+CUDA void* operator new(size_t bytes, GlobalAllocator<on_gpu>& p) {
+  return p.allocate(bytes);
+}
+
+template<bool on_gpu>
+CUDA void operator delete(void* ptr, GlobalAllocator<on_gpu>& p) {
+  p.deallocate(ptr);
+}
+
+typedef GlobalAllocator<true> GlobalAllocatorGPU;
+typedef GlobalAllocator<false> GlobalAllocatorCPU;
+extern GlobalAllocatorGPU global_allocator_gpu;
+extern GlobalAllocatorCPU global_allocator_cpu;
 
 #endif // __NVCC__
 
@@ -57,27 +80,21 @@ public:
   CUDA PoolAllocator(int* mem, size_t capacity);
   CUDA PoolAllocator() = delete;
   CUDA void* allocate(size_t bytes);
+  CUDA void deallocate(void* ptr);
 };
 
 CUDA void* operator new(size_t bytes, PoolAllocator& p);
-CUDA void* operator new[](size_t bytes, PoolAllocator& p);
 CUDA void operator delete(void* ptr, PoolAllocator& p);
-CUDA void operator delete[](void* ptr, PoolAllocator& p);
 
-/** This allocator calls the standard C++ allocation function.
-It is similar to `std::allocator` but we have the operators `new` and `new[]` compatible with our current allocator design. */
+/** This allocator call the standard `malloc` and `free`. */
 class StandardAllocator {
 public:
-  CUDA void* allocate(size_t bytes);
-  CUDA void deallocate(void* data);
+  void* allocate(size_t bytes);
+  void deallocate(void* data);
 };
 
+void* operator new(size_t bytes, StandardAllocator& p);
+void operator delete(void* ptr, StandardAllocator& p);
 extern StandardAllocator standard_allocator;
-
-CUDA void* operator new(size_t bytes, StandardAllocator& p);
-CUDA void* operator new[](size_t bytes, StandardAllocator& p);
-CUDA void operator delete(void* ptr, StandardAllocator& p);
-CUDA void operator delete[](void* ptr, StandardAllocator& p);
-
 
 #endif // ALLOCATOR_HPP
