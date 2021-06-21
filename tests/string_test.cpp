@@ -28,6 +28,10 @@ TEST(String, Constructor) {
   test_string(a5, "");
   String<StandardAllocator> a6;
   test_string(a6, "");
+  String<StandardAllocator> a7(a1);
+  test_string(a7, "abc");
+  String<StandardAllocator> a8 = a7;
+  test_string(a8, "abc");
 }
 
 TEST(String, Equality) {

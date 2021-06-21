@@ -26,6 +26,10 @@ TEST(DArray, Constructor) {
   test_array(a5, 3, 0);
   DArray<int, StandardAllocator> a6;
   test_array(a6, 0, 0);
+  DArray<int, StandardAllocator> a7(std::move(a1));
+  test_array(a7, 3, 2);
+  DArray<int, StandardAllocator> a8 = a7;
+  test_array(a8, 3, 2);
 }
 
 class A {

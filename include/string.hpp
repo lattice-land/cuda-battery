@@ -27,14 +27,21 @@ public:
 
   /** Copy constructor with an allocator. */
   template <typename Allocator2>
-  CUDA String(const String<Allocator2>& from, const Allocator& alloc = Allocator()):
-    data_(from.data_, alloc) {}
+  CUDA String(const String<Allocator2>& other, const Allocator& alloc = Allocator()):
+    data_(other.data_, alloc) {}
 
   /** Redefine the copy constructor to be sure it calls a constructor with an allocator. */
-  CUDA String(const String<Allocator>& from): String(from, Allocator()) {}
+  CUDA String(const String<Allocator>& other): String(other, Allocator()) {}
 
-  HOST String(const std::string& from, const Allocator& alloc = Allocator()):
-    data_(from.size(), from.data(), alloc) {}
+  CUDA String(String<Allocator>&& other) = default;
+  CUDA String<Allocator>& operator=(const String<Allocator>& other) = delete;
+  CUDA String<Allocator>& operator=(String<Allocator> other) {
+    data_ = other.data_;
+    return *this;
+  }
+
+  HOST String(const std::string& other, const Allocator& alloc = Allocator()):
+    data_(other.size(), other.data(), alloc) {}
 
   CUDA size_t size() const { return data_.size(); }
   CUDA char& operator[](size_t i) { return data_[i]; }

@@ -132,6 +132,10 @@ If you use this class to store an array of polymorphic objects, the polymorphic 
 See also `tests/polymorphic_darray_test.cpp` for example on how to implement the `clone` methods and using DArray as a polymorphic container. */
 template<typename T, typename Allocator>
 class DArray {
+public:
+  typedef DArray<T, Allocator> this_type;
+
+private:
   T* data_;
   size_t n;
   Allocator allocator;
@@ -154,8 +158,16 @@ class DArray {
 
   template<typename T2, typename Allocator2> friend class DArray;
 
+  void swap(this_type& other) {
+    ::swap(n, other.n);
+    ::swap(data_, other.data_);
+    ::swap(allocator, other.allocator);
+    #ifdef __NVCC__
+      ::swap(shared, other.shared);
+    #endif
+  }
+
 public:
-  typedef DArray<T, Allocator> this_type;
 
 #ifdef __NVCC__
   DEVICE DArray<T, GlobalAllocatorGPU> viewOnGPU() {
@@ -222,6 +234,10 @@ public:
     }
   }
 
+  CUDA DArray(this_type&& other): DArray() {
+    swap(other);
+  }
+
   HOST DArray(const std::vector<T>& from, const Allocator& alloc = Allocator()):
     DArray(from.size(), from.data(), alloc) {}
 
@@ -236,10 +252,18 @@ public:
         impl::TypeAllocatorDispatch<T, Allocator>::destroy(data_, i, allocator);
       }
       deallocate();
+      data_ = nullptr;
+      n = 0;
     }
     else {
       assert(n == 0);
     }
+  }
+
+  CUDA this_type& operator=(const this_type& other) = delete;
+  CUDA this_type& operator=(this_type other) {
+    swap(other);
+    return *this;
   }
 
   CUDA size_t size() const { return n; }
