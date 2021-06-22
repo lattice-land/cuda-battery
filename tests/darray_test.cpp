@@ -12,6 +12,8 @@ void test_array(const DArray<int, Allocator>& a, size_t size, int elem) {
   }
 }
 
+DArray<int, StandardAllocator>& get_ref(DArray<int, StandardAllocator>& x) { return x; }
+
 TEST(DArray, Constructor) {
   DArray<int, StandardAllocator> a1(3, 2);
   DArray<int, StandardAllocator> a2({2,2,2});
@@ -30,6 +32,19 @@ TEST(DArray, Constructor) {
   test_array(a7, 3, 2);
   DArray<int, StandardAllocator> a8 = a7;
   test_array(a8, 3, 2);
+  DArray<int, StandardAllocator> a9;
+  get_ref(a9) = std::move(a8);
+  test_array(a9, 3, 2);
+}
+
+TEST(DArray, Equality) { // NOTE: Further (indirectly) tested in string_test.
+  DArray<int, StandardAllocator> a1({1,2,3});
+  DArray<int, StandardAllocator> a2({1,2,3});
+  DArray<int, StandardAllocator> a3({2,3,4});
+  EXPECT_TRUE(a1 == a2);
+  EXPECT_TRUE(a2 == a1);
+  EXPECT_FALSE(a1 == a3);
+  EXPECT_FALSE(a3 == a1);
 }
 
 class A {

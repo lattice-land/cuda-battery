@@ -34,7 +34,6 @@ public:
   CUDA String(const String<Allocator>& other): String(other, Allocator()) {}
 
   CUDA String(String<Allocator>&& other) = default;
-  CUDA String<Allocator>& operator=(const String<Allocator>& other) = delete;
   CUDA String<Allocator>& operator=(String<Allocator> other) {
     data_ = other.data_;
     return *this;
@@ -49,20 +48,13 @@ public:
   CUDA char* data() { return data_.data(); }
   CUDA const char* data() const { return data_.data(); }
 
-  template<typename Allocator2>
-  CUDA bool operator==(const String<Allocator2>& other) const {
-    if(size() != other.size()) {
-      return false;
-    }
-    else {
-      for(size_t i = 0; i < size(); ++i) {
-        if((*this)[i] != other[i]) {
-          return false;
-        }
-      }
-    }
-    return true;
-  }
+  template<typename Alloc>
+  CUDA friend bool operator==(const String<Alloc>& lhs, const String<Alloc>& rhs);
 };
+
+template<typename Allocator>
+CUDA bool operator==(const String<Allocator>& lhs, const String<Allocator>& rhs) {
+  return lhs.data_ == rhs.data_;
+}
 
 #endif

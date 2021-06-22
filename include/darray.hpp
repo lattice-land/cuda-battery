@@ -202,7 +202,7 @@ public:
   }
 
   /** Default constructor. Since the size is 0 and the array cannot be extended, the allocator does not matter.*/
-  CUDA DArray(): DArray(0) {}
+  CUDA DArray(): n(0), allocator(Allocator()), data_(nullptr) {}
 
   /** Allocate an array of size `n` using `allocator`.
       Initialize the elements of the array with those of `from`. */
@@ -260,7 +260,6 @@ public:
     }
   }
 
-  CUDA this_type& operator=(const this_type& other) = delete;
   CUDA this_type& operator=(this_type other) {
     swap(other);
     return *this;
@@ -286,5 +285,20 @@ public:
   CUDA T* data() { return data_; }
   CUDA const T* data() const { return data_; }
 };
+
+template<typename T, typename Allocator>
+CUDA bool operator==(const DArray<T, Allocator>& lhs, const DArray<T, Allocator>& rhs) {
+  if(lhs.size() != rhs.size()) {
+    return false;
+  }
+  else {
+    for(size_t i = 0; i < lhs.size(); ++i) {
+      if(!(lhs[i] == rhs[i])) {
+        return false;
+      }
+    }
+  }
+  return true;
+}
 
 #endif
