@@ -33,7 +33,7 @@ public:
   /** Redefine the copy constructor to be sure it calls a constructor with an allocator. */
   CUDA String(const String<Allocator>& other): String(other, Allocator()) {}
 
-  CUDA String(String<Allocator>&& other) = default;
+  String(String<Allocator>&& other) = default;
   CUDA String<Allocator>& operator=(String<Allocator> other) {
     data_ = other.data_;
     return *this;
