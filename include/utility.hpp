@@ -84,4 +84,20 @@ struct Limits {
   #define INFO(X)
 #endif
 
+template<typename T>
+CUDA void print(const T& t) {
+  t.print();
+}
+template<> CUDA void print(const char &x);
+template<> CUDA void print(char const* const &x);
+template<> CUDA void print(const int &x);
+template<> CUDA void print(const long long int &x);
+template<> CUDA void print(const long int &x);
+template<> CUDA void print(const unsigned int &x);
+template<> CUDA void print(const unsigned long &x);
+template<> CUDA void print(const unsigned long long &x);
+template<> CUDA void print(const float &x);
+template<> CUDA void print(const double &x);
+
+
 #endif // UTILITY_HPP

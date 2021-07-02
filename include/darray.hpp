@@ -158,7 +158,7 @@ private:
 
   template<typename T2, typename Allocator2> friend class DArray;
 
-  void swap(this_type& other) {
+  CUDA void swap(this_type& other) {
     ::swap(n, other.n);
     ::swap(data_, other.data_);
     ::swap(allocator, other.allocator);
@@ -284,6 +284,15 @@ public:
   }
   CUDA T* data() { return data_; }
   CUDA const T* data() const { return data_; }
+
+  CUDA void print() const {
+    for(size_t i = 0; i < n; ++i) {
+      ::print(data_[i]);
+      if(i < n - 1) {
+        printf(", ");
+      }
+    }
+  }
 };
 
 template<typename T, typename Allocator>
@@ -299,6 +308,11 @@ CUDA bool operator==(const DArray<T, Allocator>& lhs, const DArray<T, Allocator>
     }
   }
   return true;
+}
+
+template<typename T, typename Allocator>
+CUDA bool operator!=(const DArray<T, Allocator>& lhs, const DArray<T, Allocator>& rhs) {
+  return !(lhs == rhs);
 }
 
 #endif

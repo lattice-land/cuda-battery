@@ -86,6 +86,23 @@ CUDA_GLOBAL void test_poly(int* res, DArray<A*, GlobalAllocatorCPU>* poly_ptr) {
   if(*res == 1) { printf("Testing poly2 failed\n"); return; }
 }
 
+// This test the variant class on GPU, it could be extracted in another class, but for now, let's keep the cmake file simple.
+// We also test how it works in cooperation with array so I guess it's ok to leave it here for now.
+#include "variant.hpp"
+CUDA_GLOBAL void test_variant(int* res) {
+  using Arr = DArray<int, GlobalAllocatorGPU>;
+  using DataT = Variant<char, Arr>;
+  DataT a1(DataT::create<1>(Arr(3, 2)));
+  DataT a2(DataT::create<1>(Arr(3, 2)));
+  DataT a3(DataT::create<0>(100));
+  if(a1 != a2) { *res = 1; printf("Testing a1 == a2 failed\n"); return; }
+  if(a1 == a3) { *res = 1; printf("Testing a1 != a3 failed\n"); return; }
+  if(a1.index() != 1) { *res = 1; printf("Testing a1.index() != 1 failed\n"); return; }
+  if(a3.index() != 0) { *res = 1; printf("Testing a3.index() != 0 failed\n"); return; }
+  if(get<0>(a3) != 100) { *res = 1; printf("Testing get<0>(a3) != 100 failed\n"); return; }
+  if(get<1>(a1) != Arr(3, 2)) { *res = 1; printf("Testing get<1>(a3) != a2 failed\n"); return; }
+}
+
 int main() {
   DArray<A*, GlobalAllocatorCPU> test(3);
   DArray<A*, StandardAllocator> cpu_poly(3);
@@ -97,5 +114,9 @@ int main() {
   int* res = new(managed_allocator) int(0);
   test_poly<<<1,1>>>(res, gpu_poly);
   CUDIE(cudaDeviceSynchronize());
+  if(*res == 0) {
+    test_variant<<<1,1>>>(res);
+    CUDIE(cudaDeviceSynchronize());
+  }
   return *res;
 }

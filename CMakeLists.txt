@@ -54,44 +54,23 @@ target_compile_options(cuda_battery PRIVATE
 )
 
 enable_testing()
-
-add_executable(
-  utility_test
-  tests/utility_test.cpp
-)
-
-target_link_libraries(
-  utility_test
-  cuda_battery
-  gtest_main
-)
-
-add_executable(
-  darray_test
-  tests/darray_test.cpp
-)
-
-target_link_libraries(
-  darray_test
-  cuda_battery
-  gtest_main
-)
-
-add_executable(
-  string_test
-  tests/string_test.cpp
-)
-
-target_link_libraries(
-  string_test
-  cuda_battery
-  gtest_main
-)
-
 include(GoogleTest)
+
+add_executable(utility_test tests/utility_test.cpp)
+target_link_libraries(utility_test cuda_battery gtest_main)
 gtest_discover_tests(utility_test)
+
+add_executable(darray_test tests/darray_test.cpp)
+target_link_libraries(darray_test cuda_battery gtest_main)
 gtest_discover_tests(darray_test)
+
+add_executable(string_test tests/string_test.cpp)
+target_link_libraries(string_test cuda_battery gtest_main)
 gtest_discover_tests(string_test)
+
+add_executable(variant_test tests/variant_test.cpp)
+target_link_libraries(variant_test cuda_battery gtest_main)
+gtest_discover_tests(variant_test)
 
 if(GPU)
   set_source_files_properties(tests/polymorphic_darray_test.cpp PROPERTIES LANGUAGE CUDA)
@@ -102,7 +81,7 @@ if(GPU)
     $<$<CONFIG:Debug>:-g -DDEBUG>
     $<$<CONFIG:LDebug>:-g -DTRACE>)
   target_link_libraries(polymorphic_darray_test cuda_battery)
-  add_test(polymorphic_darray_test polymorphic_darray_test)
+  add_test(NAME polymorphic_darray_test COMMAND cuda-memcheck --error-exitcode 1 $<TARGET_FILE:polymorphic_darray_test>)
 endif()
 
 # Documentation

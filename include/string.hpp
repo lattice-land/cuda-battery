@@ -48,6 +48,10 @@ public:
   CUDA char* data() { return data_.data(); }
   CUDA const char* data() const { return data_.data(); }
 
+  CUDA void print() const {
+    ::print(data());
+  }
+
   template<typename Alloc>
   CUDA friend bool operator==(const String<Alloc>& lhs, const String<Alloc>& rhs);
 };
@@ -55,6 +59,11 @@ public:
 template<typename Allocator>
 CUDA bool operator==(const String<Allocator>& lhs, const String<Allocator>& rhs) {
   return lhs.data_ == rhs.data_;
+}
+
+template<typename Allocator>
+CUDA bool operator!=(const String<Allocator>& lhs, const String<Allocator>& rhs) {
+  return !(lhs == rhs);
 }
 
 #endif
