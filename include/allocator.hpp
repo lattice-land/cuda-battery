@@ -61,8 +61,8 @@ CUDA void operator delete(void* ptr, GlobalAllocator<on_gpu>& p) {
   p.deallocate(ptr);
 }
 
-typedef GlobalAllocator<true> GlobalAllocatorGPU;
-typedef GlobalAllocator<false> GlobalAllocatorCPU;
+using GlobalAllocatorGPU = GlobalAllocator<true>;
+using GlobalAllocatorCPU = GlobalAllocator<false>;
 extern GlobalAllocatorGPU global_allocator_gpu;
 extern GlobalAllocatorCPU global_allocator_cpu;
 

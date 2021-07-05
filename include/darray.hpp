@@ -50,7 +50,7 @@ namespace impl {
 
 #define DESTROY_BODY \
   if constexpr(std::is_pointer_v<T> && std::is_polymorphic_v<std::remove_pointer_t<T>>) { \
-    typedef std::remove_pointer_t<T> U; \
+    using U = std::remove_pointer_t<T>; \
     array[i]->~U(); \
     allocator.deallocate(array[i]); \
   } \
@@ -76,7 +76,7 @@ struct TypeAllocatorDispatch {
 template<typename T>
 struct TypeAllocatorDispatch<T, GlobalAllocatorGPU> {
   DEVICE static void build(T* array, size_t i, const T& from, GlobalAllocatorGPU& allocator) {
-    typedef GlobalAllocatorGPU Allocator;
+    using Allocator = GlobalAllocatorGPU;
     BUILD_BODY
   }
 
@@ -133,7 +133,7 @@ See also `tests/polymorphic_darray_test.cpp` for example on how to implement the
 template<typename T, typename Allocator>
 class DArray {
 public:
-  typedef DArray<T, Allocator> this_type;
+  using this_type = DArray<T, Allocator>;
 
 private:
   T* data_;

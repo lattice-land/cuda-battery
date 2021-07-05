@@ -12,7 +12,7 @@ template<typename Allocator>
 class String {
   DArray<char, Allocator> data_;
 public:
-  typedef String<Allocator> this_type;
+  using this_type = String<Allocator>;
 
   /** Allocate a string of size `n` using `allocator`. */
   CUDA String(size_t n, const Allocator& alloc = Allocator()):
