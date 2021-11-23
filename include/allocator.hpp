@@ -122,12 +122,14 @@ public:
 
 template<typename A>
 struct FasterAllocator {
-  static A& fast(A& a) { return a; }
+  using type = A;
+  static type& fast(A& a) { return a; }
 };
 
 template<typename A, typename B>
 struct FasterAllocator<TradeoffAllocator<A, B>> {
-  static B& fast(TradeoffAllocator<A, B>& a) { return a.fast(); }
+  using type = B;
+  static type& fast(TradeoffAllocator<A, B>& a) { return a.fast(); }
 };
 
 #endif // ALLOCATOR_HPP
