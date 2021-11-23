@@ -97,4 +97,37 @@ void* operator new(size_t bytes, StandardAllocator& p);
 void operator delete(void* ptr, StandardAllocator& p);
 extern StandardAllocator standard_allocator;
 
+/** `A` is an allocator for a "slow but large" memory, and `B` is an allocator for a "fast but small" memory.
+ * By default, the allocator `A` is used, unless `B` is explicitly asked through `fast()`. */
+template <typename A, typename B>
+class TradeoffAllocator {
+  A a;
+  B b;
+public:
+  using LargeMemAllocator = A;
+  using FastMemAllocator = B;
+
+  TradeoffAllocator(const A& a, const B& b): a(a), b(b) {}
+  TradeoffAllocator(const B& b): a(), b(b) {}
+  void* allocate(size_t bytes) {
+    return a.allocate(bytes);
+  }
+
+  void deallocate(void* data) {
+    return a.deallocate(data);
+  }
+
+  B& fast() { return b; }
+};
+
+template<typename A>
+struct FasterAllocator {
+  static A& fast(A& a) { return a; }
+};
+
+template<typename A, typename B>
+struct FasterAllocator<TradeoffAllocator<A, B>> {
+  static B& fast(TradeoffAllocator<A, B>& a) { return a.fast(); }
+};
+
 #endif // ALLOCATOR_HPP
