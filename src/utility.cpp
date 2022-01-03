@@ -2,6 +2,8 @@
 
 #include "utility.hpp"
 
+namespace battery {
+
 namespace impl {
   CUDA size_t strlen(const char* str) {
     size_t n = 0;
@@ -20,3 +22,5 @@ template<> CUDA void print(const unsigned long &x) { printf("%lu", x); }
 template<> CUDA void print(const unsigned long long &x) { printf("%llu", x); }
 template<> CUDA void print(const float &x) { printf("%f", x); }
 template<> CUDA void print(const double &x) { printf("%lf", x); }
+
+} // namespace battery

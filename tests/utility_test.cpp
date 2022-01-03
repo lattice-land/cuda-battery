@@ -5,6 +5,8 @@
 #include <climits>
 #include <cmath>
 
+using namespace battery;
+
 TEST(Utility, Swap) {
   int i = 0;
   int j = 1;

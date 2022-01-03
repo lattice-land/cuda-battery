@@ -30,14 +30,16 @@
 
   #include <algorithm>
   #include <cstring> // for strlen
-  using std::min;
-  using std::max;
-  using std::swap;
+
   namespace battery {
+    using std::min;
+    using std::max;
+    using std::swap;
     using std::strlen;
   }
 #endif
 
+namespace battery {
 namespace impl {
   template<typename T> CUDA void swap(T& a, T& b) {
     T c(std::move(a));
@@ -50,9 +52,7 @@ namespace impl {
 
 #ifdef __NVCC__
   using impl::swap;
-  namespace battery { // otherwise strlen conflicts with another declaration... (I don't know why).
-    using impl::strlen;
-  }
+  using impl::strlen;
 #endif
 
 template<typename N>
@@ -99,5 +99,6 @@ template<> CUDA void print(const unsigned long long &x);
 template<> CUDA void print(const float &x);
 template<> CUDA void print(const double &x);
 
+} // namespace battery
 
 #endif // UTILITY_HPP

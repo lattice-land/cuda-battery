@@ -8,6 +8,7 @@
 #include <type_traits>
 #include "utility.hpp"
 
+namespace battery {
 namespace impl {
 
 template<size_t n, typename... Ts>
@@ -55,7 +56,7 @@ struct variant_helper_rec<n, F, Ts...>
   CUDA inline static void print(size_t id, const void* a)
   {
     if (n == id) {
-      ::print(*reinterpret_cast<const F*>(a));
+      ::battery::print(*reinterpret_cast<const F*>(a));
     } else {
       variant_helper_rec<n + 1, Ts...>::print(id, a);
     }
@@ -265,5 +266,7 @@ template<typename... Ts>
 CUDA bool operator!=(const Variant<Ts...>& lhs, const Variant<Ts...>& rhs) {
   return !(lhs == rhs);
 }
+
+} // namespace battery
 
 #endif

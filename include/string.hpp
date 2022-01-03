@@ -7,6 +7,8 @@
 #include "utility.hpp"
 #include "darray.hpp"
 
+namespace battery {
+
 /** `String` represents a fixed sized array of characters based on `DArray<char>` (see darray.hpp). */
 template<typename Allocator>
 class String {
@@ -49,7 +51,7 @@ public:
   CUDA const char* data() const { return data_.data(); }
 
   CUDA void print() const {
-    ::print(data());
+    ::battery::print(data());
   }
 
   template<typename Alloc>
@@ -65,5 +67,7 @@ template<typename Allocator>
 CUDA bool operator!=(const String<Allocator>& lhs, const String<Allocator>& rhs) {
   return !(lhs == rhs);
 }
+
+} // namespace battery
 
 #endif

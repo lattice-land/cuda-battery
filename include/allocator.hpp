@@ -13,7 +13,10 @@ This allows us to provide uniform interfaces for both host (C++) and device (CUD
 #include <type_traits>
 #include "utility.hpp"
 
+
 #ifdef __NVCC__
+
+namespace battery {
 
 /** An allocator using the managed memory of CUDA.
 This can only be used from the host side since managed memory cannot be allocated in device functions. */
@@ -22,9 +25,6 @@ public:
   void* allocate(size_t bytes);
   void deallocate(void* data);
 };
-
-void* operator new(size_t bytes, ManagedAllocator& p);
-void operator delete(void* ptr, ManagedAllocator& p);
 
 extern ManagedAllocator managed_allocator;
 
@@ -51,22 +51,29 @@ public:
   }
 };
 
-template<bool on_gpu>
-CUDA void* operator new(size_t bytes, GlobalAllocator<on_gpu>& p) {
-  return p.allocate(bytes);
-}
-
-template<bool on_gpu>
-CUDA void operator delete(void* ptr, GlobalAllocator<on_gpu>& p) {
-  p.deallocate(ptr);
-}
-
 using GlobalAllocatorGPU = GlobalAllocator<true>;
 using GlobalAllocatorCPU = GlobalAllocator<false>;
 extern GlobalAllocatorGPU global_allocator_gpu;
 extern GlobalAllocatorCPU global_allocator_cpu;
 
+} // namespace battery
+
+void* operator new(size_t bytes, battery::ManagedAllocator& p);
+void operator delete(void* ptr, battery::ManagedAllocator& p);
+
+template<bool on_gpu>
+CUDA void* operator new(size_t bytes, battery::GlobalAllocator<on_gpu>& p) {
+  return p.allocate(bytes);
+}
+
+template<bool on_gpu>
+CUDA void operator delete(void* ptr, battery::GlobalAllocator<on_gpu>& p) {
+  p.deallocate(ptr);
+}
+
 #endif // __NVCC__
+
+namespace battery {
 
 /** An allocator allocating memory from a pool of memory.
 The memory can for instance be the CUDA shared memory.
@@ -83,9 +90,6 @@ public:
   CUDA void deallocate(void* ptr);
 };
 
-CUDA void* operator new(size_t bytes, PoolAllocator& p);
-CUDA void operator delete(void* ptr, PoolAllocator& p);
-
 /** This allocator call the standard `malloc` and `free`. */
 class StandardAllocator {
 public:
@@ -93,8 +97,6 @@ public:
   void deallocate(void* data);
 };
 
-void* operator new(size_t bytes, StandardAllocator& p);
-void operator delete(void* ptr, StandardAllocator& p);
 extern StandardAllocator standard_allocator;
 
 /** `A` is an allocator for a "slow but large" memory, and `B` is an allocator for a "fast but small" memory.
@@ -131,5 +133,14 @@ struct FasterAllocator<TradeoffAllocator<A, B>> {
   using type = B;
   static type& fast(TradeoffAllocator<A, B>& a) { return a.fast(); }
 };
+
+} // namespace battery
+
+void* operator new(size_t bytes, battery::StandardAllocator& p);
+void operator delete(void* ptr, battery::StandardAllocator& p);
+
+CUDA void* operator new(size_t bytes, battery::PoolAllocator& p);
+CUDA void operator delete(void* ptr, battery::PoolAllocator& p);
+
 
 #endif // ALLOCATOR_HPP

@@ -7,6 +7,8 @@
 #include "allocator.hpp"
 #include "darray.hpp"
 
+using namespace battery;
+
 class Formula {
   using DataT = Variant<char, String<StandardAllocator>, DArray<Formula, StandardAllocator>>;
   DataT data;

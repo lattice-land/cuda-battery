@@ -19,6 +19,8 @@
 #include <cassert>
 #include "cuda_helper.hpp"
 
+namespace battery {
+
 template <size_t N>
 struct Bitset {
   int set[N];
@@ -214,5 +216,7 @@ struct Bitset {
     return N * iSize;
   }
 };
+
+} // namespace battery
 
 #endif

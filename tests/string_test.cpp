@@ -5,6 +5,8 @@
 #include "allocator.hpp"
 #include "utility.hpp"
 
+using namespace battery;
+
 template<typename Allocator>
 void test_string(const String<Allocator>& a, const char* expect) {
   EXPECT_EQ(a.size(), battery::strlen(expect));

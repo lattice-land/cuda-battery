@@ -3,6 +3,8 @@
 #include "darray.hpp"
 #include "allocator.hpp"
 
+using namespace battery;
+
 class A;
 class B;
 CUDA_GLOBAL void init_A(A** p, int uid);

@@ -4,6 +4,8 @@
 #include "darray.hpp"
 #include "allocator.hpp"
 
+using namespace battery;
+
 template<typename Allocator>
 void test_array(const DArray<int, Allocator>& a, size_t size, int elem) {
   EXPECT_EQ(a.size(), size);
