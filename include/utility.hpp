@@ -12,6 +12,7 @@
   #define DEVICE __device__
   #define HOST __host__
   #define CUDA DEVICE HOST
+  #define INLINE __forceinline__
 
   #define CUDIE(result) { \
     cudaError_t e = (result); \
@@ -27,6 +28,7 @@
   #define CUDA
   #define CUDIE(S) S
   #define CUDIE0
+  #define INLINE inline
 
   #include <algorithm>
   #include <cstring> // for strlen
