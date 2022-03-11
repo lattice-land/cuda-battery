@@ -118,7 +118,7 @@ struct TypeAllocatorDispatch<T, GlobalAllocatorCPU> {
 #endif
 }
 
-/** `DArray<T, Allocator>` is a dynamic array (so the size can depends on runtime value), but once created, the size cannot be modified (e.g., no `push_back` method).
+/** `DArray<T, Allocator>` is a dynamic array (so the size can depends on runtime value), but once created, the size can only be modified with a resize function (e.g., no `push_back` method).
 It has some dedicated support for collection of _polymorphic objects_.
 `DArray` is also usable on CPU using `StandardAllocator` (see allocator.hpp).
 
@@ -196,9 +196,16 @@ public:
           return;
         }
       #endif
-      T def = T();
-      for(size_t i = 0; i < n; ++i) {
-        impl::TypeAllocatorDispatch<T, Allocator>::build(data_, i, def, allocator);
+      if constexpr(std::is_pointer_v<T>) {
+        for(size_t i = 0; i < n; ++i) {
+          data_[i] = nullptr;
+        }
+      }
+      else {
+        T def = T();
+        for(size_t i = 0; i < n; ++i) {
+          impl::TypeAllocatorDispatch<T, Allocator>::build(data_, i, def, allocator);
+        }
       }
     }
   }
