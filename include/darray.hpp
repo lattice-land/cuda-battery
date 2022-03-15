@@ -25,8 +25,10 @@ namespace impl {
 
   template<typename T>
   CUDA_GLOBAL void delete_one(T** array, size_t i) {
-    array[i]->~T();
-    cudaFree(array[i]);
+    if(array[i] != nullptr) {
+      array[i]->~T();
+      cudaFree(array[i]);
+    }
   }
 
   template<typename T>
@@ -53,13 +55,14 @@ namespace impl {
 #define DESTROY_BODY \
   if constexpr(std::is_pointer_v<T> && std::is_polymorphic_v<std::remove_pointer_t<T>>) { \
     using U = std::remove_pointer_t<T>; \
-    array[i]->~U(); \
-    allocator.deallocate(array[i]); \
+    if(array[i] != nullptr) { \
+      array[i]->~U(); \
+      allocator.deallocate(array[i]); \
+    } \
   } \
   else if constexpr(std::is_destructible_v<T>) { \
     array[i].~T(); \
   }
-
 
 /** `TypeAllocatorDispatch` is useful for `DArray` to enforce the copy semantics mentioned there. */
 template<typename T, typename Allocator>
