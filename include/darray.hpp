@@ -213,8 +213,8 @@ public:
     }
   }
 
-  /** Default constructor. Since the size is 0 and the array cannot be extended, the allocator does not matter.*/
-  CUDA DArray(): n(0), allocator(Allocator()), data_(nullptr) {}
+  /** Default constructor.*/
+  CUDA DArray(const Allocator& alloc = Allocator()): n(0), allocator(alloc), data_(nullptr) {}
 
   /** Allocate an array of size `n` using `allocator`.
       Initialize the elements of the array with those of `from`. */
