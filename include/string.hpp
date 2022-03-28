@@ -47,11 +47,17 @@ public:
   CUDA size_t size() const { return data_.size(); }
   CUDA char& operator[](size_t i) { return data_[i]; }
   CUDA const char& operator[](size_t i) const { return data_[i]; }
+
+  /** Be careful, the resulting array is not NULL-terminated (see issue #1). */
   CUDA char* data() { return data_.data(); }
+
+  /** Be careful, the resulting array is not NULL-terminated (see issue #1). */
   CUDA const char* data() const { return data_.data(); }
 
   CUDA void print() const {
-    ::battery::print(data());
+    for(size_t i = 0; i < size(); ++i) {
+      printf("%c", data()[i]);
+    }
   }
 
   template<typename Alloc>
