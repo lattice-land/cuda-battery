@@ -72,6 +72,10 @@ add_executable(variant_test tests/variant_test.cpp)
 target_link_libraries(variant_test cuda_battery gtest_main)
 gtest_discover_tests(variant_test)
 
+add_executable(vector_test tests/vector_test.cpp)
+target_link_libraries(vector_test cuda_battery gtest_main)
+gtest_discover_tests(vector_test)
+
 if(GPU)
   set_source_files_properties(tests/polymorphic_darray_test.cpp PROPERTIES LANGUAGE CUDA)
   add_executable(polymorphic_darray_test tests/polymorphic_darray_test.cpp)

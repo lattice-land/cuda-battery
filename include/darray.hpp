@@ -141,9 +141,9 @@ public:
   using this_type = DArray<T, Allocator>;
 
 private:
-  T* data_;
   size_t n;
   Allocator allocator;
+  T* data_;
 
   #pragma nv_exec_check_disable
   CUDA void allocate() {
