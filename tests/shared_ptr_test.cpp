@@ -1,26 +1,33 @@
 // Copyright 2021 Pierre Talbot
 
 #include <gtest/gtest.h>
-#include "unique_ptr.hpp"
+#include "shared_ptr.hpp"
 #include "allocator.hpp"
 
 using namespace battery;
 
-TEST(UniquePtr, ConstructorAssignment) {
-  unique_ptr<int> u1;
-  unique_ptr<int> u2(nullptr);
+TEST(SharedPtr, ConstructorAssignment) {
+  shared_ptr<int> u1;
+  shared_ptr<int> u2(nullptr);
   EXPECT_FALSE(bool(u1));
   EXPECT_FALSE(bool(u2));
-  u1 = make_unique<int, StandardAllocator>(4);
+  EXPECT_EQ(u1.use_count(), 0);
+  EXPECT_EQ(u2.use_count(), 0);
+  u1 = make_shared<int, StandardAllocator>(4);
   EXPECT_TRUE(bool(u1));
+  EXPECT_EQ(u1.use_count(), 1);
   EXPECT_EQ(*u1, 4);
   u2 = std::move(u1);
+  EXPECT_EQ(u1.use_count(), 0);
+  EXPECT_EQ(u2.use_count(), 1);
   EXPECT_FALSE(bool(u1));
   EXPECT_EQ(u1.get(), nullptr);
   EXPECT_TRUE(bool(u2));
   EXPECT_EQ(*u2, 4);
-  int* i = u2.release();
-  delete i;
+  shared_ptr<int> u3(u2);
+  EXPECT_EQ(u2.use_count(), 2);
+  EXPECT_EQ(u3.use_count(), 2);
+  EXPECT_EQ(u2.get(), u3.get());
 }
 
 class A {
@@ -36,31 +43,34 @@ class A {
 
 int A::n = 0;
 
-TEST(UniquePtr, ConstructorAssignmentObject) {
+TEST(SharedPtr, ConstructorAssignmentObject) {
   {
     A::n = 0;
-    unique_ptr<A> u1;
-    unique_ptr<A> u2(nullptr);
+    shared_ptr<A> u1;
+    shared_ptr<A> u2(nullptr);
     EXPECT_EQ(A::n, 0);
     EXPECT_FALSE(bool(u1));
     EXPECT_FALSE(bool(u2));
-    A tmp(4);
-    u1 = make_unique<A, StandardAllocator>(tmp);
-    EXPECT_EQ(A::n, 2);
+    u1 = make_shared<A, StandardAllocator>(4);
+    EXPECT_EQ(A::n, 1);
     EXPECT_TRUE(bool(u1));
     EXPECT_EQ(u1->x, 4);
     u2 = std::move(u1);
-    EXPECT_EQ(A::n, 2);
+    EXPECT_EQ(A::n, 1);
     EXPECT_FALSE(bool(u1));
     EXPECT_EQ(u1.get(), nullptr);
     EXPECT_TRUE(bool(u2));
     EXPECT_EQ(u2->x, 4);
     A tmp2(10);
-    u1 = make_unique<A, StandardAllocator>(std::move(tmp2));
-    EXPECT_EQ(A::n, 3);
-    A* i = u2.release();
-    delete i;
+    u1 = make_shared<A, StandardAllocator>(std::move(tmp2));
     EXPECT_EQ(A::n, 2);
+    auto u4 = u1;
+    EXPECT_EQ(A::n, 2);
+    EXPECT_EQ(u4.use_count(), 2);
+    EXPECT_EQ(u1.use_count(), 2);
+    u1.reset();
+    EXPECT_EQ(u4.use_count(), 1);
+    EXPECT_EQ(u1.use_count(), 0);
   }
   EXPECT_EQ(A::n, 0);
 }

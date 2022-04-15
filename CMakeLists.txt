@@ -80,6 +80,10 @@ add_executable(unique_ptr_test tests/unique_ptr_test.cpp)
 target_link_libraries(unique_ptr_test cuda_battery gtest_main)
 gtest_discover_tests(unique_ptr_test)
 
+add_executable(shared_ptr_test tests/shared_ptr_test.cpp)
+target_link_libraries(shared_ptr_test cuda_battery gtest_main)
+gtest_discover_tests(shared_ptr_test)
+
 if(GPU)
   set_source_files_properties(tests/polymorphic_darray_test.cpp PROPERTIES LANGUAGE CUDA)
   add_executable(polymorphic_darray_test tests/polymorphic_darray_test.cpp)

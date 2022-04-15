@@ -11,15 +11,15 @@ namespace battery {
 
 /** Similar to std::unique_ptr with small differences:
  *   - There is no specialization for arrays (e.g., unique_ptr<T[]>).
-     - We rely on an allocator and provide a constructor to build the pointer in place.
+     - We rely on an allocator and provide a function `allocate_unique` to build the pointer in place.
     Similarly to vector, the allocator is scoped, meaning it is propagated to the underlying type constructor if it takes one. */
 template <class T, class Allocator = StandardAllocator>
 class unique_ptr {
 public:
-  using value_type = T;
+  using element_type = T;
   using pointer = T*;
   using allocator_type = Allocator;
-  using this_type = unique_ptr<value_type, allocator_type>;
+  using this_type = unique_ptr<element_type, allocator_type>;
 private:
   Allocator allocator;
   T* ptr;
@@ -37,30 +37,6 @@ public:
   }
   CUDA unique_ptr(const this_type&) = delete;
 
-  struct unique_tag_t{};
-
-  CUDA unique_ptr(unique_tag_t, const value_type& v, const allocator_type& alloc = allocator_type())
-   : allocator(alloc), ptr(static_cast<T*>(allocator.allocate(sizeof(T))))
-  {
-    if constexpr(std::is_constructible<value_type, const value_type&, const allocator_type&>{}) {
-      new(ptr) value_type(v, allocator);
-    }
-    else {
-      new(ptr) value_type(v);
-    }
-  }
-
-  CUDA unique_ptr(unique_tag_t, value_type&& v, const allocator_type& alloc = allocator_type())
-   : allocator(alloc), ptr(static_cast<T*>(allocator.allocate(sizeof(T))))
-  {
-    if constexpr(std::is_constructible<value_type, value_type&&, const allocator_type&>{}) {
-      new(ptr) value_type(std::forward<value_type>(v), allocator);
-    }
-    else {
-      new(ptr) value_type(std::forward<value_type>(v));
-    }
-  }
-
   CUDA ~unique_ptr() {
     if(ptr != nullptr) {
       ptr->~T();
@@ -75,13 +51,12 @@ public:
   }
 
   CUDA unique_ptr& operator=(unique_ptr&& r) {
-    swap(r);
+    this_type(std::move(r)).swap(*this);
     return *this;
   }
 
   CUDA unique_ptr& operator=(std::nullptr_t) {
-    unique_ptr to_delete(allocator);
-    swap(to_delete);
+    this_type(allocator).swap(*this);
     return *this;
   }
 
@@ -92,8 +67,7 @@ public:
   }
 
   CUDA void reset(pointer ptr = pointer()) {
-    unique_ptr to_swap(ptr, allocator);
-    swap(to_swap);
+    this_type(ptr, allocator).swap(*this);
   }
 
   CUDA pointer get() const {
@@ -119,18 +93,24 @@ public:
   }
 };
 
-template <class T, class Allocator = StandardAllocator>
-CUDA unique_ptr<T, Allocator> allocate_unique(const T& v, const Allocator& alloc = Allocator())
-{
-  using unique_t = typename unique_ptr<T, Allocator>::unique_tag_t;
-  return unique_ptr<T, Allocator>(unique_t{}, v, alloc);
+template<class T, class Alloc, class... Args>
+unique_ptr<T, Alloc> allocate_unique(const Alloc& alloc, Args&&... args) {
+  Alloc allocator(alloc);
+  T* ptr = static_cast<T*>(allocator.allocate(sizeof(T)));
+  assert(ptr != nullptr);
+  if constexpr(std::is_constructible<T, Args&&..., const Alloc&>{}) {
+    new(ptr) T(std::forward<Args>(args)..., allocator);
+  }
+  else {
+    new(ptr) T(std::forward<Args>(args)...);
+  }
+  return unique_ptr<T, Alloc>(ptr, allocator);
 }
 
-template <class T, class Allocator = StandardAllocator>
-CUDA unique_ptr<T, Allocator> allocate_unique(T&& v, const Allocator& alloc = Allocator())
-{
-  using unique_t = typename unique_ptr<T, Allocator>::unique_tag_t;
-  return unique_ptr<T, Allocator>(unique_t{}, std::forward<T>(v), alloc);
+/** Similar to `allocate_unique` but with an default-constructed allocator. */
+template<class T, class Alloc, class... Args>
+unique_ptr<T, Alloc> make_unique(Args&&... args) {
+  return allocate_unique<T>(Alloc(), std::forward<Args>(args)...);
 }
 
 } // namespace battery
