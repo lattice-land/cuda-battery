@@ -81,6 +81,7 @@ private:
       new(&data_[i]) value_type(value);
     }
   }
+
 public:
   /** Allocate an array of size `n` using `allocator`, with `n` default-inserted instances of `T`.
    *  `Allocator` is scoped, meaning it will be passed to the constructor of `T` if `T(const Allocator&)` exists, otherwise `T()` is called. */
@@ -94,7 +95,7 @@ public:
 
   /** Default constructor.*/
   CUDA vector(const allocator_type& alloc = allocator_type())
-   : this_type(0, alloc) {}
+   : n(0), cap(0), allocator(alloc), data_(nullptr) {}
 
   /** Allocate an array of size `n` using `allocator`.
       Initialize the elements of the array with those of the array `from`.
