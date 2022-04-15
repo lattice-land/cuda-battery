@@ -10,7 +10,7 @@
 using namespace battery;
 
 class Formula {
-  using DataT = Variant<char, String<StandardAllocator>, DArray<Formula, StandardAllocator>>;
+  using DataT = variant<char, String<StandardAllocator>, DArray<Formula, StandardAllocator>>;
   DataT data;
 
 public:

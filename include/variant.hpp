@@ -135,7 +135,7 @@ struct variant_alternative<i, HeadItem, TailItems...>
 } // namespace impl
 
 template<typename... Ts>
-struct Variant {
+struct variant {
 private:
   using data_t = typename std::aligned_union<1, Ts...>::type;
   using helper_t = impl::variant_helper<Ts...>;
@@ -146,7 +146,7 @@ private:
   size_t variant_id;
   data_t data;
 
-  CUDA Variant(size_t id) : variant_id(id) {}
+  CUDA variant(size_t id) : variant_id(id) {}
 
   template<size_t i>
   CUDA alternative<i>& get()
@@ -164,31 +164,31 @@ private:
 
 public:
   template<size_t i>
-  CUDA static Variant create(alternative<i>& value)
+  CUDA static variant create(alternative<i>& value)
   {
-    Variant ret(i);
+    variant ret(i);
     impl::variant_helper_static<alternative<i>>::copy(&value, &ret.data);
     return ret;
   }
 
   template<size_t i>
-  CUDA static Variant create(alternative<i>&& value) {
-    Variant ret(i);
+  CUDA static variant create(alternative<i>&& value) {
+    variant ret(i);
     impl::variant_helper_static<alternative<i>>::move(&value, &ret.data);
     return ret;
   }
 
-  CUDA Variant(const Variant<Ts...>& from) : variant_id(from.variant_id)
+  CUDA variant(const variant<Ts...>& from) : variant_id(from.variant_id)
   {
     helper_t::copy(from.variant_id, &from.data, &data);
   }
 
-  CUDA Variant(Variant<Ts...>&& from) : variant_id(from.variant_id)
+  CUDA variant(variant<Ts...>&& from) : variant_id(from.variant_id)
   {
     helper_t::move(from.variant_id, &from.data, &data);
   }
 
-  CUDA Variant<Ts...>& operator= (Variant<Ts...>& rhs)
+  CUDA variant<Ts...>& operator= (variant<Ts...>& rhs)
   {
     helper_t::destroy(variant_id, &data);
     variant_id = rhs.variant_id;
@@ -196,7 +196,7 @@ public:
     return *this;
   }
 
-  CUDA Variant<Ts...>& operator= (Variant<Ts...>&& rhs)
+  CUDA variant<Ts...>& operator= (variant<Ts...>&& rhs)
   {
     helper_t::destroy(variant_id, &data);
     variant_id = rhs.variant_id;
@@ -224,7 +224,7 @@ public:
     impl::variant_helper_static<alternative<i>>::move(&value, &data);
   }
 
-  CUDA ~Variant() {
+  CUDA ~variant() {
     helper_t::destroy(variant_id, &data);
   }
 
@@ -233,27 +233,27 @@ public:
   }
 
   template<typename... Us>
-  CUDA friend bool operator==(const Variant<Us...>& lhs, const Variant<Us...>& rhs);
+  CUDA friend bool operator==(const variant<Us...>& lhs, const variant<Us...>& rhs);
   template<size_t i, typename... Us>
-  CUDA friend typename impl::variant_alternative<i, Us...>::type& get(Variant<Us...>& v);
+  CUDA friend typename impl::variant_alternative<i, Us...>::type& get(variant<Us...>& v);
   template<size_t i, typename... Us>
-  CUDA friend const typename impl::variant_alternative<i, Us...>::type& get(const Variant<Us...>& v);
+  CUDA friend const typename impl::variant_alternative<i, Us...>::type& get(const variant<Us...>& v);
 };
 
 template<size_t i, typename... Ts>
-CUDA typename impl::variant_alternative<i, Ts...>::type& get(Variant<Ts...>& v)
+CUDA typename impl::variant_alternative<i, Ts...>::type& get(variant<Ts...>& v)
 {
   return v.template get<i>();
 }
 
 template<size_t i, typename... Ts>
-CUDA const typename impl::variant_alternative<i, Ts...>::type& get(const Variant<Ts...>& v)
+CUDA const typename impl::variant_alternative<i, Ts...>::type& get(const variant<Ts...>& v)
 {
   return v.template get<i>();
 }
 
 template<typename... Ts>
-CUDA bool operator==(const Variant<Ts...>& lhs, const Variant<Ts...>& rhs) {
+CUDA bool operator==(const variant<Ts...>& lhs, const variant<Ts...>& rhs) {
   if(lhs.index() == rhs.index()) {
     return impl::variant_helper<Ts...>::equals(lhs.index(), &lhs.data, &rhs.data);
   }
@@ -263,7 +263,7 @@ CUDA bool operator==(const Variant<Ts...>& lhs, const Variant<Ts...>& rhs) {
 }
 
 template<typename... Ts>
-CUDA bool operator!=(const Variant<Ts...>& lhs, const Variant<Ts...>& rhs) {
+CUDA bool operator!=(const variant<Ts...>& lhs, const variant<Ts...>& rhs) {
   return !(lhs == rhs);
 }
 

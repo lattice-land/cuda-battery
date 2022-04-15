@@ -93,7 +93,7 @@ CUDA_GLOBAL void test_poly(int* res, DArray<A*, GlobalAllocatorCPU>* poly_ptr) {
 #include "variant.hpp"
 CUDA_GLOBAL void test_variant(int* res) {
   using Arr = DArray<int, GlobalAllocatorGPU>;
-  using DataT = Variant<char, Arr>;
+  using DataT = variant<char, Arr>;
   DataT a1(DataT::create<1>(Arr(3, 2)));
   DataT a2(DataT::create<1>(Arr(3, 2)));
   DataT a3(DataT::create<0>(100));
