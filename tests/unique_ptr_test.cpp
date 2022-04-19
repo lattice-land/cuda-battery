@@ -64,3 +64,12 @@ TEST(UniquePtr, ConstructorAssignmentObject) {
   }
   EXPECT_EQ(A::n, 0);
 }
+
+class B: public A {};
+
+TEST(UniquePtr, TestInheritanceInit) {
+  A::n = 0;
+  unique_ptr<B> b(new B);
+  unique_ptr<A> a = std::move(b);
+  EXPECT_EQ(A::n, 1);
+}

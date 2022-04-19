@@ -23,6 +23,9 @@ public:
 private:
   Allocator allocator;
   T* ptr;
+
+  template<class U, class Alloc>
+  friend class unique_ptr;
 public:
   CUDA unique_ptr(const allocator_type& alloc = allocator_type())
    : allocator(allocator), ptr(nullptr) {}
@@ -35,6 +38,14 @@ public:
   CUDA unique_ptr(this_type&& from) : ptr(from.ptr), allocator(from.allocator) {
     from.ptr = nullptr;
   }
+
+  template<class U>
+  CUDA unique_ptr(unique_ptr<U, Allocator>&& from)
+   : ptr(static_cast<T*>(from.ptr)), allocator(from.allocator)
+  {
+    from.ptr = nullptr;
+  }
+
   CUDA unique_ptr(const this_type&) = delete;
 
   CUDA ~unique_ptr() {
@@ -51,6 +62,12 @@ public:
   }
 
   CUDA unique_ptr& operator=(unique_ptr&& r) {
+    this_type(std::move(r)).swap(*this);
+    return *this;
+  }
+
+  template<class U>
+  CUDA unique_ptr& operator=(unique_ptr<U, Allocator>&& r) {
     this_type(std::move(r)).swap(*this);
     return *this;
   }

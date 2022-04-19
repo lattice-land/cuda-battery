@@ -27,6 +27,9 @@ private:
   int* count;
   T* ptr;
 
+  template<class Y, class Alloc>
+  friend class shared_ptr;
+
   CUDA int* allocate_counter() {
     int* c = static_cast<int*>(allocator.allocate(sizeof(int)));
     *c = 1;
@@ -39,15 +42,34 @@ public:
    : allocator(allocator), count(nullptr), ptr(nullptr) {}
 
   // `ptr` must have been allocated using `allocator_type`.
-  CUDA explicit shared_ptr(pointer ptr, const allocator_type& alloc = allocator_type())
-   : allocator(allocator), count(allocate_counter()), ptr(ptr) {}
+  template<class Y>
+  CUDA explicit shared_ptr(Y* ptr, const allocator_type& alloc = allocator_type())
+   : allocator(allocator), count(allocate_counter()), ptr(static_cast<T*>(ptr))
+  {}
 
-  CUDA shared_ptr(this_type&& from) : allocator(from.allocator), ptr(from.ptr), count(from.count) {
+  CUDA shared_ptr(this_type&& from)
+   : allocator(from.allocator), ptr(from.ptr), count(from.count)
+  {
+    from.ptr = nullptr;
+    from.count = nullptr;
+  }
+
+  template<class Y>
+  CUDA shared_ptr(shared_ptr<Y, Allocator>&& from)
+   : allocator(from.allocator), ptr(static_cast<T*>(from.ptr)), count(from.count)
+  {
     from.ptr = nullptr;
     from.count = nullptr;
   }
 
   CUDA shared_ptr(const this_type& from): allocator(from.allocator), ptr(from.ptr), count(from.count) {
+    ++(*count);
+  }
+
+  template<class Y>
+  CUDA shared_ptr(const shared_ptr<Y, Allocator>& from)
+   : allocator(from.allocator), ptr(static_cast<T*>(from.ptr)), count(from.count)
+  {
     ++(*count);
   }
 
@@ -82,6 +104,19 @@ public:
     return *this;
   }
 
+  template<class Y>
+  CUDA shared_ptr& operator=(const shared_ptr<Y, Allocator>& r) {
+    this_type(r).swap(*this);
+    return *this;
+  }
+
+  template<class Y>
+  CUDA shared_ptr& operator=(shared_ptr<Y, Allocator>&& r) {
+    this_type(std::move(r)).swap(*this);
+    return *this;
+  }
+
+
   CUDA shared_ptr& operator=(std::nullptr_t) {
     this_type(allocator).swap(*this);
     return *this;
@@ -91,7 +126,8 @@ public:
     this_type(allocator).swap(*this);
   }
 
-  CUDA void reset(pointer ptr) {
+  template<class Y>
+  CUDA void reset(Y* ptr) {
     this_type(ptr, allocator).swap(*this);
   }
 

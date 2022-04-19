@@ -74,3 +74,13 @@ TEST(SharedPtr, ConstructorAssignmentObject) {
   }
   EXPECT_EQ(A::n, 0);
 }
+
+class B: public A {};
+
+TEST(SharedPtr, TestInheritanceInit) {
+  A::n = 0;
+  shared_ptr<B> b(new B);
+  shared_ptr<A> a = b;
+  shared_ptr<A> c = std::move(b);
+  EXPECT_EQ(A::n, 1);
+}
