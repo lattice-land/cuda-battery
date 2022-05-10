@@ -5,7 +5,6 @@
 
 #include "utility.hpp"
 #include "allocator.hpp"
-#include <memory>
 
 namespace battery {
 
@@ -35,6 +34,13 @@ private:
     *c = 1;
     return c;
   }
+
+  CUDA void inc_counter() {
+    if(count != nullptr) {
+      ++(*count);
+    }
+  }
+
 public:
   CUDA shared_ptr(const allocator_type& alloc = allocator_type())
    : allocator(allocator), count(nullptr), ptr(nullptr) {}
@@ -62,15 +68,17 @@ public:
     from.count = nullptr;
   }
 
-  CUDA shared_ptr(const this_type& from): allocator(from.allocator), ptr(from.ptr), count(from.count) {
-    ++(*count);
+  CUDA shared_ptr(const this_type& from)
+    : allocator(from.allocator), ptr(from.ptr), count(from.count)
+  {
+    inc_counter();
   }
 
   template<class Y>
   CUDA shared_ptr(const shared_ptr<Y, Allocator>& from)
    : allocator(from.allocator), ptr(static_cast<T*>(from.ptr)), count(from.count)
   {
-    ++(*count);
+    inc_counter();
   }
 
   CUDA ~shared_ptr() {

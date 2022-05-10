@@ -5,7 +5,6 @@
 
 #include "utility.hpp"
 #include "allocator.hpp"
-#include <memory>
 
 namespace battery {
 

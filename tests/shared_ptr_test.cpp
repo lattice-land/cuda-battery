@@ -84,3 +84,9 @@ TEST(SharedPtr, TestInheritanceInit) {
   shared_ptr<A> c = std::move(b);
   EXPECT_EQ(A::n, 1);
 }
+
+TEST(SharedPtr, InitWithEmpty) {
+  shared_ptr<int> s;
+  shared_ptr<int> s2(s);
+  shared_ptr<int> s3(std::move(s));
+}
