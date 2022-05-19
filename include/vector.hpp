@@ -180,7 +180,7 @@ public:
   CUDA const value_type& back() const { assert(n > 0); return data_[n-1]; }
   CUDA value_type* data() { return data_; }
   CUDA const value_type* data() const { return data_; }
-  CUDA bool empty() { return n == 0; }
+  CUDA bool empty() const { return n == 0; }
   CUDA size_t size() const { return n; }
   CUDA void reserve(size_t new_cap) { if(new_cap > cap) reallocate(new_cap); }
   CUDA size_t capacity() const { return cap; }

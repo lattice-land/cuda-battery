@@ -11,6 +11,7 @@
   #define CUDA_GLOBAL __global__
   #define DEVICE __device__
   #define HOST __host__
+  #define SHARED __shared__
   #define CUDA DEVICE HOST
   #define INLINE __forceinline__
 
@@ -25,6 +26,7 @@
   #define CUDA_GLOBAL
   #define DEVICE
   #define HOST
+  #define SHARED
   #define CUDA
   #define CUDIE(S) S
   #define CUDIE0
