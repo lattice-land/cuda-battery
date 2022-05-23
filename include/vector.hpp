@@ -157,7 +157,17 @@ public:
   }
 
   CUDA this_type& operator=(const this_type& other) {
-    return operator=(this_type(other));
+    reserve(other.size());
+    for(int i = 0; i < other.n; ++i) {
+      if(i < n) {
+        data_[i].~T();
+      }
+      inplace_new(i, other.data_[i]);
+    }
+    for(int i = other.n; i < n; ++i) {
+      data_[i].~T();
+    }
+    n = other.n;
   }
 
   CUDA allocator_type get_allocator() const {
