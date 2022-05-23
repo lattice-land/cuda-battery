@@ -168,6 +168,7 @@ public:
       data_[i].~T();
     }
     n = other.n;
+    return *this;
   }
 
   CUDA allocator_type get_allocator() const {
