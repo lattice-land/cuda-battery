@@ -90,3 +90,10 @@ TEST(SharedPtr, InitWithEmpty) {
   shared_ptr<int> s2(s);
   shared_ptr<int> s3(std::move(s));
 }
+
+TEST(SharedPtr, EqualToItself) {
+  shared_ptr<int> b(new int(10));
+  b = b;
+  EXPECT_EQ(b.use_count(), 1);
+  EXPECT_EQ(*b, 10);
+}

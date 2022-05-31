@@ -5,6 +5,7 @@ include(CMakePrintHelpers)
 
 project(cuda-battery LANGUAGES CUDA CXX)
 option(GPU "GPU" ON)
+option(BUILD_TESTS "BUILD_TESTS" OFF)
 
 add_link_options ($<DEVICE_LINK:-arch=sm_75>)
 
@@ -17,16 +18,6 @@ if(NOT DEFINED CMAKE_CUDA_STANDARD)
     set(CMAKE_CUDA_STANDARD 17)
     set(CMAKE_CUDA_STANDARD_REQUIRED ON)
 endif()
-
-# Google Test dependency
-
-FetchContent_Declare(
-  googletest
-  URL https://github.com/google/googletest/archive/609281088cfefc76f9d0ce82e1ff6c30cc3591e5.zip
-)
-# For Windows: Prevent overriding the parent project's compiler/linker settings
-set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
-FetchContent_MakeAvailable(googletest)
 
 # Preparing the library
 
@@ -52,6 +43,18 @@ target_compile_options(cuda_battery PRIVATE
     $<$<CONFIG:Debug>:-g -DDEBUG>
     $<$<CONFIG:LDebug>:-g -DTRACE>
 )
+
+if(BUILD_TESTS)
+
+# Google Test dependency
+
+FetchContent_Declare(
+  googletest
+  URL https://github.com/google/googletest/archive/609281088cfefc76f9d0ce82e1ff6c30cc3591e5.zip
+)
+# For Windows: Prevent overriding the parent project's compiler/linker settings
+set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+FetchContent_MakeAvailable(googletest)
 
 enable_testing()
 include(GoogleTest)
@@ -94,6 +97,8 @@ if(GPU)
     $<$<CONFIG:LDebug>:-g -DTRACE>)
   target_link_libraries(polymorphic_darray_test cuda_battery)
   add_test(NAME polymorphic_darray_test COMMAND cuda-memcheck --error-exitcode 1 $<TARGET_FILE:polymorphic_darray_test>)
+endif()
+
 endif()
 
 # Documentation
