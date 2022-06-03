@@ -39,7 +39,6 @@ private:
   }
 
   CUDA void reallocate(size_t new_cap) {
-    size_t cap2 = cap;
     size_t n2 = n;
     value_type* data2 = data_;
     cap = new_cap;

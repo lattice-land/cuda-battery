@@ -111,27 +111,27 @@ public:
 
   TradeoffAllocator(const A& a, const B& b): a(a), b(b) {}
   TradeoffAllocator(const B& b): a(), b(b) {}
-  void* allocate(size_t bytes) {
+  CUDA void* allocate(size_t bytes) {
     return a.allocate(bytes);
   }
 
-  void deallocate(void* data) {
+  CUDA void deallocate(void* data) {
     return a.deallocate(data);
   }
 
-  B& fast() { return b; }
+  CUDA B& fast() { return b; }
 };
 
 template<typename A>
 struct FasterAllocator {
   using type = A;
-  static type& fast(A& a) { return a; }
+  CUDA static type& fast(A& a) { return a; }
 };
 
 template<typename A, typename B>
 struct FasterAllocator<TradeoffAllocator<A, B>> {
   using type = B;
-  static type& fast(TradeoffAllocator<A, B>& a) { return a.fast(); }
+  CUDA static type& fast(TradeoffAllocator<A, B>& a) { return a.fast(); }
 };
 
 } // namespace battery
