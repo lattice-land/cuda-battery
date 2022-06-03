@@ -36,8 +36,6 @@
   #include <cstring> // for strlen
 
   namespace battery {
-    using std::min;
-    using std::max;
     using std::swap;
     using std::strlen;
   }
@@ -45,7 +43,7 @@
 
 namespace battery {
 namespace impl {
-  template<typename T> CUDA void swap(T& a, T& b) {
+  template<class T> CUDA void swap(T& a, T& b) {
     T c(std::move(a));
     a = std::move(b);
     b = std::move(c);
@@ -58,6 +56,22 @@ namespace impl {
   using impl::swap;
   using impl::strlen;
 #endif
+
+template<class T> CUDA T min(T a, T b) {
+  #ifdef __CUDA_ARCH__
+    return ::min(a, b);
+  #else
+    return std::min(a, b);
+  #endif
+}
+
+template<class T> CUDA T max(T a, T b) {
+  #ifdef __CUDA_ARCH__
+    return ::max(a, b);
+  #else
+    return std::max(a, b);
+  #endif
+}
 
 template<typename N>
 struct Limits {
