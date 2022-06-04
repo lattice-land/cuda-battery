@@ -22,8 +22,8 @@ namespace battery {
 This can only be used from the host side since managed memory cannot be allocated in device functions. */
 class ManagedAllocator {
 public:
-  void* allocate(size_t bytes);
-  void deallocate(void* data);
+  CUDA void* allocate(size_t bytes);
+  CUDA void deallocate(void* data);
 };
 
 extern ManagedAllocator managed_allocator;
@@ -58,8 +58,8 @@ extern GlobalAllocatorCPU global_allocator_cpu;
 
 } // namespace battery
 
-void* operator new(size_t bytes, battery::ManagedAllocator& p);
-void operator delete(void* ptr, battery::ManagedAllocator& p);
+CUDA void* operator new(size_t bytes, battery::ManagedAllocator& p);
+CUDA void operator delete(void* ptr, battery::ManagedAllocator& p);
 
 template<bool on_gpu>
 CUDA void* operator new(size_t bytes, battery::GlobalAllocator<on_gpu>& p) {
@@ -93,8 +93,8 @@ public:
 /** This allocator call the standard `malloc` and `free`. */
 class StandardAllocator {
 public:
-  void* allocate(size_t bytes);
-  void deallocate(void* data);
+  CUDA void* allocate(size_t bytes);
+  CUDA void deallocate(void* data);
 };
 
 extern StandardAllocator standard_allocator;
@@ -109,8 +109,8 @@ public:
   using LargeMemAllocator = A;
   using FastMemAllocator = B;
 
-  TradeoffAllocator(const A& a, const B& b): a(a), b(b) {}
-  TradeoffAllocator(const B& b): a(), b(b) {}
+  CUDA TradeoffAllocator(const A& a, const B& b): a(a), b(b) {}
+  CUDA TradeoffAllocator(const B& b): a(), b(b) {}
   CUDA void* allocate(size_t bytes) {
     return a.allocate(bytes);
   }
@@ -136,8 +136,8 @@ struct FasterAllocator<TradeoffAllocator<A, B>> {
 
 } // namespace battery
 
-void* operator new(size_t bytes, battery::StandardAllocator& p);
-void operator delete(void* ptr, battery::StandardAllocator& p);
+CUDA void* operator new(size_t bytes, battery::StandardAllocator& p);
+CUDA void operator delete(void* ptr, battery::StandardAllocator& p);
 
 CUDA void* operator new(size_t bytes, battery::PoolAllocator& p);
 CUDA void operator delete(void* ptr, battery::PoolAllocator& p);

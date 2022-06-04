@@ -8,17 +8,28 @@
 
 namespace battery {
 
-void* ManagedAllocator::allocate(size_t bytes) {
-  if(bytes == 0) {
+CUDA void* ManagedAllocator::allocate(size_t bytes) {
+  #ifdef __CUDA_ARCH__
+    printf("cannot use ManagedAllocator in CUDA __device__ code.");
+    assert(0);
     return nullptr;
-  }
-  void* data;
-  cudaMallocManaged(&data, bytes);
-  return data;
+  #else
+    if(bytes == 0) {
+      return nullptr;
+    }
+    void* data;
+    cudaMallocManaged(&data, bytes);
+    return data;
+  #endif
 }
 
-void ManagedAllocator::deallocate(void* data) {
-  cudaFree(data);
+CUDA void ManagedAllocator::deallocate(void* data) {
+  #ifdef __CUDA_ARCH__
+    printf("cannot use ManagedAllocator in CUDA __device__ code.");
+    assert(0);
+  #else
+    cudaFree(data);
+  #endif
 }
 
 ManagedAllocator managed_allocator;
@@ -27,11 +38,11 @@ GlobalAllocatorCPU global_allocator_cpu;
 
 } // namespace battery
 
-void* operator new(size_t bytes, battery::ManagedAllocator& p) {
+CUDA void* operator new(size_t bytes, battery::ManagedAllocator& p) {
   return p.allocate(bytes);
 }
 
-void operator delete(void* ptr, battery::ManagedAllocator& p) {
+CUDA void operator delete(void* ptr, battery::ManagedAllocator& p) {
   return p.deallocate(ptr);
 }
 
@@ -55,12 +66,23 @@ CUDA void* PoolAllocator::allocate(size_t bytes) {
 
 CUDA void PoolAllocator::deallocate(void*) {}
 
-void* StandardAllocator::allocate(size_t bytes) {
-  return bytes == 0 ? nullptr : std::malloc(bytes);
+CUDA void* StandardAllocator::allocate(size_t bytes) {
+  #ifdef __CUDA_ARCH__
+    printf("cannot use StandardAllocator in CUDA __device__ code.");
+    assert(0);
+    return nullptr;
+  #else
+    return bytes == 0 ? nullptr : std::malloc(bytes);
+  #endif
 }
 
-void StandardAllocator::deallocate(void* data) {
-  std::free(data);
+CUDA void StandardAllocator::deallocate(void* data) {
+  #ifdef __CUDA_ARCH__
+    printf("cannot use StandardAllocator in CUDA __device__ code.");
+    assert(0);
+  #else
+    std::free(data);
+  #endif
 }
 
 StandardAllocator standard_allocator;
@@ -76,10 +98,10 @@ CUDA void operator delete(void* ptr, battery::PoolAllocator& p) {
   return p.deallocate(ptr);
 }
 
-void* operator new(size_t bytes, battery::StandardAllocator& p) {
+CUDA void* operator new(size_t bytes, battery::StandardAllocator& p) {
   return p.allocate(bytes);
 }
 
-void operator delete(void* ptr, battery::StandardAllocator& p) {
+CUDA void operator delete(void* ptr, battery::StandardAllocator& p) {
   return p.deallocate(ptr);
 }

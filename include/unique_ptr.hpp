@@ -110,7 +110,7 @@ public:
 };
 
 template<class T, class Alloc, class... Args>
-unique_ptr<T, Alloc> allocate_unique(const Alloc& alloc, Args&&... args) {
+CUDA unique_ptr<T, Alloc> allocate_unique(const Alloc& alloc, Args&&... args) {
   Alloc allocator(alloc);
   T* ptr = static_cast<T*>(allocator.allocate(sizeof(T)));
   assert(ptr != nullptr);
@@ -125,7 +125,7 @@ unique_ptr<T, Alloc> allocate_unique(const Alloc& alloc, Args&&... args) {
 
 /** Similar to `allocate_unique` but with an default-constructed allocator. */
 template<class T, class Alloc, class... Args>
-unique_ptr<T, Alloc> make_unique(Args&&... args) {
+CUDA unique_ptr<T, Alloc> make_unique(Args&&... args) {
   return allocate_unique<T>(Alloc(), std::forward<Args>(args)...);
 }
 

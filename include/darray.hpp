@@ -193,11 +193,13 @@ public:
       // If the allocator is global, and we are currently on the CPU, then we cannot initialize the elements of the array unless we are ourselves on the GPU.
       // Hence, we run a GPU kernel to initialize the vector.
       #if defined(__NVCC__)
+      #ifndef __CUDA_ARCH__
         if constexpr(std::is_same_v<Allocator, GlobalAllocatorCPU>) {
           impl::default_gpu_constructor_darray<<<1,1>>>(data_, n);
           CUDIE(cudaDeviceSynchronize());
           return;
         }
+      #endif
       #endif
       if constexpr(std::is_pointer_v<T>) {
         for(size_t i = 0; i < n; ++i) {
