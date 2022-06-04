@@ -10,11 +10,14 @@
 namespace battery {
 
 /** `String` represents a fixed sized array of characters based on `DArray<char>` (see darray.hpp). */
-template<typename Allocator>
+template<class Allocator>
 class String {
   DArray<char, Allocator> data_;
 public:
   using this_type = String<Allocator>;
+
+  template <class Alloc2>
+  friend class String;
 
   /** Allocate a string of size `n` using `allocator`. */
   CUDA String(size_t n, const Allocator& alloc = Allocator()):
