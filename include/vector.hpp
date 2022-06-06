@@ -72,8 +72,9 @@ private:
     }
   }
 
-  CUDA void inplace_new(size_t i, const T& value) {
-    if constexpr(std::is_constructible<value_type, const T&, const allocator_type&>{}) {
+  template <class U>
+  CUDA void inplace_new(size_t i, const U& value) {
+    if constexpr(std::is_constructible<value_type, const U&, const allocator_type&>{}) {
       new(&data_[i]) value_type(value, allocator);
     }
     else {
