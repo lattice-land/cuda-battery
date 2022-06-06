@@ -73,7 +73,7 @@ private:
   }
 
   CUDA void inplace_new(size_t i, const T& value) {
-    if constexpr(std::is_constructible<value_type, const value_type&, const allocator_type&>{}) {
+    if constexpr(std::is_constructible<value_type, const T&, const allocator_type&>{}) {
       new(&data_[i]) value_type(value, allocator);
     }
     else {
@@ -99,7 +99,8 @@ public:
   /** Allocate an array of size `n` using `allocator`.
       Initialize the elements of the array with those of the array `from`.
       `Allocator` is scoped, meaning it will be passed to the constructor of `T` if `T(const T&, const Allocator&)` exists, otherwise `T(const T&)` is called.  */
-  CUDA vector(size_t n, const value_type* from, const allocator_type& alloc = allocator_type())
+  template <class U>
+  CUDA vector(const U* from, size_t n, const allocator_type& alloc = allocator_type())
    : n(n), cap(n), allocator(alloc), data_(allocate())
   {
     for(int i = 0; i < n; ++i) {
@@ -108,9 +109,9 @@ public:
   }
 
   /** Copy constructor with an allocator, useful when the vector we copied from was declared using another allocator. */
-  template <class Allocator2>
-  CUDA vector(const vector<value_type, Allocator2>& from, const allocator_type& alloc = allocator_type())
-   : this_type(from.size(), from.data(), alloc) {}
+  template <class U, class Allocator2>
+  CUDA vector(const vector<U, Allocator2>& from, const allocator_type& alloc = allocator_type())
+   : this_type(from.data(), from.size(), alloc) {}
 
   /** Redefine the copy constructor to be sure it calls a constructor with an allocator. */
   CUDA vector(const this_type& from)
@@ -118,7 +119,8 @@ public:
 
   /** Initialize of an array of size `n` with each element initialized to `from` using `allocator`.
    * `Allocator` is scoped, meaning it will be passed to the constructor of `T` if `T(const T&, const Allocator&)` exists, otherwise `T(const T&)` is called.  */
-  CUDA vector(size_t n, const value_type& from, const allocator_type& alloc = allocator_type())
+  template <class U>
+  CUDA vector(size_t n, const U& from, const allocator_type& alloc = allocator_type())
    : n(n), cap(n), allocator(alloc), data_(allocate())
   {
     for(int i = 0; i < n; ++i) {

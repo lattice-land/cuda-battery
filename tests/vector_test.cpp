@@ -18,7 +18,7 @@ TEST(Vector, Constructor) {
   vector<int> a1(3, 2);
   vector<int> a2{2,2,2};
   int d[3] = {2,2,2};
-  vector<int> a3(3, d);
+  vector<int> a3(d, 3);
   vector<int> a4(a1);
   test_array(a1, 3, 2);
   test_array(a2, 3, 2);
