@@ -13,7 +13,7 @@
   #define HOST __host__
   #define SHARED __shared__
   #define CUDA DEVICE HOST
-  #define INLINE __forceinline__ inline
+  #define INLINE __forceinline__
 
   #define CUDIE(result) { \
     cudaError_t e = (result); \
