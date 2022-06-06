@@ -164,7 +164,7 @@ private:
 
 public:
   template<size_t i>
-  CUDA static variant create(alternative<i>& value)
+  CUDA static variant create(const alternative<i>& value)
   {
     variant ret(i);
     impl::variant_helper_static<alternative<i>>::copy(&value, &ret.data);
