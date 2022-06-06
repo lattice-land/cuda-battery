@@ -70,6 +70,7 @@ public:
 
 
 TEST(DArray, PolymorphicStorage) {
+  StandardAllocator standard_allocator;
   DArray<A*, StandardAllocator> poly(3);
   poly[0] = new(standard_allocator) A(1);
   poly[1] = new(standard_allocator) B(2);

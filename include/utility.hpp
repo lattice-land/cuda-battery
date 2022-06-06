@@ -13,7 +13,7 @@
   #define HOST __host__
   #define SHARED __shared__
   #define CUDA DEVICE HOST
-  #define INLINE __forceinline__
+  #define INLINE __forceinline__ inline
 
   #define CUDIE(result) { \
     cudaError_t e = (result); \
@@ -49,7 +49,11 @@ namespace impl {
     b = std::move(c);
   }
 
-  CUDA size_t strlen(const char* str);
+  CUDA inline size_t strlen(const char* str) {
+    size_t n = 0;
+    while(str[n] != '\0') { ++n; }
+    return n;
+  }
 }
 
 #ifdef __NVCC__
@@ -103,19 +107,19 @@ struct Limits {
 #endif
 
 template<typename T>
-CUDA void print(const T& t) {
+CUDA inline void print(const T& t) {
   t.print();
 }
-template<> CUDA void print(const char &x);
-template<> CUDA void print(char const* const &x);
-template<> CUDA void print(const int &x);
-template<> CUDA void print(const long long int &x);
-template<> CUDA void print(const long int &x);
-template<> CUDA void print(const unsigned int &x);
-template<> CUDA void print(const unsigned long &x);
-template<> CUDA void print(const unsigned long long &x);
-template<> CUDA void print(const float &x);
-template<> CUDA void print(const double &x);
+template<> CUDA inline void print(const char &x) { printf("%c", x); }
+template<> CUDA inline void print(char const* const &x) { printf("%s", x); }
+template<> CUDA inline void print(const int &x) { printf("%d", x); }
+template<> CUDA inline void print(const long long int &x) { printf("%lld", x); }
+template<> CUDA inline void print(const long int &x) { printf("%ld", x); }
+template<> CUDA inline void print(const unsigned int &x) { printf("%u", x); }
+template<> CUDA inline void print(const unsigned long &x) { printf("%lu", x); }
+template<> CUDA inline void print(const unsigned long long &x) { printf("%llu", x); }
+template<> CUDA inline void print(const float &x) { printf("%f", x); }
+template<> CUDA inline void print(const double &x) { printf("%lf", x); }
 
 } // namespace battery
 

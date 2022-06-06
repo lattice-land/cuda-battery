@@ -24,6 +24,7 @@ public:
     }
 
     virtual A* clone(GlobalAllocatorCPU& alloc) const {
+      ManagedAllocator managed_allocator;
       A** a = new(managed_allocator) A*;
       init_A<<<1, 1>>>(a, uid);
       CUDIE(cudaDeviceSynchronize());
@@ -47,6 +48,7 @@ public:
     }
 
     virtual B* clone(GlobalAllocatorCPU& alloc) const {
+      ManagedAllocator managed_allocator;
       B** b = new(managed_allocator) B*;
       init_B<<<1, 1>>>(b, uid);
       CUDIE(cudaDeviceSynchronize());
@@ -106,6 +108,8 @@ CUDA_GLOBAL void test_variant(int* res) {
 }
 
 int main() {
+  StandardAllocator standard_allocator;
+  ManagedAllocator managed_allocator;
   DArray<A*, GlobalAllocatorCPU> test(3);
   DArray<A*, StandardAllocator> cpu_poly(3);
   cpu_poly[0] = new(standard_allocator) A(1);

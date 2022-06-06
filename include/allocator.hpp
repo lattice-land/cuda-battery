@@ -13,7 +13,6 @@ This allows us to provide uniform interfaces for both host (C++) and device (CUD
 #include <type_traits>
 #include "utility.hpp"
 
-
 #ifdef __NVCC__
 
 namespace battery {
@@ -22,11 +21,30 @@ namespace battery {
 This can only be used from the host side since managed memory cannot be allocated in device functions. */
 class ManagedAllocator {
 public:
-  CUDA void* allocate(size_t bytes);
-  CUDA void deallocate(void* data);
-};
+  CUDA void* allocate(size_t bytes) {
+    #ifdef __CUDA_ARCH__
+      printf("cannot use ManagedAllocator in CUDA __device__ code.");
+      assert(0);
+      return nullptr;
+    #else
+      if(bytes == 0) {
+        return nullptr;
+      }
+      void* data;
+      cudaMallocManaged(&data, bytes);
+      return data;
+    #endif
+  }
 
-extern ManagedAllocator managed_allocator;
+  CUDA void deallocate(void* data) {
+    #ifdef __CUDA_ARCH__
+      printf("cannot use ManagedAllocator in CUDA __device__ code.");
+      assert(0);
+    #else
+      cudaFree(data);
+    #endif
+  }
+};
 
 /** An allocator using the global memory of CUDA.
 This can be used from both the host and device side, but the memory can only be accessed when in a device function. */
@@ -53,13 +71,16 @@ public:
 
 using GlobalAllocatorGPU = GlobalAllocator<true>;
 using GlobalAllocatorCPU = GlobalAllocator<false>;
-extern GlobalAllocatorGPU global_allocator_gpu;
-extern GlobalAllocatorCPU global_allocator_cpu;
-
 } // namespace battery
 
-CUDA void* operator new(size_t bytes, battery::ManagedAllocator& p);
-CUDA void operator delete(void* ptr, battery::ManagedAllocator& p);
+
+CUDA inline void* operator new(size_t bytes, battery::ManagedAllocator& p) {
+  return p.allocate(bytes);
+}
+
+CUDA inline void operator delete(void* ptr, battery::ManagedAllocator& p) {
+  return p.deallocate(ptr);
+}
 
 template<bool on_gpu>
 CUDA void* operator new(size_t bytes, battery::GlobalAllocator<on_gpu>& p) {
@@ -83,21 +104,72 @@ class PoolAllocator {
   size_t offset;
   size_t capacity;
 public:
-  CUDA PoolAllocator(const PoolAllocator&);
-  CUDA PoolAllocator(int* mem, size_t capacity);
+  CUDA PoolAllocator(const PoolAllocator& other):
+    mem(other.mem), capacity(other.capacity), offset(other.offset) {}
+
+  CUDA PoolAllocator(int* mem, size_t capacity):
+    mem(mem), capacity(capacity), offset(0) {}
+
   CUDA PoolAllocator() = delete;
-  CUDA void* allocate(size_t bytes);
-  CUDA void deallocate(void* ptr);
+
+  CUDA void* allocate(size_t bytes) {
+    if(bytes == 0) {
+      return nullptr;
+    }
+    assert(offset < capacity);
+    void* m = (void*)&mem[offset];
+    offset += bytes / sizeof(int);
+    offset += offset % sizeof(int*);
+    return m;
+  }
+
+  CUDA void deallocate(void*) {}
 };
+}
+
+CUDA inline void* operator new(size_t bytes, battery::PoolAllocator& p) {
+  return p.allocate(bytes);
+}
+
+CUDA inline void operator delete(void* ptr, battery::PoolAllocator& p) {
+  return p.deallocate(ptr);
+}
+
+namespace battery {
 
 /** This allocator call the standard `malloc` and `free`. */
 class StandardAllocator {
 public:
-  CUDA void* allocate(size_t bytes);
-  CUDA void deallocate(void* data);
-};
+  CUDA void* allocate(size_t bytes) {
+    #ifdef __CUDA_ARCH__
+      printf("cannot use StandardAllocator in CUDA __device__ code.");
+      assert(0);
+      return nullptr;
+    #else
+      return bytes == 0 ? nullptr : std::malloc(bytes);
+    #endif
+  }
 
-extern StandardAllocator standard_allocator;
+  CUDA void deallocate(void* data) {
+    #ifdef __CUDA_ARCH__
+      printf("cannot use StandardAllocator in CUDA __device__ code.");
+      assert(0);
+    #else
+      std::free(data);
+    #endif
+  }
+};
+}
+
+CUDA inline void* operator new(size_t bytes, battery::StandardAllocator& p) {
+  return p.allocate(bytes);
+}
+
+CUDA inline void operator delete(void* ptr, battery::StandardAllocator& p) {
+  return p.deallocate(ptr);
+}
+
+namespace battery {
 
 /** `A` is an allocator for a "slow but large" memory, and `B` is an allocator for a "fast but small" memory.
  * By default, the allocator `A` is used, unless `B` is explicitly asked through `fast()`. */
@@ -135,12 +207,5 @@ struct FasterAllocator<TradeoffAllocator<A, B>> {
 };
 
 } // namespace battery
-
-CUDA void* operator new(size_t bytes, battery::StandardAllocator& p);
-CUDA void operator delete(void* ptr, battery::StandardAllocator& p);
-
-CUDA void* operator new(size_t bytes, battery::PoolAllocator& p);
-CUDA void operator delete(void* ptr, battery::PoolAllocator& p);
-
 
 #endif // ALLOCATOR_HPP

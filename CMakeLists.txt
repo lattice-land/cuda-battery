@@ -5,7 +5,7 @@ include(CMakePrintHelpers)
 
 project(cuda-battery LANGUAGES CUDA CXX)
 option(GPU "GPU" ON)
-option(BUILD_TESTS "BUILD_TESTS" OFF)
+option(BATTERY_BUILD_TESTS "BATTERY_BUILD_TESTS" OFF)
 
 add_link_options ($<DEVICE_LINK:-arch=sm_75>)
 
@@ -21,22 +21,15 @@ endif()
 
 # Preparing the library
 
-if(GPU)
-    set_source_files_properties(
-        src/allocator.cpp
-        src/utility.cpp
-        PROPERTIES LANGUAGE CUDA)
-endif()
-
-add_library(cuda_battery src/allocator.cpp src/utility.cpp)
-target_include_directories(cuda_battery PUBLIC include)
+add_library(cuda_battery INTERFACE)
+target_include_directories(cuda_battery INTERFACE include)
 
 if(GPU)
     set_property(TARGET cuda_battery PROPERTY CUDA_ARCHITECTURES 75)
     set_property(TARGET cuda_battery PROPERTY CUDA_SEPARABLE_COMPILATION ON)
 endif()
 
-target_compile_options(cuda_battery PRIVATE
+target_compile_options(cuda_battery INTERFACE
     $<$<COMPILE_LANGUAGE:CUDA>:
         --expt-relaxed-constexpr
         -rdc=true>
@@ -44,7 +37,7 @@ target_compile_options(cuda_battery PRIVATE
     $<$<CONFIG:LDebug>:-g -DTRACE>
 )
 
-if(BUILD_TESTS)
+if(BATTERY_BUILD_TESTS)
 
 # Google Test dependency
 
