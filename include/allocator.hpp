@@ -23,7 +23,7 @@ class ManagedAllocator {
 public:
   CUDA void* allocate(size_t bytes) {
     #ifdef __CUDA_ARCH__
-      printf("cannot use ManagedAllocator in CUDA __device__ code.");
+      printf("cannot use ManagedAllocator in CUDA __device__ code.\n");
       assert(0);
       return nullptr;
     #else
@@ -38,7 +38,7 @@ public:
 
   CUDA void deallocate(void* data) {
     #ifdef __CUDA_ARCH__
-      printf("cannot use ManagedAllocator in CUDA __device__ code.");
+      printf("cannot use ManagedAllocator in CUDA __device__ code.\n");
       assert(0);
     #else
       cudaFree(data);
@@ -52,6 +52,11 @@ template<bool on_gpu>
 class GlobalAllocator {
 public:
   CUDA void* allocate(size_t bytes) {
+    #ifdef __CUDA_ARCH__
+      assert(on_gpu);
+    #else
+      assert(!on_gpu);
+    #endif
     if(bytes == 0) {
       return nullptr;
     }
@@ -65,6 +70,11 @@ public:
   }
 
   CUDA void deallocate(void* data) {
+    #ifdef __CUDA_ARCH__
+      assert(on_gpu);
+    #else
+      assert(!on_gpu);
+    #endif
     cudaFree(data);
   }
 };
@@ -142,7 +152,7 @@ class StandardAllocator {
 public:
   CUDA void* allocate(size_t bytes) {
     #ifdef __CUDA_ARCH__
-      printf("cannot use StandardAllocator in CUDA __device__ code.");
+      printf("cannot use StandardAllocator in CUDA __device__ code.\n");
       assert(0);
       return nullptr;
     #else
@@ -152,7 +162,7 @@ public:
 
   CUDA void deallocate(void* data) {
     #ifdef __CUDA_ARCH__
-      printf("cannot use StandardAllocator in CUDA __device__ code.");
+      printf("cannot use StandardAllocator in CUDA __device__ code.\n");
       assert(0);
     #else
       std::free(data);

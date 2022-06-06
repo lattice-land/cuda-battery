@@ -31,7 +31,7 @@ public:
     data_(strlen(raw_string), raw_string, alloc) {}
 
   /** Copy constructor with an allocator. */
-  template <typename Allocator2>
+  template <class Allocator2>
   CUDA String(const String<Allocator2>& other, const Allocator& alloc = Allocator()):
     data_(other.data_, alloc) {}
 
