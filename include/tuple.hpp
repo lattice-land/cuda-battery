@@ -18,6 +18,7 @@ namespace battery {
   using cuda::std::tuple_cat;
   using cuda::std::get;
   using cuda::std::tuple_size;
+  using cuda::std::tuple_size_v;
   using cuda::std::tuple_element;
   using cuda::std::uses_allocator;
   using cuda::std::ignore;
@@ -29,6 +30,7 @@ namespace battery {
   using std::tuple_cat;
   using std::get;
   using std::tuple_size;
+  using std::tuple_size_v;
   using std::tuple_element;
   using std::uses_allocator;
   using std::ignore;

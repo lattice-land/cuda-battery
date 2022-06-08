@@ -108,32 +108,37 @@ namespace battery {
 
 /** An allocator allocating memory from a pool of memory.
 The memory can for instance be the CUDA shared memory.
-This allocator is rather incomplete as it never frees the memory allocated. */
+This allocator is rather incomplete as it never frees the memory allocated.
+It also does not care a bit about memory alignment. */
 class PoolAllocator {
-  int* mem;
+  unsigned char* mem;
   size_t offset;
   size_t capacity;
 public:
   CUDA PoolAllocator(const PoolAllocator& other):
     mem(other.mem), capacity(other.capacity), offset(other.offset) {}
 
-  CUDA PoolAllocator(int* mem, size_t capacity):
+  CUDA PoolAllocator(unsigned char* mem, size_t capacity):
     mem(mem), capacity(capacity), offset(0) {}
 
   CUDA PoolAllocator() = delete;
 
   CUDA void* allocate(size_t bytes) {
+    printf("Allocate %lu bytes.\n", bytes);
     if(bytes == 0) {
       return nullptr;
     }
     assert(offset < capacity);
     void* m = (void*)&mem[offset];
-    offset += bytes / sizeof(int);
-    offset += offset % sizeof(int*);
+    offset += bytes;
     return m;
   }
 
   CUDA void deallocate(void*) {}
+
+  CUDA void print() {
+    printf("Used %lu / %lu\n", offset, capacity);
+  }
 };
 }
 
