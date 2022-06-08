@@ -124,7 +124,6 @@ public:
   CUDA PoolAllocator() = delete;
 
   CUDA void* allocate(size_t bytes) {
-    printf("Allocate %lu bytes.\n", bytes);
     if(bytes == 0) {
       return nullptr;
     }
