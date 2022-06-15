@@ -83,7 +83,6 @@ using GlobalAllocatorGPU = GlobalAllocator<true>;
 using GlobalAllocatorCPU = GlobalAllocator<false>;
 } // namespace battery
 
-
 CUDA inline void* operator new(size_t bytes, battery::ManagedAllocator& p) {
   return p.allocate(bytes);
 }
@@ -109,34 +108,73 @@ namespace battery {
 /** An allocator allocating memory from a pool of memory.
 The memory can for instance be the CUDA shared memory.
 This allocator is rather incomplete as it never frees the memory allocated.
-It also does not care a bit about memory alignment. */
+It allocates a control block using the "normal" `operator new`, where the address to the pool, its capacity and current offset are stored.
+*/
 class PoolAllocator {
-  unsigned char* mem;
-  size_t offset;
-  size_t capacity;
+
+  struct ControlBlock {
+    unsigned char* mem;
+    size_t capacity;
+    size_t offset;
+    size_t alignment;
+    size_t counter;
+
+    CUDA ControlBlock(unsigned char* mem, size_t capacity, size_t alignment)
+     : mem(mem), capacity(capacity), offset(0), alignment(alignment), counter(1) {}
+
+    CUDA void* allocate(size_t bytes) {
+      if(bytes == 0) {
+        return nullptr;
+      }
+      offset += (alignment - (((size_t)&mem[offset]) % alignment)) % alignment;
+      assert(offset + bytes < capacity);
+      assert((size_t)&mem[offset] % alignment == 0);
+      void* m = (void*)&mem[offset];
+      offset += bytes;
+      return m;
+    }
+  };
+
+  ControlBlock* block;
+
 public:
   CUDA PoolAllocator(const PoolAllocator& other):
-    mem(other.mem), capacity(other.capacity), offset(other.offset) {}
+    block(other.block)
+  {
+    block->counter++;
+  }
 
-  CUDA PoolAllocator(unsigned char* mem, size_t capacity):
-    mem(mem), capacity(capacity), offset(0) {}
+  CUDA PoolAllocator(unsigned char* mem, size_t capacity, size_t alignment = alignof(std::max_align_t))
+   : block(::new ControlBlock(mem, capacity, alignment))
+  {}
 
   CUDA PoolAllocator() = delete;
 
-  CUDA void* allocate(size_t bytes) {
-    if(bytes == 0) {
-      return nullptr;
+  CUDA ~PoolAllocator() {
+    block->counter--;
+    if(block->counter == 0) {
+      ::delete block;
     }
-    assert(offset < capacity);
-    void* m = (void*)&mem[offset];
-    offset += bytes;
-    return m;
+  }
+
+  CUDA size_t align_at(size_t alignment) {
+    size_t old = block->alignment;
+    block->alignment = alignment;
+    return old;
+  }
+
+  CUDA void* allocate(size_t bytes) {
+    return block->allocate(bytes);
   }
 
   CUDA void deallocate(void*) {}
 
-  CUDA void print() {
-    printf("Used %lu / %lu\n", offset, capacity);
+  CUDA void print() const {
+    printf("Used %lu / %lu\n", block->offset, block->capacity);
+  }
+
+  CUDA size_t used() const {
+    return block->offset;
   }
 };
 }
@@ -182,44 +220,5 @@ CUDA inline void* operator new(size_t bytes, battery::StandardAllocator& p) {
 CUDA inline void operator delete(void* ptr, battery::StandardAllocator& p) {
   return p.deallocate(ptr);
 }
-
-namespace battery {
-
-/** `A` is an allocator for a "slow but large" memory, and `B` is an allocator for a "fast but small" memory.
- * By default, the allocator `A` is used, unless `B` is explicitly asked through `fast()`. */
-template <typename A, typename B>
-class TradeoffAllocator {
-  A a;
-  B b;
-public:
-  using LargeMemAllocator = A;
-  using FastMemAllocator = B;
-
-  CUDA TradeoffAllocator(const A& a, const B& b): a(a), b(b) {}
-  CUDA TradeoffAllocator(const B& b): a(), b(b) {}
-  CUDA void* allocate(size_t bytes) {
-    return a.allocate(bytes);
-  }
-
-  CUDA void deallocate(void* data) {
-    return a.deallocate(data);
-  }
-
-  CUDA B& fast() { return b; }
-};
-
-template<typename A>
-struct FasterAllocator {
-  using type = A;
-  CUDA static type& fast(A& a) { return a; }
-};
-
-template<typename A, typename B>
-struct FasterAllocator<TradeoffAllocator<A, B>> {
-  using type = B;
-  CUDA static type& fast(TradeoffAllocator<A, B>& a) { return a.fast(); }
-};
-
-} // namespace battery
 
 #endif // ALLOCATOR_HPP
