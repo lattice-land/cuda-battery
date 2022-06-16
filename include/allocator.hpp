@@ -10,6 +10,7 @@ This allows us to provide uniform interfaces for both host (C++) and device (CUD
 */
 
 #include <cassert>
+#include <cstddef>
 #include <type_traits>
 #include "utility.hpp"
 

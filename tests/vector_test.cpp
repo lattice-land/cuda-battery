@@ -3,6 +3,7 @@
 #include <gtest/gtest.h>
 #include "vector.hpp"
 #include "allocator.hpp"
+#include "memory.hpp"
 
 using namespace battery;
 
