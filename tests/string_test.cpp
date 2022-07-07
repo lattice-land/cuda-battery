@@ -64,3 +64,22 @@ TEST(String, Equality) {
   EXPECT_EQ(a5 == a6, true);
   EXPECT_EQ(a6 == a5, true);
 }
+
+TEST(String, Concatenation) {
+  String<StandardAllocator> empty;
+  String<StandardAllocator> a1("abc");
+  String<StandardAllocator> a2("abc");
+  String<StandardAllocator> a3("d");
+  String<StandardAllocator> a4("dabc");
+  EXPECT_EQ(empty + a1, a1);
+  EXPECT_EQ(empty + a1, a2);
+  EXPECT_EQ(empty + a1, "abc");
+  EXPECT_EQ(a1 + empty, "abc");
+  EXPECT_EQ(a1 + a1, "abcabc");
+  EXPECT_EQ(a1 + a2, "abcabc");
+  EXPECT_EQ(a1 + a3, "abcd");
+  EXPECT_EQ(a3 + a1, "dabc");
+  EXPECT_EQ(a3 + a1, a4);
+  EXPECT_EQ(a1 + a3 + a1, "abcdabc");
+  EXPECT_EQ("abcdabc", a1 + a3 + a1);
+}

@@ -6,6 +6,8 @@
 #include <cstdio>
 #include <cassert>
 #include <limits>
+#include <algorithm>
+#include <cstring>
 
 #ifdef __NVCC__
   #define CUDA_GLOBAL __global__
@@ -31,19 +33,11 @@
   #define CUDIE(S) S
   #define CUDIE0
   #define INLINE inline
-
-  #include <algorithm>
-  #include <cstring> // for strlen
-
-  namespace battery {
-    using std::swap;
-    using std::strlen;
-  }
 #endif
 
 namespace battery {
 namespace impl {
-  template<class T> CUDA void swap(T& a, T& b) {
+  template<class T> CUDA inline void swap(T& a, T& b) {
     T c(std::move(a));
     a = std::move(b);
     b = std::move(c);
@@ -54,12 +48,41 @@ namespace impl {
     while(str[n] != '\0') { ++n; }
     return n;
   }
+
+  /** See https://stackoverflow.com/a/34873406/2231159 */
+  CUDA inline int strcmp(const char* s1, const char* s2) {
+    while(*s1 && (*s1 == *s2)) {
+      s1++;
+      s2++;
+    }
+    return *(const unsigned char*)s1 - *(const unsigned char*)s2;
+  }
 }
 
-#ifdef __NVCC__
-  using impl::swap;
-  using impl::strlen;
-#endif
+template<class T> CUDA inline void swap(T& a, T& b) {
+  #ifdef __CUDA_ARCH__
+    impl::swap(a, b);
+  #else
+    std::swap(a, b);
+  #endif
+}
+
+CUDA inline size_t strlen(const char* str) {
+  #ifdef __CUDA_ARCH__
+    return impl::strlen(str);
+  #else
+    return std::strlen(str);
+  #endif
+}
+
+/** See https://stackoverflow.com/a/34873406/2231159 */
+CUDA inline int strcmp(const char* s1, const char* s2) {
+  #ifdef __CUDA_ARCH__
+    return impl::strcmp(s1, s2);
+  #else
+    return std::strcmp(s1, s2);
+  #endif
+}
 
 template<class T> CUDA T min(T a, T b) {
   #ifdef __CUDA_ARCH__
