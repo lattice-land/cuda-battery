@@ -36,13 +36,8 @@ public:
   }
 
   template <class T>
-  CUDA static void store(atomic_type<T>& a, T v) {
-    if constexpr(read_only) {
-      assert(0);
-    }
-    else {
-      a = v;
-    }
+  CUDA static std::enable_if_t<read_only, void> store(atomic_type<T>& a, T v) {
+    a = v;
   }
 
   CUDA allocator_type get_allocator() const {
