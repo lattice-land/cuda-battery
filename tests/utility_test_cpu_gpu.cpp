@@ -97,11 +97,15 @@ void analyse_test_result(T input, R expect, R cpu_result, R gpu_result, UtilityO
 template<class T, class R>
 void test_utility_ops(std::vector<T> inputs, std::vector<R> outputs, UtilityOperation op) {
   assert(inputs.size() == outputs.size());
-  // Add testing for bottom and top elements.
-  inputs.push_back(battery::Limits<T>::bot());
-  inputs.push_back(battery::Limits<T>::top());
-  outputs.push_back(battery::Limits<R>::bot());
-  outputs.push_back(battery::Limits<R>::top());
+  // Add testing for bottom and top elements for the casting operations.
+  if(op == RU_CAST || op == RD_CAST) {
+    if constexpr(std::is_signed_v<T>) {
+      inputs.push_back(battery::Limits<T>::bot());
+      outputs.push_back(battery::Limits<R>::bot());
+    }
+    inputs.push_back(battery::Limits<T>::top());
+    outputs.push_back(battery::Limits<R>::top());
+  }
   battery::ManagedAllocator managed_allocator;
   for(int i = 0; i < inputs.size(); ++i) {
     R cpu_result = run_utility_op<R>(inputs[i], op);
@@ -213,7 +217,7 @@ template<class I>
 void test_bitwise_operations() {
   constexpr I bits = sizeof(I) * CHAR_BIT;
   test_utility_ops<I, int>(
-    {0, 1, (I)1 << (bits-1), (I)1 | ((I)1 << (bits-1)),  battery::Limits<I>::top()},
+    {0, 1, ((I)1) << (bits-1), (I)1 | ((I)1 << (bits-1)),  battery::Limits<I>::top()},
     {0, 1, 1,             2,                    bits},
     POPCOUNT);
   test_utility_ops<I, int>(

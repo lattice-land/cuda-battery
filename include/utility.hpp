@@ -6,6 +6,7 @@
 #include <cstdio>
 #include <cassert>
 #include <limits>
+#include <climits>
 #include <algorithm>
 #include <cstring>
 #include <cmath>
@@ -144,6 +145,7 @@ struct Limits {
 };
 
 #define MAP_LIMITS(x, From, To) \
+  if(x == 0) { return 0; } \
   if(x == Limits<From>::bot()) {\
     return Limits<To>::bot();   \
   }                             \
@@ -178,13 +180,24 @@ CUDA To ru_cast(From x) {
           static_assert(std::is_same_v<To, float>, "Unsupported combination of types in ru_cast.");
         }
       }
+      else if constexpr(std::is_same_v<From, int>) {
+        if constexpr(std::is_same_v<To, float>) {
+          return __int2float_ru(x);
+        }
+        else if constexpr(std::is_same_v<To, double>) {
+          return __int2double_rn(x);
+        }
+        else {
+          static_assert(std::is_same_v<To, float>, "Unsupported combination of types in ru_cast.");
+        }
+      }
       else {
         static_assert(sizeof(long long int) >= sizeof(From));
         if constexpr(std::is_same_v<To, float>) {
-          return __ll2float_ru(static_cast<long long int>(x));
+          return __ll2float_ru(x);
         }
         else if constexpr(std::is_same_v<To, double>) {
-          return __ll2double_ru(static_cast<long long int>(x));
+          return __ll2double_ru(x);
         }
         else {
           static_assert(std::is_same_v<To, float>, "Unsupported combination of types in ru_cast.");
@@ -255,13 +268,24 @@ CUDA To rd_cast(From x) {
           static_assert(std::is_same_v<To, float>, "Unsupported combination of types in rd_cast.");
         }
       }
+      else if constexpr(std::is_same_v<From, int>) {
+        if constexpr(std::is_same_v<To, float>) {
+          return __int2float_rd(x);
+        }
+        else if constexpr(std::is_same_v<To, double>) {
+          return __int2double_rn(x);
+        }
+        else {
+          static_assert(std::is_same_v<To, float>, "Unsupported combination of types in rd_cast.");
+        }
+      }
       else {
         static_assert(sizeof(long long int) >= sizeof(From));
         if constexpr(std::is_same_v<To, float>) {
-          return __ll2float_rd(static_cast<long long int>(x));
+          return __ll2float_rd(x);
         }
         else if constexpr(std::is_same_v<To, double>) {
-          return __ll2double_rd(static_cast<long long int>(x));
+          return __ll2double_rd(x);
         }
         else {
           static_assert(std::is_same_v<To, float>, "Unsupported combination of types in rd_cast.");
@@ -321,8 +345,12 @@ CUDA int popcount(T x) {
   #elif __cpp_lib_bitops
     return std::popcount(x);
   #else
-    assert(0); // compile with c++20.
-    return 0;
+    int c = 0;
+    for(int i = 0; i < sizeof(T) * CHAR_BIT && x != 0; ++i) {
+      c += (x & 1);
+      x >>= 1;
+    }
+    return c;
   #endif
 }
 
@@ -343,8 +371,14 @@ CUDA int countl_zero(T x) {
   #elif __cpp_lib_bitops
     return std::countl_zero(x);
   #else
-    assert(0); // compile with c++20.
-    return 0;
+    int c = 0;
+    constexpr int bits = sizeof(T) * CHAR_BIT;
+    constexpr T mask = (T)1 << (bits - 1);
+    for(int i = 0; i < bits && (x & mask) == 0; ++i) {
+      c += (x & mask) == 0;
+      x <<= 1;
+    }
+    return c;
   #endif
 }
 
@@ -356,8 +390,14 @@ CUDA int countl_one(T x) {
   #elif __cpp_lib_bitops
     return std::countl_one(x);
   #else
-    assert(0); // compile with c++20.
-    return 0;
+    int c = 0;
+    constexpr int bits = sizeof(T) * CHAR_BIT;
+    constexpr T mask = (T)1 << (bits - 1);
+    for(int i = 0; i < bits && (x & mask) > 0; ++i) {
+      c += (x & mask) > 0;
+      x <<= 1;
+    }
+    return c;
   #endif
 }
 
@@ -365,6 +405,9 @@ template<class T>
 CUDA int countr_zero(T x) {
   static_assert(std::is_integral_v<T> && std::is_unsigned_v<T>, "countl_zero only works on unsigned integers");
   #ifdef __CUDA_ARCH__
+    if(x == 0) {
+      return sizeof(T) * CHAR_BIT;
+    }
     if constexpr(sizeof(T) <= sizeof(int)) {
       return __ffs(x) - 1;
     }
@@ -377,8 +420,14 @@ CUDA int countr_zero(T x) {
   #elif __cpp_lib_bitops
     return std::countr_zero(x);
   #else
-    assert(0); // compile with c++20.
-    return 0;
+    int c = 0;
+    constexpr int bits = sizeof(T) * CHAR_BIT;
+    constexpr T mask = 1;
+    for(int i = 0; i < bits && (x & mask) == 0; ++i) {
+      c += (x & mask) == 0;
+      x >>= 1;
+    }
+    return c;
   #endif
 }
 
@@ -390,8 +439,14 @@ CUDA int countr_one(T x) {
   #elif __cpp_lib_bitops
     return std::countr_one(x);
   #else
-    assert(0); // compile with c++20.
-    return 0;
+    int c = 0;
+    constexpr int bits = sizeof(T) * CHAR_BIT;
+    constexpr T mask = 1;
+    for(int i = 0; i < bits && (x & mask) > 0; ++i) {
+      c += (x & mask) > 0;
+      x >>= 1;
+    }
+    return c;
   #endif
 }
 
