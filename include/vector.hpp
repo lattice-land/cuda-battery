@@ -61,7 +61,7 @@ private:
     }
   }
 
-  template<typename T2, typename Allocator2> friend class vector;
+  template<class T2, class Allocator2> friend class vector;
 
   CUDA void inplace_new(size_t i) {
     if constexpr(std::is_constructible<value_type, const allocator_type&>{}) {

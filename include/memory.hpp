@@ -36,7 +36,7 @@ public:
   }
 
   template <class T>
-  CUDA static std::enable_if_t<read_only, void> store(atomic_type<T>& a, T v) {
+  CUDA static std::enable_if_t<!read_only, void> store(atomic_type<T>& a, T v) {
     a = v;
   }
 

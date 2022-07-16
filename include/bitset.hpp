@@ -1,4 +1,4 @@
-// Copyright 2021 Pierre Talbot, Frédéric Pinel, Cem Guvel
+// Copyright 2021 Pierre Talbot, Cem Guvel
 
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -26,20 +26,28 @@ template <size_t N, class Mem, class T = unsigned long long>
 class Bitset {
 private:
   constexpr static size_t BITS_PER_BLOCK = sizeof(T) * CHAR_BIT;
+  constexpr static size_t BITS_LAST_BLOCK = (N % BITS_PER_BLOCK) == 0 ? BITS_PER_BLOCK : (N % BITS_PER_BLOCK);
+  constexpr static size_t PADDING_LAST_BLOCK = BITS_PER_BLOCK - BITS_LAST_BLOCK;
   constexpr static size_t BLOCKS = N / BITS_PER_BLOCK + (N % BITS_PER_BLOCK != 0);
   constexpr static size_t MAX_SIZE = N;
   constexpr static T ZERO = T{0};
   constexpr static T ONES = ~T{0};
+  /** The last block might not be fully used.
+      If we have two blocks of size 8 each, but N = 10, only 2 bits are relevant in the last block.
+      We have 10 % 8 = 2, then ONES << 2 gives 11111100, and ~(ONES << 2) = 00000011. */
+  constexpr static T ONES_LAST = PADDING_LAST_BLOCK == 0 ? ONES : (T)(~(ONES << BITS_LAST_BLOCK));
 
   using block_type = typename Mem::atomic_type<T>;
 
-  /** Suppose T = char, with 2 blocks. Then the bitset is represented as:
+  /** Suppose T = char, with 2 blocks. Then the bitset "0000 00100000" is represented as:
    *
-   *    blocks index:       1       0
-   *    blocks:         00000000 00100000
-   *    indexes:           ...98 76543210
+   *    blocks index:       0       1
+   *    blocks:         00100000 00000000
+   *    indexes:        76543210    ...98
    *
-   *    Hence, `bitset.test(5) == true`.
+   *    We have `bitset.test(5) == true`.
+   *
+   *    Note that the last block is the one carrying the most significant bits, and also the one that is potentially padded with zeroes.
    *  */
   block_type blocks[BLOCKS];
 
@@ -49,10 +57,10 @@ public:
   CUDA Bitset(): blocks() {}
 
   CUDA Bitset(const char* bit_str): blocks() {
-    size_t n = min(strlen(bit_str), N);
-    for(int i = n-1; i >= 0; i--) {
+    size_t n = min(strlen(bit_str), MAX_SIZE);
+    for(int i = n-1, j = 0; i >= 0; --i, ++j) {
       if(bit_str[i] == '1') {
-        set(i);
+        set(j);
       }
     }
   }
@@ -60,7 +68,7 @@ public:
   template<class Mem2>
   CUDA Bitset(const Bitset<N, Mem2, T>& other) {
     for(int i = 0; i < BLOCKS; ++i) {
-      Mem::store(blocks[i], Mem::load(other[i]));
+      store(blocks[i], Mem::load(other[i]));
     }
   }
 
@@ -73,7 +81,15 @@ public:
   }
 
 private:
+  CUDA void store(block_type& block, T data) {
+    Mem::store(block, data);
+  }
+
   CUDA block_type& block_of(size_t pos) {
+    return blocks[pos / BITS_PER_BLOCK];
+  }
+
+  CUDA const block_type& block_of(size_t pos) const {
     return blocks[pos / BITS_PER_BLOCK];
   }
 
@@ -81,12 +97,12 @@ private:
     return Mem::load(block_of(pos));
   }
 
-  CUDA void store_block(size_t pos, T block) {
-    Mem::store(block_of(pos), block);
+  CUDA void store_block(size_t pos, T data) {
+    store(block_of(pos), data);
   }
 
-  CUDA size_t bit_of(size_t pos) {
-    return 1 << (pos % BITS_PER_BLOCK);
+  CUDA T bit_of(size_t pos) const {
+    return static_cast<T>(1) << (pos % BITS_PER_BLOCK);
   }
 
 public:
@@ -96,12 +112,13 @@ public:
   }
 
   CUDA bool all() const {
-    for(int i = 0; i < BLOCKS; ++i) {
+    int i = 0;
+    for(; i < BLOCKS - 1; ++i) {
       if(Mem::load(blocks[i]) != ONES) {
         return false;
       }
     }
-    return true;
+    return Mem::load(blocks[i]) == ONES_LAST;
   }
 
   CUDA bool any() const {
@@ -135,9 +152,11 @@ public:
   }
 
   CUDA Bitset& set() {
-    for(int i = 0; i < BLOCKS; ++i) {
-      Mem::store(blocks[i], ONES);
+    int i = 0;
+    for(; i < BLOCKS - 1; ++i) {
+      store(blocks[i], ONES);
     }
+    store(blocks[i], ONES_LAST);
     return *this;
   }
 
@@ -154,7 +173,7 @@ public:
 
   CUDA Bitset& reset() {
     for(int i = 0; i < BLOCKS; ++i) {
-      Mem::store(blocks[i], ZERO);
+      store(blocks[i], ZERO);
     }
     return *this;
   }
@@ -162,23 +181,28 @@ public:
   CUDA Bitset& reset(size_t pos) {
     assert(pos < MAX_SIZE);
     store_block(pos, load_block(pos) & ~bit_of(pos));
+    return *this;
   }
 
   CUDA Bitset& flip() {
-    for(int i = 0; i < BLOCKS; ++i) {
-      Mem::store(blocks[i], ~Mem::load(blocks[i]));
+    int i = 0;
+    for(; i < BLOCKS - 1; ++i) {
+      store(blocks[i], ~Mem::load(blocks[i]));
     }
+    store(blocks[i], ONES_LAST & ~Mem::load(blocks[i]));
+    return *this;
   }
 
   CUDA Bitset& flip(size_t pos) {
     assert(pos < MAX_SIZE);
     store_block(pos, load_block(pos) ^ bit_of(pos));
+    return *this;
   }
 
   template<class Mem2>
   CUDA Bitset& operator&=(const Bitset<N, Mem2, T>& other) {
     for(int i = 0; i < BLOCKS; ++i) {
-      Mem::store(blocks[i], Mem::load(blocks[i]) & Mem2::load(other.blocks[i]));
+      store(blocks[i], Mem::load(blocks[i]) & Mem2::load(other.blocks[i]));
     }
     return *this;
   }
@@ -186,7 +210,7 @@ public:
   template<class Mem2>
   CUDA Bitset& operator|=(const Bitset<N, Mem2, T>& other) {
     for(int i = 0; i < BLOCKS; ++i) {
-      Mem::store(blocks[i], Mem::load(blocks[i]) | Mem2::load(other.blocks[i]));
+      store(blocks[i], Mem::load(blocks[i]) | Mem2::load(other.blocks[i]));
     }
     return *this;
   }
@@ -194,7 +218,7 @@ public:
   template<class Mem2>
   CUDA Bitset& operator^=(const Bitset<N, Mem2, T>& other) {
     for(int i = 0; i < BLOCKS; ++i) {
-      Mem::store(blocks[i], Mem::load(blocks[i]) ^ Mem2::load(other.blocks[i]));
+      store(blocks[i], Mem::load(blocks[i]) ^ Mem2::load(other.blocks[i]));
     }
     return *this;
   }
@@ -220,31 +244,47 @@ public:
 
   CUDA int countl_zero() const {
     int k = BLOCKS - 1;
-    for(; k >= 0 && blocks[k] == ZERO; --k) {}
-    return (BLOCKS - 1 - k) * BITS_PER_BLOCK + (k == -1 ? 0 : ::battery::countl_zero(blocks[k]));
+    if(blocks[k] > ZERO) {
+      return ::battery::countl_zero(blocks[k]) - PADDING_LAST_BLOCK;
+    }
+    --k;
+    int i = 0;
+    for(; k >= 0 && blocks[k] == ZERO; --k, ++i) {}
+    return i * BITS_PER_BLOCK
+         + BITS_LAST_BLOCK
+         + (k == -1 ? 0 : ::battery::countl_zero(blocks[k]));
   }
 
   CUDA int countl_one() const {
     int k = BLOCKS - 1;
-    for(; k >= 0 && blocks[k] == ONES; --k) {}
-    return (BLOCKS - 1 - k) * BITS_PER_BLOCK + (k == -1 ? 0 : ::battery::countl_one(blocks[k]));
+    if(blocks[k] != ONES_LAST) {
+      return battery::countl_one((T)(blocks[k] << PADDING_LAST_BLOCK));
+    }
+    --k;
+    int i = 0;
+    for(; k >= 0 && blocks[k] == ONES; --k, ++i) {}
+    return i * BITS_PER_BLOCK
+         + BITS_LAST_BLOCK
+         + (k == -1 ? 0 : ::battery::countl_one(blocks[k]));
   }
 
   CUDA int countr_zero() const {
     int k = 0;
     for(; k < BLOCKS && blocks[k] == ZERO; ++k) {}
-    return k * BITS_PER_BLOCK + (k == BLOCKS ? 0 : ::battery::countr_zero(blocks[k]));
+    return k * BITS_PER_BLOCK
+        + (k == BLOCKS ? -PADDING_LAST_BLOCK : ::battery::countr_zero(blocks[k]));
   }
 
   CUDA int countr_one() const {
     int k = 0;
     for(; k < BLOCKS && blocks[k] == ONES; ++k) {}
-    return k * BITS_PER_BLOCK + (k == BLOCKS ? 0 : ::battery::countr_one(blocks[k]));
+    return k * BITS_PER_BLOCK
+        + (k == BLOCKS ? 0 : ::battery::countr_one(blocks[k]));
   }
 
   CUDA void print() const {
     for(int i = size() - 1; i >= 0; --i) {
-      printf("%d", 1 & test(i));
+      printf("%c", test(i) ? '1' : '0');
     }
   }
 
