@@ -25,14 +25,22 @@ add_library(cuda_battery INTERFACE)
 target_include_directories(cuda_battery INTERFACE include)
 
 if(GPU)
-    set_property(TARGET cuda_battery PROPERTY CUDA_ARCHITECTURES 75)
-    set_property(TARGET cuda_battery PROPERTY CUDA_SEPARABLE_COMPILATION ON)
+  set_property(TARGET cuda_battery PROPERTY CUDA_ARCHITECTURES 75)
+  set_property(TARGET cuda_battery PROPERTY CUDA_SEPARABLE_COMPILATION ON)
 endif()
+
+# --frounding-math is necessary with GCC because `#pragma STDC FENV_ACCESS ON` does not work.
+# This option will help in making the compiler take into account rounding modes, but bugs persist so floating-point arithmetic on CPUs might not always be sound right now...
+# C.f. https://gcc.gnu.org/bugzilla/show_bug.cgi?id=34678
+IF((CMAKE_CXX_COMPILER_ID STREQUAL "GNU") OR (CMAKE_CXX_COMPILER_ID STREQUAL "Clang"))
+  add_compile_options(-frounding-math)
+ENDIF()
 
 target_compile_options(cuda_battery INTERFACE
     $<$<COMPILE_LANGUAGE:CUDA>:
         --expt-relaxed-constexpr
-        -rdc=true>
+        -rdc=true
+        --compiler-options -frounding-math>
     $<$<CONFIG:Debug>:-g -DDEBUG>
     $<$<CONFIG:LDebug>:-g -DTRACE>
 )

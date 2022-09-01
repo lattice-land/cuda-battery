@@ -223,6 +223,9 @@ CUDA To ru_cast(From x) {
   #else
     // Integer to floating-point number cast.
     if constexpr(std::is_integral_v<From> && std::is_floating_point_v<To>) {
+      #ifndef __GNUC__
+        #pragma STDC FENV_ACCESS ON
+      #endif
       int r = std::fesetround(FE_UPWARD);
       assert(r == 0);
       return static_cast<To>(x);
@@ -233,6 +236,9 @@ CUDA To ru_cast(From x) {
     }
     // Floating-point to floating-point.
     else if constexpr(std::is_same_v<From, double> && std::is_same_v<To, float>) {
+      #ifndef __GNUC__
+        #pragma STDC FENV_ACCESS ON
+      #endif
       int r = std::fesetround(FE_UPWARD);
       assert(r == 0);
       return static_cast<To>(x);
@@ -311,6 +317,9 @@ CUDA To rd_cast(From x) {
   #else
     // Integer to floating-point number cast.
     if constexpr(std::is_integral_v<From> && std::is_floating_point_v<To>) {
+      #ifndef __GNUC__
+        #pragma STDC FENV_ACCESS ON
+      #endif
       int r = std::fesetround(FE_DOWNWARD);
       assert(r == 0);
       return static_cast<To>(x);
@@ -321,6 +330,9 @@ CUDA To rd_cast(From x) {
     }
     // Floating-point to floating-point.
     else if constexpr(std::is_same_v<From, double> && std::is_same_v<To, float>) {
+      #ifndef __GNUC__
+        #pragma STDC FENV_ACCESS ON
+      #endif
       int r = std::fesetround(FE_DOWNWARD);
       assert(r == 0);
       return static_cast<To>(x);
@@ -447,6 +459,146 @@ CUDA int countr_one(T x) {
       x >>= 1;
     }
     return c;
+  #endif
+}
+
+/** Signum function, https://stackoverflow.com/a/4609795/2231159 */
+template <class T>
+CUDA int signum(T val) {
+  return (T(0) < val) - (val < T(0));
+}
+
+/** Precondition: T is an integer with b >= 0.*/
+template <class T>
+CUDA T ipow(T a, T b) {
+  static_assert(std::is_integral_v<T>, "ipow is only working on integer value.");
+  assert(b >= 0);
+  if(b == 2) {
+    return a*a;
+  }
+  // Code taken from GeCode implementation.
+  T p = 1;
+  do {
+    if (b % 2 == 0) {
+      a *= a;
+      b >>= 1;
+    } else {
+      p *= a;
+      b--;
+    }
+  } while (b > 0);
+  return p;
+}
+
+#define FLOAT_ARITHMETIC_CUDA_IMPL(name, cudaname)   \
+  if constexpr(std::is_same_v<T, float>) {           \
+    return __f ## cudaname(x, y);                    \
+  }                                                  \
+  else if constexpr(std::is_same_v<T, double>) {     \
+    return __d ## cudaname(x, y);                    \
+  }                                                  \
+  else {                                             \
+    static_assert(std::is_same_v<T, float>, #name " (CUDA version) only support float or double types."); \
+  }
+
+#define FLOAT_ARITHMETIC_CPP_IMPL(cppop, cppround) \
+  int r = std::fesetround(cppround);              \
+  assert(r == 0);                                  \
+  return x cppop y;
+
+template <class T>
+CUDA T add_up(T x, T y) {
+  #ifdef __CUDA_ARCH__
+    FLOAT_ARITHMETIC_CUDA_IMPL(add_up, add_ru)
+  #else
+    #ifndef __GNUC__
+      #pragma STDC FENV_ACCESS ON
+    #endif
+    FLOAT_ARITHMETIC_CPP_IMPL(+, FE_UPWARD)
+  #endif
+}
+
+template <class T>
+CUDA T add_down(T x, T y) {
+  #ifdef __CUDA_ARCH__
+    FLOAT_ARITHMETIC_CUDA_IMPL(add_down, add_rd)
+  #else
+    #ifndef __GNUC__
+      #pragma STDC FENV_ACCESS ON
+    #endif
+    FLOAT_ARITHMETIC_CPP_IMPL(+, FE_DOWNWARD)
+  #endif
+}
+
+template <class T>
+CUDA T sub_up(T x, T y) {
+  #ifdef __CUDA_ARCH__
+    FLOAT_ARITHMETIC_CUDA_IMPL(sub_up, sub_ru)
+  #else
+    #ifndef __GNUC__
+      #pragma STDC FENV_ACCESS ON
+    #endif
+    FLOAT_ARITHMETIC_CPP_IMPL(-, FE_UPWARD)
+  #endif
+}
+
+template <class T>
+CUDA T sub_down(T x, T y) {
+  #ifdef __CUDA_ARCH__
+    FLOAT_ARITHMETIC_CUDA_IMPL(sub_down, sub_rd)
+  #else
+    #ifndef __GNUC__
+      #pragma STDC FENV_ACCESS ON
+    #endif
+    FLOAT_ARITHMETIC_CPP_IMPL(-, FE_DOWNWARD)
+  #endif
+}
+
+template <class T>
+CUDA T mul_up(T x, T y) {
+  #ifdef __CUDA_ARCH__
+    FLOAT_ARITHMETIC_CUDA_IMPL(mul_up, mul_ru)
+  #else
+    #ifndef __GNUC__
+      #pragma STDC FENV_ACCESS ON
+    #endif
+    FLOAT_ARITHMETIC_CPP_IMPL(*, FE_UPWARD)
+  #endif
+}
+
+template <class T>
+CUDA T mul_down(T x, T y) {
+  #ifdef __CUDA_ARCH__
+    FLOAT_ARITHMETIC_CUDA_IMPL(mul_down, mul_rd)
+  #else
+    #ifndef __GNUC__
+      #pragma STDC FENV_ACCESS ON
+    #endif
+    FLOAT_ARITHMETIC_CPP_IMPL(*, FE_DOWNWARD)
+  #endif
+}
+
+template <class T>
+CUDA T div_up(T x, T y) {
+  #ifdef __CUDA_ARCH__
+    FLOAT_ARITHMETIC_CUDA_IMPL(div_up, div_ru)
+  #else
+    #ifndef __GNUC__
+      #pragma STDC FENV_ACCESS ON
+    #endif
+    FLOAT_ARITHMETIC_CPP_IMPL(/, FE_UPWARD)
+  #endif
+}
+
+template <class T>
+CUDA T div_down(T x, T y) {
+  #ifdef __CUDA_ARCH__
+    FLOAT_ARITHMETIC_CUDA_IMPL(div_down, div_rd)
+  #else
+    #ifndef __GNUC__
+      #pragma STDC FENV_ACCESS ON
+    #endif
+    FLOAT_ARITHMETIC_CPP_IMPL(/, FE_DOWNWARD)
   #endif
 }
 

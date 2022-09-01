@@ -17,6 +17,23 @@
 
 namespace battery {
 
+/** Represent the memory of a variable that cannot be accessed by multiple threads (e.g., allocated on the stack), thus not needing any allocator.
+    In other terms, a variable stored locally to a thread. */
+class LocalMemory {
+public:
+  template <class T> using atomic_type = T;
+
+  template <class T>
+  CUDA static T load(const atomic_type<T>& a) {
+    return a;
+  }
+
+  template <class T>
+  CUDA static void store(atomic_type<T>& a, T v) {
+    a = v;
+  }
+};
+
 template <class Allocator, bool read_only = false>
 class Memory {
 public:
