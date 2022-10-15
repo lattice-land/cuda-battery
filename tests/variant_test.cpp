@@ -5,18 +5,18 @@
 #include "utility.hpp"
 #include "string.hpp"
 #include "allocator.hpp"
-#include "darray.hpp"
+#include "vector.hpp"
 
 using namespace battery;
 
 class Formula {
-  using DataT = variant<char, String<StandardAllocator>, DArray<Formula, StandardAllocator>>;
+  using DataT = variant<char, String<StandardAllocator>, vector<Formula, StandardAllocator>>;
   DataT data;
 
 public:
   Formula(char c): data(DataT::create<0>(c)) {}
   Formula(String<StandardAllocator> s): data(DataT::create<1>(s)) {}
-  Formula(DArray<Formula, StandardAllocator> f): data(DataT::create<2>(f)) {}
+  Formula(vector<Formula, StandardAllocator> f): data(DataT::create<2>(f)) {}
 
   template<size_t i, typename T>
   void expect(T t) {
@@ -48,10 +48,10 @@ TEST(Variant, Constructor) {
   EXPECT_FALSE(c1 == c3);
   Formula c5('b');
   EXPECT_FALSE(c1 == c5);
-  Formula c6(DArray<Formula, StandardAllocator>(3, Formula('a')));
-  c6.template expect<2>(DArray<Formula, StandardAllocator>(3, Formula('a')));
-  Formula c7(DArray<Formula, StandardAllocator>(3, Formula('a')));
+  Formula c6(vector<Formula, StandardAllocator>(3, Formula('a')));
+  c6.template expect<2>(vector<Formula, StandardAllocator>(3, Formula('a')));
+  Formula c7(vector<Formula, StandardAllocator>(3, Formula('a')));
   EXPECT_TRUE(c6 == c7);
-  Formula c8(DArray<Formula, StandardAllocator>(3, Formula('b')));
+  Formula c8(vector<Formula, StandardAllocator>(3, Formula('b')));
   EXPECT_FALSE(c6 == c8);
 }

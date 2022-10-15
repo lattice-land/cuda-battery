@@ -1,5 +1,11 @@
 cmake_minimum_required(VERSION 3.20)
 
+# Avoid warning about DOWNLOAD_EXTRACT_TIMESTAMP in CMake 3.24:
+# Fix found at https://github.com/ethereum/solidity/pull/13429
+if (CMAKE_VERSION VERSION_GREATER_EQUAL "3.24.0")
+  cmake_policy(SET CMP0135 NEW)
+endif()
+
 include(FetchContent)
 include(CMakePrintHelpers)
 
@@ -64,10 +70,6 @@ add_executable(utility_test_cpu tests/utility_test_cpu.cpp)
 target_link_libraries(utility_test_cpu cuda_battery gtest_main)
 gtest_discover_tests(utility_test_cpu)
 
-add_executable(darray_test tests/darray_test.cpp)
-target_link_libraries(darray_test cuda_battery gtest_main)
-gtest_discover_tests(darray_test)
-
 add_executable(string_test tests/string_test.cpp)
 target_link_libraries(string_test cuda_battery gtest_main)
 gtest_discover_tests(string_test)
@@ -93,25 +95,16 @@ target_link_libraries(bitset_test cuda_battery gtest_main)
 gtest_discover_tests(bitset_test)
 
 if(GPU)
-  set_source_files_properties(tests/polymorphic_darray_test.cpp PROPERTIES LANGUAGE CUDA)
-  add_executable(polymorphic_darray_test tests/polymorphic_darray_test.cpp)
-  set_property(TARGET polymorphic_darray_test PROPERTY CUDA_SEPARABLE_COMPILATION ON)
-  set_property(TARGET polymorphic_darray_test PROPERTY CUDA_ARCHITECTURES 75)
-  target_compile_options(polymorphic_darray_test PRIVATE --expt-relaxed-constexpr -rdc=true
-    $<$<CONFIG:Debug>:-g -DDEBUG>
-    $<$<CONFIG:LDebug>:-g -DTRACE>)
-  target_link_libraries(polymorphic_darray_test cuda_battery)
-  add_test(NAME polymorphic_darray_test COMMAND cuda-memcheck --error-exitcode 1 $<TARGET_FILE:polymorphic_darray_test>)
-
   set_source_files_properties(tests/utility_test_cpu_gpu.cpp PROPERTIES LANGUAGE CUDA)
   add_executable(utility_test_cpu_gpu tests/utility_test_cpu_gpu.cpp)
   set_property(TARGET utility_test_cpu_gpu PROPERTY CUDA_SEPARABLE_COMPILATION ON)
   set_property(TARGET utility_test_cpu_gpu PROPERTY CUDA_ARCHITECTURES 75)
-  target_compile_options(utility_test_cpu_gpu PRIVATE --expt-relaxed-constexpr -rdc=true
+  target_compile_options(utility_test_cpu_gpu PRIVATE
+    $<$<COMPILE_LANGUAGE:CUDA>: --expt-relaxed-constexpr -rdc=true --compiler-options -frounding-math>
     $<$<CONFIG:Debug>:-g -DDEBUG>
     $<$<CONFIG:LDebug>:-g -DTRACE>)
   target_link_libraries(utility_test_cpu_gpu cuda_battery)
-  add_test(NAME utility_test_cpu_gpu COMMAND cuda-memcheck --error-exitcode 1 $<TARGET_FILE:utility_test_cpu_gpu>)
+  add_test(NAME utility_test_cpu_gpu COMMAND compute-sanitizer --error-exitcode 1 $<TARGET_FILE:utility_test_cpu_gpu>)
 endif()
 
 endif()
