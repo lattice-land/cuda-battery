@@ -289,8 +289,8 @@ public:
   }
 
   template <class Allocator>
-  CUDA String<Allocator> to_string(Allocator allocator = Allocator()) const {
-    String<Allocator> bits_str(size(), allocator);
+  CUDA string<Allocator> to_string(Allocator allocator = Allocator()) const {
+    string<Allocator> bits_str(size(), allocator);
     for(int i = size() - 1, j = 0; i >= 0; --i, ++j) {
       bits_str[j] = test(i) ? '1' : '0';
     }

@@ -46,7 +46,7 @@ void test_string_constructor() {
   for(int i = 1; i < b1.size(); ++i) {
     EXPECT_FALSE(b1.test(i));
   }
-  String<StandardAllocator> bitset_str(b1.size());
+  string<StandardAllocator> bitset_str(b1.size());
   for(int i = 0; i < bitset_str.size(); ++i) {
     bitset_str[i] = '1';
   }

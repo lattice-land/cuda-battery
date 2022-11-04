@@ -8,7 +8,7 @@
 using namespace battery;
 
 template<typename Allocator>
-void test_string(const String<Allocator>& a, const char* expect) {
+void test_string(const string<Allocator>& a, const char* expect) {
   EXPECT_EQ(a.size(), battery::strlen(expect));
   for(int i = 0; i < a.size(); ++i) {
     EXPECT_EQ(a[i], expect[i]);
@@ -16,31 +16,31 @@ void test_string(const String<Allocator>& a, const char* expect) {
 }
 
 TEST(String, Constructor) {
-  String<StandardAllocator> a1("abc");
+  string<StandardAllocator> a1("abc");
   test_string(a1, "abc");
-  String<StandardAllocator> a2(a1);
+  string<StandardAllocator> a2(a1);
   test_string(a2, "abc");
   std::string test("std::string");
-  String<StandardAllocator> a3(test);
+  string<StandardAllocator> a3(test);
   test_string(a3, test.c_str());
-  String<StandardAllocator> a4(1);
+  string<StandardAllocator> a4(1);
   a4[0] = '0';
   test_string(a4, "0");
-  String<StandardAllocator> a5("");
+  string<StandardAllocator> a5("");
   test_string(a5, "");
-  String<StandardAllocator> a6;
+  string<StandardAllocator> a6;
   test_string(a6, "");
-  String<StandardAllocator> a7(a1);
+  string<StandardAllocator> a7(a1);
   test_string(a7, "abc");
-  String<StandardAllocator> a8 = a7;
+  string<StandardAllocator> a8 = a7;
   test_string(a8, "abc");
 }
 
 TEST(String, Equality) {
-  String<StandardAllocator> a1("abc");
-  String<StandardAllocator> a2(a1);
-  String<StandardAllocator> a3("abcd");
-  String<StandardAllocator> a4("ab");
+  string<StandardAllocator> a1("abc");
+  string<StandardAllocator> a2(a1);
+  string<StandardAllocator> a3("abcd");
+  string<StandardAllocator> a4("ab");
   EXPECT_EQ(a1 == a2, true);
   EXPECT_EQ(a2 == a1, true);
   EXPECT_EQ(a1 == a3, false);
@@ -49,7 +49,7 @@ TEST(String, Equality) {
   EXPECT_EQ(a3 == a4, false);
   EXPECT_EQ(a4 == a3, false);
   EXPECT_EQ(a3 == a4, false);
-  String<StandardAllocator> a5("");
+  string<StandardAllocator> a5("");
   EXPECT_EQ(a5 == a1, false);
   EXPECT_EQ(a5 == a2, false);
   EXPECT_EQ(a5 == a3, false);
@@ -58,7 +58,7 @@ TEST(String, Equality) {
   EXPECT_EQ(a2 == a5, false);
   EXPECT_EQ(a3 == a5, false);
   EXPECT_EQ(a4 == a5, false);
-  String<StandardAllocator> a6;
+  string<StandardAllocator> a6;
   EXPECT_EQ(a5.size(), 0);
   EXPECT_EQ(a6.size(), 0);
   EXPECT_EQ(a5 == a6, true);
@@ -66,11 +66,11 @@ TEST(String, Equality) {
 }
 
 TEST(String, Concatenation) {
-  String<StandardAllocator> empty;
-  String<StandardAllocator> a1("abc");
-  String<StandardAllocator> a2("abc");
-  String<StandardAllocator> a3("d");
-  String<StandardAllocator> a4("dabc");
+  string<StandardAllocator> empty;
+  string<StandardAllocator> a1("abc");
+  string<StandardAllocator> a2("abc");
+  string<StandardAllocator> a3("d");
+  string<StandardAllocator> a4("dabc");
   EXPECT_EQ(empty + a1, a1);
   EXPECT_EQ(empty + a1, a2);
   EXPECT_EQ(empty + a1, "abc");

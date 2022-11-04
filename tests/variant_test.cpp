@@ -10,12 +10,12 @@
 using namespace battery;
 
 class Formula {
-  using DataT = variant<char, String<StandardAllocator>, vector<Formula, StandardAllocator>>;
+  using DataT = variant<char, string<StandardAllocator>, vector<Formula, StandardAllocator>>;
   DataT data;
 
 public:
   Formula(char c): data(DataT::create<0>(c)) {}
-  Formula(String<StandardAllocator> s): data(DataT::create<1>(s)) {}
+  Formula(string<StandardAllocator> s): data(DataT::create<1>(s)) {}
   Formula(vector<Formula, StandardAllocator> f): data(DataT::create<2>(f)) {}
 
   template<size_t i, typename T>
@@ -42,7 +42,7 @@ TEST(Variant, Constructor) {
   Formula c2('a');
   EXPECT_TRUE(c1 == c2);
   Formula c3("abc");
-  c3.template expect<1>(String<StandardAllocator>("abc"));
+  c3.template expect<1>(string<StandardAllocator>("abc"));
   Formula c4("abc");
   EXPECT_TRUE(c3 == c4);
   EXPECT_FALSE(c1 == c3);

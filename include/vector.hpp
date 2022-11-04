@@ -114,9 +114,14 @@ public:
   CUDA vector(const vector<U, Allocator2>& from, const allocator_type& alloc = allocator_type())
    : this_type(from.data(), from.size(), alloc) {}
 
+  /** Copy constructor with different underlying types. */
+  template <class U>
+  CUDA vector(const vector<U, allocator_type>& from)
+   : this_type(from, from.allocator) {}
+
   /** Redefine the copy constructor to be sure it calls a constructor with an allocator. */
   CUDA vector(const this_type& from)
-   : this_type(from, allocator) {}
+   : this_type(from, from.allocator) {}
 
   /** Initialize of an array of size `n` with each element initialized to `from` using `allocator`.
    * `Allocator` is scoped, meaning it will be passed to the constructor of `T` if `T(const T&, const Allocator&)` exists, otherwise `T(const T&)` is called.  */
