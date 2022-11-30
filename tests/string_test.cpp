@@ -83,3 +83,17 @@ TEST(String, Concatenation) {
   EXPECT_EQ(a1 + a3 + a1, "abcdabc");
   EXPECT_EQ("abcdabc", a1 + a3 + a1);
 }
+
+TEST(String, FromInt) {
+  EXPECT_EQ(string<StandardAllocator>::from_int(0), "0");
+  EXPECT_EQ(string<StandardAllocator>::from_int(1), "1");
+  EXPECT_EQ(string<StandardAllocator>::from_int(10), "10");
+  EXPECT_EQ(string<StandardAllocator>::from_int(100), "100");
+  EXPECT_EQ(string<StandardAllocator>::from_int(101), "101");
+  EXPECT_EQ(string<StandardAllocator>::from_int(2320194), "2320194");
+  EXPECT_EQ(string<StandardAllocator>::from_int(-1), "-1");
+  EXPECT_EQ(string<StandardAllocator>::from_int(-10), "-10");
+  EXPECT_EQ(string<StandardAllocator>::from_int(-100), "-100");
+  EXPECT_EQ(string<StandardAllocator>::from_int(-101), "-101");
+  EXPECT_EQ(string<StandardAllocator>::from_int(-2320194), "-2320194");
+}

@@ -26,7 +26,6 @@ public:
   CUDA string(size_t n, const Allocator& alloc = Allocator()):
     data_(n+1, alloc) /* +1 for null-termination */
   {
-    data_[0] = '\0'; // to have `strlen(s.data()) == s.size()`
     data_[n] = '\0'; // In case the user modifies the string.
   }
 
@@ -63,6 +62,26 @@ public:
 
   CUDA void print() const {
     printf("%s", data());
+  }
+
+  CUDA static this_type from_int(int x, const Allocator& alloc = Allocator()) {
+    if(x == 0) { return this_type("0", alloc); }
+    int s = 0;
+    bool neg = x < 0;
+    if(neg) {
+      x = -x;
+      s++;
+    }
+    for(int y = x; y > 0; y = y / 10, ++s) {}
+    this_type buffer(s, alloc);
+    if(neg) {
+      buffer[0] = '-';
+    }
+    for(int i = s-1; x > 0; --i) {
+      buffer[i] = '0' + (x % 10);
+      x = x / 10;
+    }
+    return std::move(buffer);
   }
 
   template<typename Alloc>
