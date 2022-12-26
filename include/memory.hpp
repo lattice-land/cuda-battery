@@ -23,6 +23,9 @@ class LocalMemory {
 public:
   template <class T> using atomic_type = T;
 
+  /** Indicate this memory is written by a single thread. */
+  constexpr static const bool sequential = true;
+
   template <class T>
   CUDA static T load(const atomic_type<T>& a) {
     return a;
@@ -39,6 +42,7 @@ class Memory {
 public:
   using allocator_type = Allocator;
   template <class T> using atomic_type = T;
+  constexpr static const bool sequential = true;
 
 private:
   allocator_type alloc;
@@ -72,6 +76,7 @@ class AtomicMemoryScoped {
 public:
   using allocator_type = Allocator;
   template <class T> using atomic_type = cuda::atomic<T, scope>;
+  constexpr static const bool sequential = false;
 
 private:
   allocator_type alloc;
@@ -129,6 +134,7 @@ class AtomicMemory {
 public:
   using allocator_type = Allocator;
   template <class T> using atomic_type = impl::atomic_t<T>;
+  constexpr static const bool sequential = false;
 
 private:
   allocator_type alloc;
