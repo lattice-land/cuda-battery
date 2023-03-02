@@ -90,7 +90,10 @@ CUDA inline int strcmp(const char* s1, const char* s2) {
 
 template<class T> CUDA constexpr T min(T a, T b) {
   #ifdef __CUDA_ARCH__
-    return ::min(a, b);
+    // When C++23 is available
+    // if !consteval { return ::min(a, b); }
+    // else { return std::min(a, b); }
+    return a < b ? a : b;
   #else
     return std::min(a, b);
   #endif
@@ -98,7 +101,10 @@ template<class T> CUDA constexpr T min(T a, T b) {
 
 template<class T> CUDA constexpr T max(T a, T b) {
   #ifdef __CUDA_ARCH__
-    return ::max(a, b);
+    // When C++23 is available
+    // if !consteval { return ::max(a, b); }
+    // else { return std::max(a, b); }
+    return a > b ? a : b;
   #else
     return std::max(a, b);
   #endif
