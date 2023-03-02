@@ -54,9 +54,9 @@ private:
 public:
   static_assert(std::is_integral_v<T> && std::is_unsigned_v<T>, "Block of a bitset must be defined on an unsigned integer type.");
 
-  CUDA Bitset(): blocks() {}
+  CUDA constexpr Bitset(): blocks() {}
 
-  CUDA Bitset(const char* bit_str): blocks() {
+  CUDA constexpr Bitset(const char* bit_str): blocks() {
     size_t n = min(strlen(bit_str), MAX_SIZE);
     for(int i = n-1, j = 0; i >= 0; --i, ++j) {
       if(bit_str[i] == '1') {
@@ -66,52 +66,52 @@ public:
   }
 
   template<class Mem2>
-  CUDA Bitset(const Bitset<N, Mem2, T>& other) {
+  CUDA constexpr Bitset(const Bitset<N, Mem2, T>& other) {
     for(int i = 0; i < BLOCKS; ++i) {
       store(blocks[i], Mem::load(other[i]));
     }
   }
 
-  CUDA static Bitset zeroes() {
+  CUDA static constexpr Bitset zeroes() {
     return Bitset();
   }
 
-  CUDA static Bitset ones() {
+  CUDA static constexpr Bitset ones() {
     return Bitset().set();
   }
 
 private:
-  CUDA void store(block_type& block, T data) {
+  CUDA constexpr void store(block_type& block, T data) {
     Mem::store(block, data);
   }
 
-  CUDA block_type& block_of(size_t pos) {
+  CUDA constexpr block_type& block_of(size_t pos) {
     return blocks[pos / BITS_PER_BLOCK];
   }
 
-  CUDA const block_type& block_of(size_t pos) const {
+  CUDA constexpr const block_type& block_of(size_t pos) const {
     return blocks[pos / BITS_PER_BLOCK];
   }
 
-  CUDA T load_block(size_t pos) const {
+  CUDA constexpr T load_block(size_t pos) const {
     return Mem::load(block_of(pos));
   }
 
-  CUDA void store_block(size_t pos, T data) {
+  CUDA constexpr void store_block(size_t pos, T data) {
     store(block_of(pos), data);
   }
 
-  CUDA T bit_of(size_t pos) const {
+  CUDA constexpr T bit_of(size_t pos) const {
     return static_cast<T>(1) << (pos % BITS_PER_BLOCK);
   }
 
 public:
-  CUDA bool test(size_t pos) const {
+  CUDA constexpr bool test(size_t pos) const {
     assert(pos < MAX_SIZE);
     return load_block(pos) & bit_of(pos);
   }
 
-  CUDA bool all() const {
+  CUDA constexpr bool all() const {
     int i = 0;
     for(; i < BLOCKS - 1; ++i) {
       if(Mem::load(blocks[i]) != ONES) {
@@ -121,7 +121,7 @@ public:
     return Mem::load(blocks[i]) == ONES_LAST;
   }
 
-  CUDA bool any() const {
+  CUDA constexpr bool any() const {
     for(int i = 0; i < BLOCKS; ++i) {
       if(Mem::load(blocks[i]) > ZERO) {
         return true;
@@ -130,7 +130,7 @@ public:
     return false;
   }
 
-  CUDA bool none() const {
+  CUDA constexpr bool none() const {
     for(int i = 0; i < BLOCKS; ++i) {
       if(Mem::load(blocks[i]) != ZERO) {
         return false;
@@ -139,11 +139,11 @@ public:
     return true;
   }
 
-  CUDA size_t size() const {
+  CUDA constexpr size_t size() const {
     return MAX_SIZE;
   }
 
-  CUDA size_t count() const {
+  CUDA constexpr size_t count() const {
     size_t bits_at_one = 0;
     for(int i = 0; i < BLOCKS; ++i){
       bits_at_one += popcount(blocks[i]);
@@ -151,7 +151,7 @@ public:
     return bits_at_one;
   }
 
-  CUDA Bitset& set() {
+  CUDA constexpr Bitset& set() {
     int i = 0;
     for(; i < BLOCKS - 1; ++i) {
       store(blocks[i], ONES);
@@ -160,31 +160,31 @@ public:
     return *this;
   }
 
-  CUDA Bitset& set(size_t pos) {
+  CUDA constexpr Bitset& set(size_t pos) {
     assert(pos < MAX_SIZE);
     store_block(pos, load_block(pos) | bit_of(pos));
     return *this;
   }
 
-  CUDA Bitset& set(size_t pos, bool value) {
+  CUDA constexpr Bitset& set(size_t pos, bool value) {
     assert(pos < MAX_SIZE);
     return value ? set(pos) : reset(pos);
   }
 
-  CUDA Bitset& reset() {
+  CUDA constexpr Bitset& reset() {
     for(int i = 0; i < BLOCKS; ++i) {
       store(blocks[i], ZERO);
     }
     return *this;
   }
 
-  CUDA Bitset& reset(size_t pos) {
+  CUDA constexpr Bitset& reset(size_t pos) {
     assert(pos < MAX_SIZE);
     store_block(pos, load_block(pos) & ~bit_of(pos));
     return *this;
   }
 
-  CUDA Bitset& flip() {
+  CUDA constexpr Bitset& flip() {
     int i = 0;
     for(; i < BLOCKS - 1; ++i) {
       store(blocks[i], ~Mem::load(blocks[i]));
@@ -193,14 +193,14 @@ public:
     return *this;
   }
 
-  CUDA Bitset& flip(size_t pos) {
+  CUDA constexpr Bitset& flip(size_t pos) {
     assert(pos < MAX_SIZE);
     store_block(pos, load_block(pos) ^ bit_of(pos));
     return *this;
   }
 
   template<class Mem2>
-  CUDA Bitset& operator&=(const Bitset<N, Mem2, T>& other) {
+  CUDA constexpr Bitset& operator&=(const Bitset<N, Mem2, T>& other) {
     for(int i = 0; i < BLOCKS; ++i) {
       store(blocks[i], Mem::load(blocks[i]) & Mem2::load(other.blocks[i]));
     }
@@ -208,7 +208,7 @@ public:
   }
 
   template<class Mem2>
-  CUDA Bitset& operator|=(const Bitset<N, Mem2, T>& other) {
+  CUDA constexpr Bitset& operator|=(const Bitset<N, Mem2, T>& other) {
     for(int i = 0; i < BLOCKS; ++i) {
       store(blocks[i], Mem::load(blocks[i]) | Mem2::load(other.blocks[i]));
     }
@@ -216,19 +216,19 @@ public:
   }
 
   template<class Mem2>
-  CUDA Bitset& operator^=(const Bitset<N, Mem2, T>& other) {
+  CUDA constexpr Bitset& operator^=(const Bitset<N, Mem2, T>& other) {
     for(int i = 0; i < BLOCKS; ++i) {
       store(blocks[i], Mem::load(blocks[i]) ^ Mem2::load(other.blocks[i]));
     }
     return *this;
   }
 
-  CUDA Bitset operator~() const {
+  CUDA constexpr Bitset operator~() const {
     return Bitset(*this).flip();
   }
 
   template<class Mem2>
-  CUDA bool operator==(const Bitset<N, Mem2, T>& other) const {
+  CUDA constexpr bool operator==(const Bitset<N, Mem2, T>& other) const {
     for(int i = 0; i < BLOCKS; ++i) {
       if(blocks[i] != other.blocks[i]) {
         return false;
@@ -238,11 +238,11 @@ public:
   }
 
   template<class Mem2>
-  CUDA bool operator!=(const Bitset<N, Mem2, T>& other) const {
+  CUDA constexpr bool operator!=(const Bitset<N, Mem2, T>& other) const {
     return !(*this == other);
   }
 
-  CUDA int countl_zero() const {
+  CUDA constexpr int countl_zero() const {
     int k = BLOCKS - 1;
     if(blocks[k] > ZERO) {
       return ::battery::countl_zero(blocks[k]) - PADDING_LAST_BLOCK;
@@ -255,7 +255,7 @@ public:
          + (k == -1 ? 0 : ::battery::countl_zero(blocks[k]));
   }
 
-  CUDA int countl_one() const {
+  CUDA constexpr int countl_one() const {
     int k = BLOCKS - 1;
     if(blocks[k] != ONES_LAST) {
       return battery::countl_one((T)(blocks[k] << PADDING_LAST_BLOCK));
@@ -268,21 +268,21 @@ public:
          + (k == -1 ? 0 : ::battery::countl_one(blocks[k]));
   }
 
-  CUDA int countr_zero() const {
+  CUDA constexpr int countr_zero() const {
     int k = 0;
     for(; k < BLOCKS && blocks[k] == ZERO; ++k) {}
     return k * BITS_PER_BLOCK
         + (k == BLOCKS ? -PADDING_LAST_BLOCK : ::battery::countr_zero(blocks[k]));
   }
 
-  CUDA int countr_one() const {
+  CUDA constexpr int countr_one() const {
     int k = 0;
     for(; k < BLOCKS && blocks[k] == ONES; ++k) {}
     return k * BITS_PER_BLOCK
         + (k == BLOCKS ? 0 : ::battery::countr_one(blocks[k]));
   }
 
-  CUDA void print() const {
+  CUDA constexpr void print() const {
     for(int i = size() - 1; i >= 0; --i) {
       printf("%c", test(i) ? '1' : '0');
     }
@@ -299,17 +299,17 @@ public:
 };
 
 template<size_t N, class Mem, class T>
-Bitset<N, Mem, T> operator&(const Bitset<N, Mem, T>& lhs, const Bitset<N, Mem, T>& rhs) {
+constexpr Bitset<N, Mem, T> operator&(const Bitset<N, Mem, T>& lhs, const Bitset<N, Mem, T>& rhs) {
   return Bitset<N, Mem, T>(lhs) &= rhs;
 }
 
 template<size_t N, class Mem, class T>
-Bitset<N, Mem, T> operator|(const Bitset<N, Mem, T>& lhs, const Bitset<N, Mem, T>& rhs) {
+constexpr Bitset<N, Mem, T> operator|(const Bitset<N, Mem, T>& lhs, const Bitset<N, Mem, T>& rhs) {
   return Bitset<N, Mem, T>(lhs) |= rhs;
 }
 
 template<size_t N, class Mem, class T>
-Bitset<N, Mem, T> operator^(const Bitset<N, Mem, T>& lhs, const Bitset<N, Mem, T>& rhs) {
+constexpr Bitset<N, Mem, T> operator^(const Bitset<N, Mem, T>& lhs, const Bitset<N, Mem, T>& rhs) {
   return Bitset<N, Mem, T>(lhs) ^= rhs;
 }
 

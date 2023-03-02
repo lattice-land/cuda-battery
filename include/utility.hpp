@@ -41,20 +41,20 @@
 
 namespace battery {
 namespace impl {
-  template<class T> CUDA inline void swap(T& a, T& b) {
+  template<class T> CUDA constexpr inline void swap(T& a, T& b) {
     T c(std::move(a));
     a = std::move(b);
     b = std::move(c);
   }
 
-  CUDA inline size_t strlen(const char* str) {
+  CUDA constexpr inline size_t strlen(const char* str) {
     size_t n = 0;
     while(str[n] != '\0') { ++n; }
     return n;
   }
 
   /** See https://stackoverflow.com/a/34873406/2231159 */
-  CUDA inline int strcmp(const char* s1, const char* s2) {
+  CUDA constexpr inline int strcmp(const char* s1, const char* s2) {
     while(*s1 && (*s1 == *s2)) {
       s1++;
       s2++;
@@ -63,7 +63,7 @@ namespace impl {
   }
 }
 
-template<class T> CUDA inline void swap(T& a, T& b) {
+template<class T> CUDA constexpr inline void swap(T& a, T& b) {
   #ifdef __CUDA_ARCH__
     impl::swap(a, b);
   #else
@@ -88,7 +88,7 @@ CUDA inline int strcmp(const char* s1, const char* s2) {
   #endif
 }
 
-template<class T> CUDA T min(T a, T b) {
+template<class T> CUDA constexpr T min(T a, T b) {
   #ifdef __CUDA_ARCH__
     return ::min(a, b);
   #else
@@ -96,7 +96,7 @@ template<class T> CUDA T min(T a, T b) {
   #endif
 }
 
-template<class T> CUDA T max(T a, T b) {
+template<class T> CUDA constexpr T max(T a, T b) {
   #ifdef __CUDA_ARCH__
     return ::max(a, b);
   #else
@@ -104,7 +104,7 @@ template<class T> CUDA T max(T a, T b) {
   #endif
 }
 
-template<class T> CUDA T isnan(T a) {
+template<class T> CUDA constexpr T isnan(T a) {
   #ifdef __CUDA_ARCH__
     return ::isnan(a);
   #else
@@ -112,7 +112,7 @@ template<class T> CUDA T isnan(T a) {
   #endif
 }
 
-CUDA inline float nextafter(float f, float dir) {
+CUDA constexpr inline float nextafter(float f, float dir) {
   #ifdef __CUDA_ARCH__
     return ::nextafterf(f, dir);
   #else
@@ -120,7 +120,7 @@ CUDA inline float nextafter(float f, float dir) {
   #endif
 }
 
-CUDA inline double nextafter(double f, double dir) {
+CUDA constexpr inline double nextafter(double f, double dir) {
   #ifdef __CUDA_ARCH__
     return ::nextafter(f, dir);
   #else
@@ -161,7 +161,7 @@ struct Limits {
 
   Overflow: Nothing is done to prevent overflow, it mostly behaves as with `static_cast`. */
 template<class To, class From>
-CUDA To ru_cast(From x) {
+CUDA constexpr To ru_cast(From x) {
   if constexpr(std::is_same_v<To, From>) {
     return x;
   }
@@ -255,7 +255,7 @@ CUDA To ru_cast(From x) {
 
   Overflow: Nothing is done to prevent overflow, it mostly behaves as with `static_cast`. */
 template<class To, class From>
-CUDA To rd_cast(From x) {
+CUDA constexpr To rd_cast(From x) {
   if constexpr(std::is_same_v<To, From>) {
     return x;
   }
@@ -342,7 +342,7 @@ CUDA To rd_cast(From x) {
 }
 
 template<class T>
-CUDA int popcount(T x) {
+CUDA constexpr int popcount(T x) {
   static_assert(std::is_integral_v<T> && std::is_unsigned_v<T>, "popcount only works on unsigned integers");
   #ifdef __CUDA_ARCH__
     if constexpr(std::is_same_v<T, unsigned int>) {
@@ -367,7 +367,7 @@ CUDA int popcount(T x) {
 }
 
 template<class T>
-CUDA int countl_zero(T x) {
+CUDA constexpr int countl_zero(T x) {
   static_assert(std::is_integral_v<T> && std::is_unsigned_v<T>, "countl_zero only works on unsigned integers");
   #ifdef __CUDA_ARCH__
     // If the size of `T` is smaller than `int` or `long long int` we must remove the extra zeroes that are added after conversion.
@@ -395,7 +395,7 @@ CUDA int countl_zero(T x) {
 }
 
 template<class T>
-CUDA int countl_one(T x) {
+CUDA constexpr int countl_one(T x) {
   static_assert(std::is_integral_v<T> && std::is_unsigned_v<T>, "countl_one only works on unsigned integers");
   #ifdef __CUDA_ARCH__
     return countl_zero((T)~x);
@@ -414,7 +414,7 @@ CUDA int countl_one(T x) {
 }
 
 template<class T>
-CUDA int countr_zero(T x) {
+CUDA constexpr int countr_zero(T x) {
   static_assert(std::is_integral_v<T> && std::is_unsigned_v<T>, "countl_zero only works on unsigned integers");
   #ifdef __CUDA_ARCH__
     if(x == 0) {
@@ -444,7 +444,7 @@ CUDA int countr_zero(T x) {
 }
 
 template<class T>
-CUDA int countr_one(T x) {
+CUDA constexpr int countr_one(T x) {
   static_assert(std::is_integral_v<T> && std::is_unsigned_v<T>, "countr_one only works on unsigned integers");
   #ifdef __CUDA_ARCH__
     return countr_zero((T)~x);
@@ -464,13 +464,13 @@ CUDA int countr_one(T x) {
 
 /** Signum function, https://stackoverflow.com/a/4609795/2231159 */
 template <class T>
-CUDA int signum(T val) {
+CUDA constexpr int signum(T val) {
   return (T(0) < val) - (val < T(0));
 }
 
 /** Precondition: T is an integer with b >= 0.*/
 template <class T>
-CUDA T ipow(T a, T b) {
+CUDA constexpr T ipow(T a, T b) {
   static_assert(std::is_integral_v<T>, "ipow is only working on integer value.");
   assert(b >= 0);
   if(b == 2) {
@@ -507,7 +507,7 @@ CUDA T ipow(T a, T b) {
   return x cppop y;
 
 template <class T>
-CUDA T add_up(T x, T y) {
+CUDA constexpr T add_up(T x, T y) {
   #ifdef __CUDA_ARCH__
     FLOAT_ARITHMETIC_CUDA_IMPL(add_up, add_ru)
   #else
@@ -519,7 +519,7 @@ CUDA T add_up(T x, T y) {
 }
 
 template <class T>
-CUDA T add_down(T x, T y) {
+CUDA constexpr T add_down(T x, T y) {
   #ifdef __CUDA_ARCH__
     FLOAT_ARITHMETIC_CUDA_IMPL(add_down, add_rd)
   #else
@@ -531,7 +531,7 @@ CUDA T add_down(T x, T y) {
 }
 
 template <class T>
-CUDA T sub_up(T x, T y) {
+CUDA constexpr T sub_up(T x, T y) {
   #ifdef __CUDA_ARCH__
     FLOAT_ARITHMETIC_CUDA_IMPL(sub_up, sub_ru)
   #else
@@ -543,7 +543,7 @@ CUDA T sub_up(T x, T y) {
 }
 
 template <class T>
-CUDA T sub_down(T x, T y) {
+CUDA constexpr T sub_down(T x, T y) {
   #ifdef __CUDA_ARCH__
     FLOAT_ARITHMETIC_CUDA_IMPL(sub_down, sub_rd)
   #else
@@ -555,7 +555,7 @@ CUDA T sub_down(T x, T y) {
 }
 
 template <class T>
-CUDA T mul_up(T x, T y) {
+CUDA constexpr T mul_up(T x, T y) {
   #ifdef __CUDA_ARCH__
     FLOAT_ARITHMETIC_CUDA_IMPL(mul_up, mul_ru)
   #else
@@ -567,7 +567,7 @@ CUDA T mul_up(T x, T y) {
 }
 
 template <class T>
-CUDA T mul_down(T x, T y) {
+CUDA constexpr T mul_down(T x, T y) {
   #ifdef __CUDA_ARCH__
     FLOAT_ARITHMETIC_CUDA_IMPL(mul_down, mul_rd)
   #else
@@ -579,7 +579,7 @@ CUDA T mul_down(T x, T y) {
 }
 
 template <class T>
-CUDA T div_up(T x, T y) {
+CUDA constexpr T div_up(T x, T y) {
   #ifdef __CUDA_ARCH__
     FLOAT_ARITHMETIC_CUDA_IMPL(div_up, div_ru)
   #else
@@ -591,7 +591,7 @@ CUDA T div_up(T x, T y) {
 }
 
 template <class T>
-CUDA T div_down(T x, T y) {
+CUDA constexpr T div_down(T x, T y) {
   #ifdef __CUDA_ARCH__
     FLOAT_ARITHMETIC_CUDA_IMPL(div_down, div_rd)
   #else

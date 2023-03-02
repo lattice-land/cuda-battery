@@ -27,12 +27,12 @@ public:
   constexpr static const bool sequential = true;
 
   template <class T>
-  CUDA static T load(const atomic_type<T>& a) {
+  CUDA static constexpr T load(const atomic_type<T>& a) {
     return a;
   }
 
   template <class T>
-  CUDA static void store(atomic_type<T>& a, T v) {
+  CUDA static constexpr void store(atomic_type<T>& a, T v) {
     a = v;
   }
 };
@@ -48,20 +48,20 @@ private:
   allocator_type alloc;
 
 public:
-  CUDA Memory(allocator_type alloc): alloc(alloc) {}
-  CUDA Memory(const Memory& seq): alloc(seq.alloc) {}
+  CUDA constexpr Memory(allocator_type alloc): alloc(alloc) {}
+  CUDA constexpr Memory(const Memory& seq): alloc(seq.alloc) {}
 
   template <class T>
-  CUDA static T load(const atomic_type<T>& a) {
+  CUDA static constexpr T load(const atomic_type<T>& a) {
     return a;
   }
 
   template <class T>
-  CUDA static std::enable_if_t<!read_only, void> store(atomic_type<T>& a, T v) {
+  CUDA static constexpr std::enable_if_t<!read_only, void> store(atomic_type<T>& a, T v) {
     a = v;
   }
 
-  CUDA allocator_type get_allocator() const {
+  CUDA constexpr allocator_type get_allocator() const {
     return alloc;
   }
 };
@@ -82,8 +82,8 @@ private:
   allocator_type alloc;
 
 public:
-  CUDA AtomicMemoryScoped(allocator_type alloc): alloc(alloc) {}
-  CUDA AtomicMemoryScoped(const AtomicMemoryScoped& seq): alloc(seq.alloc) {}
+  CUDA constexpr AtomicMemoryScoped(allocator_type alloc): alloc(alloc) {}
+  CUDA constexpr AtomicMemoryScoped(const AtomicMemoryScoped& seq): alloc(seq.alloc) {}
 
   template <class T>
   CUDA static T load(const atomic_type<T>& a) {
@@ -95,7 +95,7 @@ public:
     a.store(v, mem_order);
   }
 
-  CUDA allocator_type get_allocator() const {
+  CUDA constexpr allocator_type get_allocator() const {
     return alloc;
   }
 };
@@ -140,8 +140,8 @@ private:
   allocator_type alloc;
 
 public:
-  CUDA AtomicMemory(allocator_type alloc): alloc(alloc) {}
-  CUDA AtomicMemory(const AtomicMemory& am): alloc(am.alloc) {}
+  CUDA constexpr AtomicMemory(allocator_type alloc): alloc(alloc) {}
+  CUDA constexpr AtomicMemory(const AtomicMemory& am): alloc(am.alloc) {}
 
   template <class T>
   CUDA static T load(const atomic_type<T>& a) {
@@ -153,7 +153,7 @@ public:
     a.store(v, mem_order);
   }
 
-  CUDA allocator_type get_allocator() const {
+  CUDA constexpr allocator_type get_allocator() const {
     return alloc;
   }
 };
