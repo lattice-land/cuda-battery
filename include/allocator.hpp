@@ -23,14 +23,14 @@ This can only be used from the host side since managed memory cannot be allocate
 class ManagedAllocator {
 public:
   CUDA void* allocate(size_t bytes) {
+    if(bytes == 0) {
+      return nullptr;
+    }
     #ifdef __CUDA_ARCH__
       printf("cannot use ManagedAllocator in CUDA __device__ code.\n");
       assert(0);
       return nullptr;
     #else
-      if(bytes == 0) {
-        return nullptr;
-      }
       void* data;
       cudaMallocManaged(&data, bytes);
       return data;
@@ -39,6 +39,9 @@ public:
 
   CUDA void deallocate(void* data) {
     #ifdef __CUDA_ARCH__
+      if(data == nullptr) {
+        return;
+      }
       printf("cannot use ManagedAllocator in CUDA __device__ code.\n");
       assert(0);
     #else
@@ -53,14 +56,14 @@ template<bool on_gpu>
 class GlobalAllocator {
 public:
   CUDA void* allocate(size_t bytes) {
+    if(bytes == 0) {
+      return nullptr;
+    }
     #ifdef __CUDA_ARCH__
       assert(on_gpu);
     #else
       assert(!on_gpu);
     #endif
-    if(bytes == 0) {
-      return nullptr;
-    }
     void* data;
     cudaError_t rc = cudaMalloc(&data, bytes);
     if (rc != cudaSuccess) {
@@ -71,6 +74,9 @@ public:
   }
 
   CUDA void deallocate(void* data) {
+    if(data == nullptr) {
+      return;
+    }
     #ifdef __CUDA_ARCH__
       assert(on_gpu);
     #else
@@ -194,17 +200,23 @@ namespace battery {
 class StandardAllocator {
 public:
   CUDA void* allocate(size_t bytes) {
+    if(bytes == 0) {
+      return nullptr;
+    }
     #ifdef __CUDA_ARCH__
       printf("cannot use StandardAllocator in CUDA __device__ code.\n");
       assert(0);
       return nullptr;
     #else
-      return bytes == 0 ? nullptr : std::malloc(bytes);
+      return std::malloc(bytes);
     #endif
   }
 
   CUDA void deallocate(void* data) {
     #ifdef __CUDA_ARCH__
+      if(data == nullptr) {
+        return;
+      }
       printf("cannot use StandardAllocator in CUDA __device__ code.\n");
       assert(0);
     #else

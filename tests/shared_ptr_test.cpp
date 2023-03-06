@@ -97,3 +97,14 @@ TEST(SharedPtr, EqualToItself) {
   EXPECT_EQ(b.use_count(), 1);
   EXPECT_EQ(*b, 10);
 }
+
+struct C {
+  int a = 0;
+  int b = 1;
+};
+
+TEST(SharedPtr, EmptyConstructorMakeShared) {
+  shared_ptr<C, StandardAllocator> ptr = make_shared<C, StandardAllocator>();
+  EXPECT_EQ(ptr->a, 0);
+  EXPECT_EQ(ptr->b, 1);
+}
