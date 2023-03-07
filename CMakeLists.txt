@@ -45,10 +45,9 @@ ENDIF()
 target_compile_options(cuda_battery INTERFACE
     $<$<COMPILE_LANGUAGE:CUDA>:
         --expt-relaxed-constexpr
-        -rdc=true
-        --compiler-options -frounding-math>
+        --compiler-options -frounding-math
+        $<$<CONFIG:Debug>:-G>>
     $<$<CONFIG:Debug>:-g -DDEBUG>
-    $<$<CONFIG:LDebug>:-g -DTRACE>
 )
 
 if(BATTERY_BUILD_TESTS)

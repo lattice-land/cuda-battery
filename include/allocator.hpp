@@ -4,9 +4,12 @@
 #define ALLOCATOR_HPP
 
 /** \file allocator.hpp
-We provide a bunch of allocator compatible with the structure of the _lattice land_ project.
+We provide several allocators compatible with the structure of the _lattice land_ project.
 The allocators are aimed to be used to distinguish in which memory (shared, global, managed or the "standard" C++ memory) we should allocate data.
 This allows us to provide uniform interfaces for both host (C++) and device (CUDA) code.
+
+As a general comment, be careful to always deallocate the memory from the side you allocated it, e.g., do not allocate on the host then try to deallocate it on the device.
+To avoid these kind of mistakes, you should use `battery::shared_ptr` when passing data to a CUDA kernel.
 */
 
 #include <cassert>
@@ -18,19 +21,40 @@ This allows us to provide uniform interfaces for both host (C++) and device (CUD
 
 namespace battery {
 
-/** An allocator using the managed memory of CUDA.
-This can only be used from the host side since managed memory cannot be allocated in device functions. */
-class ManagedAllocator {
+/** An allocator using the global memory of CUDA.
+This can be used from both the host and device side, but the memory can only be accessed when in a device function.
+Beware that allocation and deallocation must occur on the same side. */
+class GlobalAllocator {
 public:
   CUDA void* allocate(size_t bytes) {
     if(bytes == 0) {
       return nullptr;
     }
-    #ifdef __CUDA_ARCH__
-      printf("cannot use ManagedAllocator in CUDA __device__ code.\n");
-      assert(0);
+    void* data;
+    cudaError_t rc = cudaMalloc(&data, bytes);
+    if (rc != cudaSuccess) {
+      printf("Allocation in global memory failed (error = %d)\n", rc);
       return nullptr;
+    }
+    return data;
+  }
+
+  CUDA void deallocate(void* data) {
+    cudaFree(data);
+  }
+};
+
+/** An allocator using the managed memory of CUDA when the memory is allocated on the host.
+ * We delegate the allocation to `GlobalAllocator` when the allocation is done on the device (since managed memory cannot be allocated in device functions). */
+class ManagedAllocator {
+public:
+  CUDA void* allocate(size_t bytes) {
+    #ifdef __CUDA_ARCH__
+      return GlobalAllocator{}.allocate(bytes);
     #else
+      if(bytes == 0) {
+        return nullptr;
+      }
       void* data;
       cudaMallocManaged(&data, bytes);
       return data;
@@ -39,55 +63,13 @@ public:
 
   CUDA void deallocate(void* data) {
     #ifdef __CUDA_ARCH__
-      if(data == nullptr) {
-        return;
-      }
-      printf("cannot use ManagedAllocator in CUDA __device__ code.\n");
-      assert(0);
+      return GlobalAllocator{}.deallocate(data);
     #else
       cudaFree(data);
     #endif
   }
 };
 
-/** An allocator using the global memory of CUDA.
-This can be used from both the host and device side, but the memory can only be accessed when in a device function. */
-template<bool on_gpu>
-class GlobalAllocator {
-public:
-  CUDA void* allocate(size_t bytes) {
-    if(bytes == 0) {
-      return nullptr;
-    }
-    #ifdef __CUDA_ARCH__
-      assert(on_gpu);
-    #else
-      assert(!on_gpu);
-    #endif
-    void* data;
-    cudaError_t rc = cudaMalloc(&data, bytes);
-    if (rc != cudaSuccess) {
-      printf("Allocation in global memory failed (error = %d)\n", rc);
-      assert(0);
-    }
-    return data;
-  }
-
-  CUDA void deallocate(void* data) {
-    if(data == nullptr) {
-      return;
-    }
-    #ifdef __CUDA_ARCH__
-      assert(on_gpu);
-    #else
-      assert(!on_gpu);
-    #endif
-    cudaFree(data);
-  }
-};
-
-using GlobalAllocatorGPU = GlobalAllocator<true>;
-using GlobalAllocatorCPU = GlobalAllocator<false>;
 } // namespace battery
 
 CUDA inline void* operator new(size_t bytes, battery::ManagedAllocator& p) {
@@ -98,13 +80,11 @@ CUDA inline void operator delete(void* ptr, battery::ManagedAllocator& p) {
   return p.deallocate(ptr);
 }
 
-template<bool on_gpu>
-CUDA void* operator new(size_t bytes, battery::GlobalAllocator<on_gpu>& p) {
+CUDA inline void* operator new(size_t bytes, battery::GlobalAllocator& p) {
   return p.allocate(bytes);
 }
 
-template<bool on_gpu>
-CUDA void operator delete(void* ptr, battery::GlobalAllocator<on_gpu>& p) {
+CUDA inline void operator delete(void* ptr, battery::GlobalAllocator& p) {
   p.deallocate(ptr);
 }
 
@@ -182,6 +162,10 @@ public:
 
   CUDA size_t used() const {
     return block->offset;
+  }
+
+  CUDA size_t capacity() const {
+    return block->capacity;
   }
 };
 }
