@@ -32,7 +32,6 @@ target_include_directories(cuda_battery INTERFACE include)
 
 if(GPU)
   set_property(TARGET cuda_battery PROPERTY CUDA_ARCHITECTURES 75)
-  set_property(TARGET cuda_battery PROPERTY CUDA_SEPARABLE_COMPILATION ON)
 endif()
 
 # --frounding-math is necessary with GCC because `#pragma STDC FENV_ACCESS ON` does not work.
@@ -96,12 +95,12 @@ gtest_discover_tests(bitset_test)
 if(GPU)
   set_source_files_properties(tests/utility_test_cpu_gpu.cpp PROPERTIES LANGUAGE CUDA)
   add_executable(utility_test_cpu_gpu tests/utility_test_cpu_gpu.cpp)
-  set_property(TARGET utility_test_cpu_gpu PROPERTY CUDA_SEPARABLE_COMPILATION ON)
   set_property(TARGET utility_test_cpu_gpu PROPERTY CUDA_ARCHITECTURES 75)
   target_compile_options(utility_test_cpu_gpu PRIVATE
-    $<$<COMPILE_LANGUAGE:CUDA>: --expt-relaxed-constexpr -rdc=true --compiler-options -frounding-math>
-    $<$<CONFIG:Debug>:-g -DDEBUG>
-    $<$<CONFIG:LDebug>:-g -DTRACE>)
+    $<$<COMPILE_LANGUAGE:CUDA>:
+      --expt-relaxed-constexpr
+      --compiler-options -frounding-math>
+    $<$<CONFIG:Debug>:-g -DDEBUG>)
   target_link_libraries(utility_test_cpu_gpu cuda_battery)
   add_test(NAME utility_test_cpu_gpu COMMAND compute-sanitizer --error-exitcode 1 $<TARGET_FILE:utility_test_cpu_gpu>)
 endif()
