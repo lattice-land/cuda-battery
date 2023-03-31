@@ -44,11 +44,11 @@ private:
     cap = new_cap;
     n = min(new_cap, n); // in case we shrink the initial array.
     data_ = allocate();
-    for(int i = 0; i < n; ++i) {
+    for(size_t i = 0; i < n; ++i) {
       new(&data_[i]) T(std::move(data2[i]));
     }
     // Free the old data array that has been reallocated.
-    for(int i = 0; i < n2; ++i) {
+    for(size_t i = 0; i < n2; ++i) {
       data2[i].~T();
     }
     allocator.deallocate(data2);
@@ -88,7 +88,7 @@ public:
   CUDA vector(size_t n, const allocator_type& alloc = allocator_type()):
     n(n), cap(n), allocator(alloc), data_(allocate())
   {
-      for(int i = 0; i < n; ++i) {
+      for(size_t i = 0; i < n; ++i) {
         inplace_new(i);
       }
   }
@@ -104,7 +104,7 @@ public:
   CUDA vector(const U* from, size_t n, const allocator_type& alloc = allocator_type())
    : n(n), cap(n), allocator(alloc), data_(allocate())
   {
-    for(int i = 0; i < n; ++i) {
+    for(size_t i = 0; i < n; ++i) {
       inplace_new(i, from[i]);
     }
   }
@@ -129,7 +129,7 @@ public:
   CUDA vector(size_t n, const U& from, const allocator_type& alloc = allocator_type())
    : n(n), cap(n), allocator(alloc), data_(allocate())
   {
-    for(int i = 0; i < n; ++i) {
+    for(size_t i = 0; i < n; ++i) {
       inplace_new(i, from);
     }
   }
@@ -141,7 +141,7 @@ public:
   CUDA vector(std::initializer_list<T> init, const Allocator& alloc = Allocator())
    : n(init.size()), cap(init.size()), allocator(alloc), data_(allocate())
   {
-    int i = 0;
+    size_t i = 0;
     for(const T& v : init) {
       inplace_new(i, v);
       ++i;
@@ -149,7 +149,7 @@ public:
   }
 
   CUDA ~vector() {
-    for(int i = 0; i < n; ++i) {
+    for(size_t i = 0; i < n; ++i) {
       data_[i].~T();
     }
     allocator.deallocate(data_);
@@ -163,15 +163,16 @@ public:
     return *this;
   }
 
+  /** Beware that this operator does not free the memory of `this`, the capacity remains unchanged. */
   CUDA this_type& operator=(const this_type& other) {
     reserve(other.size());
-    for(int i = 0; i < other.n; ++i) {
+    for(size_t i = 0; i < other.n; ++i) {
       if(i < n) {
         data_[i].~T();
       }
       inplace_new(i, other.data_[i]);
     }
-    for(int i = other.n; i < n; ++i) {
+    for(size_t i = other.n; i < n; ++i) {
       data_[i].~T();
     }
     n = other.n;
@@ -207,7 +208,7 @@ public:
   CUDA void clear() {
     size_t n2 = n;
     n = 0;
-    for(int i = 0; i < n2; ++i) {
+    for(size_t i = 0; i < n2; ++i) {
       data_[i].~T();
     }
   }
@@ -245,7 +246,7 @@ public:
 
   CUDA void resize(size_t count) {
     if(count < n) {
-      for(int i = count; i < n; ++i) {
+      for(size_t i = count; i < n; ++i) {
         data_[i].~T();
       }
       n = count;
@@ -254,7 +255,7 @@ public:
       if(count > cap) {
         reallocate(count);
       }
-      for(int i = n; i < count; ++i) {
+      for(size_t i = n; i < count; ++i) {
         inplace_new(i);
       }
       n = count;
