@@ -103,6 +103,20 @@ if(GPU)
     $<$<CONFIG:Debug>:-g -DDEBUG>)
   target_link_libraries(utility_test_cpu_gpu cuda_battery)
   add_test(NAME utility_test_cpu_gpu COMMAND compute-sanitizer --error-exitcode 1 $<TARGET_FILE:utility_test_cpu_gpu>)
+
+  set_source_files_properties(tests/gpu_allocator.cpp PROPERTIES LANGUAGE CUDA)
+  add_executable(gpu_allocator tests/gpu_allocator.cpp)
+  set_property(TARGET gpu_allocator PROPERTY CUDA_ARCHITECTURES 75)
+  # Not sure why we need RDC, but it fails to find cudaFree at link time without it.
+  set_property(TARGET gpu_allocator PROPERTY CUDA_SEPARABLE_COMPILATION ON)
+  target_compile_options(gpu_allocator PRIVATE
+    $<$<COMPILE_LANGUAGE:CUDA>:
+      --expt-relaxed-constexpr
+      -rdc=true
+      --compiler-options -frounding-math>
+    $<$<CONFIG:Debug>:-g -DDEBUG>)
+  target_link_libraries(gpu_allocator cuda_battery)
+  add_test(NAME gpu_allocator COMMAND compute-sanitizer --error-exitcode 1 $<TARGET_FILE:gpu_allocator>)
 endif()
 
 endif()

@@ -50,8 +50,9 @@ public:
   // `ptr` must have been allocated using `allocator_type`.
   template<class Y>
   CUDA explicit shared_ptr(Y* ptr, const allocator_type& alloc = allocator_type())
-   : allocator(allocator), count(allocate_counter()), ptr(static_cast<T*>(ptr))
-  {}
+   : allocator(alloc), count(allocate_counter()), ptr(static_cast<T*>(ptr))
+  {
+  }
 
   CUDA shared_ptr(this_type&& from)
    : allocator(from.allocator), ptr(from.ptr), count(from.count)

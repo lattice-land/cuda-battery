@@ -107,14 +107,18 @@ class PoolAllocator {
     size_t counter;
 
     CUDA ControlBlock(unsigned char* mem, size_t capacity, size_t alignment)
-     : mem(mem), capacity(capacity), offset(0), alignment(alignment), counter(1) {}
+     : mem(mem), capacity(capacity), offset(0), alignment(alignment), counter(1)
+    {}
 
     CUDA void* allocate(size_t bytes) {
+      // printf("%p: allocate %lu bytes / %lu offset / %lu capacity / %lu alignment / %p current mem\n", mem, bytes, offset, capacity, alignment, &mem[offset]);
       if(bytes == 0) {
         return nullptr;
       }
-      offset += (alignment - (((size_t)&mem[offset]) % alignment)) % alignment;
-      assert(offset + bytes < capacity);
+      if(size_t(&mem[offset]) % alignment != 0) { // If we are currently unaligned.
+        offset += alignment - (size_t(&mem[offset]) % alignment);
+      }
+      assert(offset + bytes <= capacity);
       assert((size_t)&mem[offset] % alignment == 0);
       void* m = (void*)&mem[offset];
       offset += bytes;
