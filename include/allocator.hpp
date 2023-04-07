@@ -30,17 +30,25 @@ public:
     if(bytes == 0) {
       return nullptr;
     }
-    void* data;
-    cudaError_t rc = cudaMalloc(&data, bytes);
-    if (rc != cudaSuccess) {
-      printf("Allocation in global memory failed (error = %d)\n", rc);
-      return nullptr;
-    }
-    return data;
+    #ifdef __CUDA_ARCH__
+      return std::malloc(bytes);
+    #else
+      void* data;
+      cudaError_t rc = cudaMalloc(&data, bytes);
+      if (rc != cudaSuccess) {
+        printf("Allocation in global memory failed (error = %d)\n", rc);
+        return nullptr;
+      }
+      return data;
+    #endif
   }
 
   CUDA void deallocate(void* data) {
-    cudaFree(data);
+    #ifdef __CUDA_ARCH__
+      std::free(data);
+    #else
+      cudaFree(data);
+    #endif
   }
 };
 
@@ -191,25 +199,11 @@ public:
     if(bytes == 0) {
       return nullptr;
     }
-    #ifdef __CUDA_ARCH__
-      printf("cannot use StandardAllocator in CUDA __device__ code.\n");
-      assert(0);
-      return nullptr;
-    #else
-      return std::malloc(bytes);
-    #endif
+    return std::malloc(bytes);
   }
 
   CUDA void deallocate(void* data) {
-    #ifdef __CUDA_ARCH__
-      if(data == nullptr) {
-        return;
-      }
-      printf("cannot use StandardAllocator in CUDA __device__ code.\n");
-      assert(0);
-    #else
-      std::free(data);
-    #endif
+    std::free(data);
   }
 };
 }

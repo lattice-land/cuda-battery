@@ -107,12 +107,11 @@ if(GPU)
   set_source_files_properties(tests/gpu_allocator.cpp PROPERTIES LANGUAGE CUDA)
   add_executable(gpu_allocator tests/gpu_allocator.cpp)
   set_property(TARGET gpu_allocator PROPERTY CUDA_ARCHITECTURES 75)
-  # Not sure why we need RDC, but it fails to find cudaFree at link time without it.
+  # Not sure why we need RDC, but it fails to find cudaXX runtime functions at link time without it.
   set_property(TARGET gpu_allocator PROPERTY CUDA_SEPARABLE_COMPILATION ON)
   target_compile_options(gpu_allocator PRIVATE
     $<$<COMPILE_LANGUAGE:CUDA>:
       --expt-relaxed-constexpr
-      -rdc=true
       --compiler-options -frounding-math>
     $<$<CONFIG:Debug>:-g -DDEBUG>)
   target_link_libraries(gpu_allocator cuda_battery)

@@ -166,12 +166,14 @@ struct Limits {
   * On GPU: CUDA intrinsics are used.
 
   Overflow: Nothing is done to prevent overflow, it mostly behaves as with `static_cast`. */
-template<class To, class From>
+template<class To, class From, bool map_limits = true>
 CUDA constexpr To ru_cast(From x) {
   if constexpr(std::is_same_v<To, From>) {
     return x;
   }
-  MAP_LIMITS(x, From, To)
+  if constexpr(map_limits) {
+    MAP_LIMITS(x, From, To)
+  }
   #ifdef __CUDA_ARCH__
     // Integer to floating-point number cast.
     if constexpr(std::is_integral_v<From> && std::is_floating_point_v<To>) {
@@ -260,12 +262,14 @@ CUDA constexpr To ru_cast(From x) {
   * On GPU: CUDA intrinsics are used.
 
   Overflow: Nothing is done to prevent overflow, it mostly behaves as with `static_cast`. */
-template<class To, class From>
+template<class To, class From, bool map_limits=true>
 CUDA constexpr To rd_cast(From x) {
   if constexpr(std::is_same_v<To, From>) {
     return x;
   }
-  MAP_LIMITS(x, From, To)
+  if constexpr(map_limits) {
+    MAP_LIMITS(x, From, To)
+  }
   #ifdef __CUDA_ARCH__
     // Integer to floating-point number cast.
     if constexpr(std::is_integral_v<From> && std::is_floating_point_v<To>) {
