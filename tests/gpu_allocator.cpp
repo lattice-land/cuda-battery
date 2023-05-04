@@ -1,10 +1,10 @@
 #include <iostream>
 #include <cassert>
-#include "bitset.hpp"
-#include "allocator.hpp"
-#include "shared_ptr.hpp"
-#include "utility.hpp"
-#include "vector.hpp"
+#include "battery/bitset.hpp"
+#include "battery/allocator.hpp"
+#include "battery/shared_ptr.hpp"
+#include "battery/utility.hpp"
+#include "battery/vector.hpp"
 
 using namespace battery;
 

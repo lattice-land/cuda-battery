@@ -1,8 +1,8 @@
 // Copyright 2021 Pierre Talbot
 
 #include <gtest/gtest.h>
-#include "shared_ptr.hpp"
-#include "allocator.hpp"
+#include "battery/shared_ptr.hpp"
+#include "battery/allocator.hpp"
 
 using namespace battery;
 

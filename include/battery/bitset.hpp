@@ -199,6 +199,31 @@ public:
     return *this;
   }
 
+  template <class Mem2>
+  CUDA constexpr bool is_subset_of(const Bitset<N, Mem2, T>& other) const {
+    for(int i = 0; i < BLOCKS; ++i) {
+      T block = Mem::load(blocks[i]);
+      if((block & Mem2::load(other.blocks[i])) != block) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  template <class Mem2>
+  CUDA constexpr bool is_proper_subset_of(const Bitset<N, Mem2, T>& other) const {
+    bool proper = false;
+    for(int i = 0; i < BLOCKS; ++i) {
+      T block = Mem::load(blocks[i]);
+      T block2 = Mem2::load(other.blocks[i]);
+      if((block & block2) != block) {
+        return false;
+      }
+      proper |= block != block2;
+    }
+    return proper;
+  }
+
   template<class Mem2>
   CUDA constexpr Bitset& operator&=(const Bitset<N, Mem2, T>& other) {
     for(int i = 0; i < BLOCKS; ++i) {

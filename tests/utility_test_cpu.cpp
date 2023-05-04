@@ -1,7 +1,7 @@
 // Copyright 2021 Pierre Talbot
 
 #include <gtest/gtest.h>
-#include "utility.hpp"
+#include "battery/utility.hpp"
 #include <climits>
 #include <cmath>
 

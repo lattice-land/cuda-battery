@@ -1,8 +1,8 @@
 // Copyright 2022 Pierre Talbot
 
 #include <gtest/gtest.h>
-#include "bitset.hpp"
-#include "memory.hpp"
+#include "battery/bitset.hpp"
+#include "battery/memory.hpp"
 #include <climits>
 #include <cmath>
 
@@ -197,6 +197,56 @@ TEST(Bitset, SetOperations) {
   EXPECT_EQ(b2 ^ b3, b8);
   EXPECT_EQ(b3 ^ b1, b7);
   EXPECT_EQ(b3 ^ b2, b8);
+
+  // Inclusion
+  Bitset<19, Memory<StandardAllocator>, unsigned char> b9("1111111100011111111");
+  Bitset<19, Memory<StandardAllocator>, unsigned char> b10("1111111110111111111");
+
+  EXPECT_TRUE(zero.is_subset_of(zero));
+  EXPECT_TRUE(one.is_subset_of(one));
+  EXPECT_TRUE(b2.is_subset_of(b2));
+  EXPECT_TRUE(all.is_subset_of(all));
+  EXPECT_TRUE(zero.is_subset_of(one));
+  EXPECT_TRUE(zero.is_subset_of(b2));
+  EXPECT_TRUE(zero.is_subset_of(all));
+  EXPECT_TRUE(one.is_subset_of(two));
+  EXPECT_TRUE(b1.is_subset_of(b2));
+  EXPECT_TRUE(b1.is_subset_of(b5));
+  EXPECT_TRUE(b9.is_subset_of(b10));
+
+  EXPECT_FALSE(one.is_subset_of(zero));
+  EXPECT_FALSE(two.is_subset_of(one));
+  EXPECT_FALSE(b2.is_subset_of(zero));
+  EXPECT_FALSE(all.is_subset_of(zero));
+  EXPECT_FALSE(b2.is_subset_of(b1));
+  EXPECT_FALSE(b5.is_subset_of(b1));
+  EXPECT_FALSE(b10.is_subset_of(b9));
+
+  EXPECT_FALSE(b2.is_subset_of(b3));
+  EXPECT_FALSE(b3.is_subset_of(b2));
+
+  EXPECT_FALSE(zero.is_proper_subset_of(zero));
+  EXPECT_FALSE(one.is_proper_subset_of(one));
+  EXPECT_FALSE(b2.is_proper_subset_of(b2));
+  EXPECT_FALSE(all.is_proper_subset_of(all));
+  EXPECT_TRUE(zero.is_proper_subset_of(one));
+  EXPECT_TRUE(zero.is_proper_subset_of(b2));
+  EXPECT_TRUE(zero.is_proper_subset_of(all));
+  EXPECT_TRUE(one.is_proper_subset_of(two));
+  EXPECT_TRUE(b1.is_proper_subset_of(b2));
+  EXPECT_TRUE(b1.is_proper_subset_of(b5));
+  EXPECT_TRUE(b9.is_proper_subset_of(b10));
+
+  EXPECT_FALSE(one.is_proper_subset_of(zero));
+  EXPECT_FALSE(two.is_proper_subset_of(one));
+  EXPECT_FALSE(b2.is_proper_subset_of(zero));
+  EXPECT_FALSE(all.is_proper_subset_of(zero));
+  EXPECT_FALSE(b2.is_proper_subset_of(b1));
+  EXPECT_FALSE(b5.is_proper_subset_of(b1));
+  EXPECT_FALSE(b10.is_proper_subset_of(b9));
+
+  EXPECT_FALSE(b2.is_proper_subset_of(b3));
+  EXPECT_FALSE(b3.is_proper_subset_of(b2));
 }
 
 TEST(Bitset, BitCountingOperations) {

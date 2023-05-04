@@ -1,10 +1,10 @@
 // Copyright 2022 Pierre Talbot
 
 #include <vector>
-#include "bitset.hpp"
-#include "memory.hpp"
-#include "allocator.hpp"
-#include "utility.hpp"
+#include "battery/bitset.hpp"
+#include "battery/memory.hpp"
+#include "battery/allocator.hpp"
+#include "battery/utility.hpp"
 
 template<class T>
 CUDA const char* name_of_type() {

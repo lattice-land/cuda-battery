@@ -1,8 +1,8 @@
 // Copyright 2021 Pierre Talbot
 
 #include <gtest/gtest.h>
-#include "unique_ptr.hpp"
-#include "allocator.hpp"
+#include "battery/unique_ptr.hpp"
+#include "battery/allocator.hpp"
 
 using namespace battery;
 

@@ -1,9 +1,9 @@
 // Copyright 2021 Pierre Talbot
 
 #include <gtest/gtest.h>
-#include "vector.hpp"
-#include "allocator.hpp"
-#include "memory.hpp"
+#include "battery/vector.hpp"
+#include "battery/allocator.hpp"
+#include "battery/memory.hpp"
 
 using namespace battery;
 

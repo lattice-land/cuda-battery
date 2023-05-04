@@ -1,11 +1,11 @@
 // Copyright 2021 Pierre Talbot
 
 #include <gtest/gtest.h>
-#include "variant.hpp"
-#include "utility.hpp"
-#include "string.hpp"
-#include "allocator.hpp"
-#include "vector.hpp"
+#include "battery/variant.hpp"
+#include "battery/utility.hpp"
+#include "battery/string.hpp"
+#include "battery/allocator.hpp"
+#include "battery/vector.hpp"
 
 using namespace battery;
 
