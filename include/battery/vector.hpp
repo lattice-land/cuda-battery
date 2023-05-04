@@ -10,7 +10,7 @@
 
 namespace battery {
 
-template<class T, class Allocator = StandardAllocator>
+template<class T, class Allocator = standard_allocator>
 class vector {
 
 public:

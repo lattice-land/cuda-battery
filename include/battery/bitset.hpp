@@ -23,7 +23,7 @@
 namespace battery {
 
 template <size_t N, class Mem, class T = unsigned long long>
-class Bitset {
+class bitset {
 private:
   constexpr static size_t BITS_PER_BLOCK = sizeof(T) * CHAR_BIT;
   constexpr static size_t BITS_LAST_BLOCK = (N % BITS_PER_BLOCK) == 0 ? BITS_PER_BLOCK : (N % BITS_PER_BLOCK);
@@ -54,9 +54,9 @@ private:
 public:
   static_assert(std::is_integral_v<T> && std::is_unsigned_v<T>, "Block of a bitset must be defined on an unsigned integer type.");
 
-  CUDA constexpr Bitset(): blocks() {}
+  CUDA constexpr bitset(): blocks() {}
 
-  CUDA constexpr Bitset(const char* bit_str): blocks() {
+  CUDA constexpr bitset(const char* bit_str): blocks() {
     size_t n = min(strlen(bit_str), MAX_SIZE);
     for(int i = n-1, j = 0; i >= 0; --i, ++j) {
       if(bit_str[i] == '1') {
@@ -66,18 +66,18 @@ public:
   }
 
   template<class Mem2>
-  CUDA constexpr Bitset(const Bitset<N, Mem2, T>& other) {
+  CUDA constexpr bitset(const bitset<N, Mem2, T>& other) {
     for(int i = 0; i < BLOCKS; ++i) {
       store(blocks[i], Mem::load(other[i]));
     }
   }
 
-  CUDA static constexpr Bitset zeroes() {
-    return Bitset();
+  CUDA static constexpr bitset zeroes() {
+    return bitset();
   }
 
-  CUDA static constexpr Bitset ones() {
-    return Bitset().set();
+  CUDA static constexpr bitset ones() {
+    return bitset().set();
   }
 
 private:
@@ -151,7 +151,7 @@ public:
     return bits_at_one;
   }
 
-  CUDA constexpr Bitset& set() {
+  CUDA constexpr bitset& set() {
     int i = 0;
     for(; i < BLOCKS - 1; ++i) {
       store(blocks[i], ONES);
@@ -160,31 +160,31 @@ public:
     return *this;
   }
 
-  CUDA constexpr Bitset& set(size_t pos) {
+  CUDA constexpr bitset& set(size_t pos) {
     assert(pos < MAX_SIZE);
     store_block(pos, load_block(pos) | bit_of(pos));
     return *this;
   }
 
-  CUDA constexpr Bitset& set(size_t pos, bool value) {
+  CUDA constexpr bitset& set(size_t pos, bool value) {
     assert(pos < MAX_SIZE);
     return value ? set(pos) : reset(pos);
   }
 
-  CUDA constexpr Bitset& reset() {
+  CUDA constexpr bitset& reset() {
     for(int i = 0; i < BLOCKS; ++i) {
       store(blocks[i], ZERO);
     }
     return *this;
   }
 
-  CUDA constexpr Bitset& reset(size_t pos) {
+  CUDA constexpr bitset& reset(size_t pos) {
     assert(pos < MAX_SIZE);
     store_block(pos, load_block(pos) & ~bit_of(pos));
     return *this;
   }
 
-  CUDA constexpr Bitset& flip() {
+  CUDA constexpr bitset& flip() {
     int i = 0;
     for(; i < BLOCKS - 1; ++i) {
       store(blocks[i], ~Mem::load(blocks[i]));
@@ -193,14 +193,14 @@ public:
     return *this;
   }
 
-  CUDA constexpr Bitset& flip(size_t pos) {
+  CUDA constexpr bitset& flip(size_t pos) {
     assert(pos < MAX_SIZE);
     store_block(pos, load_block(pos) ^ bit_of(pos));
     return *this;
   }
 
   template <class Mem2>
-  CUDA constexpr bool is_subset_of(const Bitset<N, Mem2, T>& other) const {
+  CUDA constexpr bool is_subset_of(const bitset<N, Mem2, T>& other) const {
     for(int i = 0; i < BLOCKS; ++i) {
       T block = Mem::load(blocks[i]);
       if((block & Mem2::load(other.blocks[i])) != block) {
@@ -211,7 +211,7 @@ public:
   }
 
   template <class Mem2>
-  CUDA constexpr bool is_proper_subset_of(const Bitset<N, Mem2, T>& other) const {
+  CUDA constexpr bool is_proper_subset_of(const bitset<N, Mem2, T>& other) const {
     bool proper = false;
     for(int i = 0; i < BLOCKS; ++i) {
       T block = Mem::load(blocks[i]);
@@ -225,7 +225,7 @@ public:
   }
 
   template<class Mem2>
-  CUDA constexpr Bitset& operator&=(const Bitset<N, Mem2, T>& other) {
+  CUDA constexpr bitset& operator&=(const bitset<N, Mem2, T>& other) {
     for(int i = 0; i < BLOCKS; ++i) {
       store(blocks[i], Mem::load(blocks[i]) & Mem2::load(other.blocks[i]));
     }
@@ -233,7 +233,7 @@ public:
   }
 
   template<class Mem2>
-  CUDA constexpr Bitset& operator|=(const Bitset<N, Mem2, T>& other) {
+  CUDA constexpr bitset& operator|=(const bitset<N, Mem2, T>& other) {
     for(int i = 0; i < BLOCKS; ++i) {
       store(blocks[i], Mem::load(blocks[i]) | Mem2::load(other.blocks[i]));
     }
@@ -241,19 +241,19 @@ public:
   }
 
   template<class Mem2>
-  CUDA constexpr Bitset& operator^=(const Bitset<N, Mem2, T>& other) {
+  CUDA constexpr bitset& operator^=(const bitset<N, Mem2, T>& other) {
     for(int i = 0; i < BLOCKS; ++i) {
       store(blocks[i], Mem::load(blocks[i]) ^ Mem2::load(other.blocks[i]));
     }
     return *this;
   }
 
-  CUDA constexpr Bitset operator~() const {
-    return Bitset(*this).flip();
+  CUDA constexpr bitset operator~() const {
+    return bitset(*this).flip();
   }
 
   template<class Mem2>
-  CUDA constexpr bool operator==(const Bitset<N, Mem2, T>& other) const {
+  CUDA constexpr bool operator==(const bitset<N, Mem2, T>& other) const {
     for(int i = 0; i < BLOCKS; ++i) {
       if(blocks[i] != other.blocks[i]) {
         return false;
@@ -263,7 +263,7 @@ public:
   }
 
   template<class Mem2>
-  CUDA constexpr bool operator!=(const Bitset<N, Mem2, T>& other) const {
+  CUDA constexpr bool operator!=(const bitset<N, Mem2, T>& other) const {
     return !(*this == other);
   }
 
@@ -324,18 +324,18 @@ public:
 };
 
 template<size_t N, class Mem, class T>
-constexpr Bitset<N, Mem, T> operator&(const Bitset<N, Mem, T>& lhs, const Bitset<N, Mem, T>& rhs) {
-  return Bitset<N, Mem, T>(lhs) &= rhs;
+constexpr bitset<N, Mem, T> operator&(const bitset<N, Mem, T>& lhs, const bitset<N, Mem, T>& rhs) {
+  return bitset<N, Mem, T>(lhs) &= rhs;
 }
 
 template<size_t N, class Mem, class T>
-constexpr Bitset<N, Mem, T> operator|(const Bitset<N, Mem, T>& lhs, const Bitset<N, Mem, T>& rhs) {
-  return Bitset<N, Mem, T>(lhs) |= rhs;
+constexpr bitset<N, Mem, T> operator|(const bitset<N, Mem, T>& lhs, const bitset<N, Mem, T>& rhs) {
+  return bitset<N, Mem, T>(lhs) |= rhs;
 }
 
 template<size_t N, class Mem, class T>
-constexpr Bitset<N, Mem, T> operator^(const Bitset<N, Mem, T>& lhs, const Bitset<N, Mem, T>& rhs) {
-  return Bitset<N, Mem, T>(lhs) ^= rhs;
+constexpr bitset<N, Mem, T> operator^(const bitset<N, Mem, T>& lhs, const bitset<N, Mem, T>& rhs) {
+  return bitset<N, Mem, T>(lhs) ^= rhs;
 }
 
 } // namespace battery

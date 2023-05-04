@@ -11,7 +11,7 @@ namespace battery {
 
 /** `string` represents a fixed sized array of characters based on `vector<char>`.
     All strings are null-terminated. */
-template<class Allocator>
+template<class Allocator=standard_allocator>
 class string {
   vector<char, Allocator> data_;
 public:
@@ -23,33 +23,33 @@ public:
   friend class string;
 
   /** Allocate a string of size `n` using `allocator`. */
-  CUDA string(size_t n, const Allocator& alloc = Allocator()):
+  CUDA string(size_t n, const allocator_type& alloc = allocator_type()):
     data_(n+1, alloc) /* +1 for null-termination */
   {
     data_[n] = '\0'; // In case the user modifies the string.
   }
 
-  CUDA string(const Allocator& alloc = Allocator()): string((size_t)0, alloc) {}
+  CUDA string(const allocator_type& alloc = allocator_type()): string((size_t)0, alloc) {}
 
   /** Allocate a string from `raw_string` using `allocator`. */
-  CUDA string(const char* raw_string, const Allocator& alloc = Allocator()):
+  CUDA string(const char* raw_string, const allocator_type& alloc = allocator_type()):
     data_(raw_string, strlen(raw_string)+1, alloc) {}
 
   /** Copy constructor with an allocator. */
   template <class Allocator2>
-  CUDA string(const string<Allocator2>& other, const Allocator& alloc = Allocator()):
+  CUDA string(const string<Allocator2>& other, const allocator_type& alloc = allocator_type()):
     data_(other.data_, alloc) {}
 
   /** Redefine the copy constructor to be sure it calls a constructor with an allocator. */
-  CUDA string(const string<Allocator>& other): string(other, Allocator()) {}
+  CUDA string(const string<allocator_type>& other): string(other, allocator_type()) {}
 
-  string(string<Allocator>&& other) = default;
-  CUDA string<Allocator>& operator=(string<Allocator> other) {
+  string(string<allocator_type>&& other) = default;
+  CUDA string<allocator_type>& operator=(string<allocator_type> other) {
     data_ = other.data_;
     return *this;
   }
 
-  HOST string(const std::string& other, const Allocator& alloc = Allocator()):
+  HOST string(const std::string& other, const allocator_type& alloc = allocator_type()):
     data_(other.data(), other.size()+1, alloc) {}
 
   CUDA allocator_type get_allocator() const { return data_.get_allocator(); }
@@ -64,7 +64,7 @@ public:
     printf("%s", data());
   }
 
-  CUDA static this_type from_int(int x, const Allocator& alloc = Allocator()) {
+  CUDA static this_type from_int(int x, const allocator_type& alloc = allocator_type()) {
     if(x == 0) { return this_type("0", alloc); }
     int s = 0;
     bool neg = x < 0;

@@ -13,7 +13,7 @@ TEST(SharedPtr, ConstructorAssignment) {
   EXPECT_FALSE(bool(u2));
   EXPECT_EQ(u1.use_count(), 0);
   EXPECT_EQ(u2.use_count(), 0);
-  u1 = make_shared<int, StandardAllocator>(4);
+  u1 = make_shared<int, standard_allocator>(4);
   EXPECT_TRUE(bool(u1));
   EXPECT_EQ(u1.use_count(), 1);
   EXPECT_EQ(*u1, 4);
@@ -51,7 +51,7 @@ TEST(SharedPtr, ConstructorAssignmentObject) {
     EXPECT_EQ(A::n, 0);
     EXPECT_FALSE(bool(u1));
     EXPECT_FALSE(bool(u2));
-    u1 = make_shared<A, StandardAllocator>(4);
+    u1 = make_shared<A, standard_allocator>(4);
     EXPECT_EQ(A::n, 1);
     EXPECT_TRUE(bool(u1));
     EXPECT_EQ(u1->x, 4);
@@ -62,7 +62,7 @@ TEST(SharedPtr, ConstructorAssignmentObject) {
     EXPECT_TRUE(bool(u2));
     EXPECT_EQ(u2->x, 4);
     A tmp2(10);
-    u1 = make_shared<A, StandardAllocator>(std::move(tmp2));
+    u1 = make_shared<A, standard_allocator>(std::move(tmp2));
     EXPECT_EQ(A::n, 2);
     auto u4 = u1;
     EXPECT_EQ(A::n, 2);
@@ -104,7 +104,7 @@ struct C {
 };
 
 TEST(SharedPtr, EmptyConstructorMakeShared) {
-  shared_ptr<C, StandardAllocator> ptr = make_shared<C, StandardAllocator>();
+  shared_ptr<C, standard_allocator> ptr = make_shared<C, standard_allocator>();
   EXPECT_EQ(ptr->a, 0);
   EXPECT_EQ(ptr->b, 1);
 }

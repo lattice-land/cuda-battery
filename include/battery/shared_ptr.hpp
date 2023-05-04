@@ -14,7 +14,7 @@ namespace battery {
      - No support for aliasing constructors.
      - No special thread-safety support.
     Similarly to vector, the allocator is scoped, meaning it is propagated to the underlying type constructor if it takes one. */
-template <class T, class Allocator = StandardAllocator>
+template <class T, class Allocator = standard_allocator>
 class shared_ptr {
 public:
   using element_type = T;

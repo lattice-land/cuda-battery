@@ -122,16 +122,16 @@ TEST(Vector, ResizeShrink) {
 TEST(Vector, PoolAlloc) {
   unsigned char mem[100];
   size_t alignment = 10;
-  PoolAllocator alloc(mem, 100, alignment);
+  pool_allocator alloc(mem, 100, alignment);
   int wasted_mem = (alignment - (size_t)mem % alignment) % alignment;
-  vector<int, PoolAllocator> v1{3, alloc};
+  vector<int, pool_allocator> v1{3, alloc};
   EXPECT_EQ(alloc.used(), sizeof(int) * 3 + wasted_mem);
-  vector<int, PoolAllocator> v2{3, alloc};
+  vector<int, pool_allocator> v2{3, alloc};
   wasted_mem += 8;
   EXPECT_EQ(alloc.used(), sizeof(int) * 6 + wasted_mem);
   alignment = sizeof(int);
   alloc.align_at(alignment);
   wasted_mem += (alignment - (((size_t)mem + alloc.used()) % alignment)) % alignment;
-  vector<int, PoolAllocator> v3{3, alloc};
+  vector<int, pool_allocator> v3{3, alloc};
   EXPECT_EQ(alloc.used(), sizeof(int) * 9 + wasted_mem);
 }

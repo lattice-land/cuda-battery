@@ -11,7 +11,7 @@ TEST(UniquePtr, ConstructorAssignment) {
   unique_ptr<int> u2(nullptr);
   EXPECT_FALSE(bool(u1));
   EXPECT_FALSE(bool(u2));
-  u1 = make_unique<int, StandardAllocator>(4);
+  u1 = make_unique<int, standard_allocator>(4);
   EXPECT_TRUE(bool(u1));
   EXPECT_EQ(*u1, 4);
   u2 = std::move(u1);
@@ -45,7 +45,7 @@ TEST(UniquePtr, ConstructorAssignmentObject) {
     EXPECT_FALSE(bool(u1));
     EXPECT_FALSE(bool(u2));
     A tmp(4);
-    u1 = make_unique<A, StandardAllocator>(tmp);
+    u1 = make_unique<A, standard_allocator>(tmp);
     EXPECT_EQ(A::n, 2);
     EXPECT_TRUE(bool(u1));
     EXPECT_EQ(u1->x, 4);
@@ -56,7 +56,7 @@ TEST(UniquePtr, ConstructorAssignmentObject) {
     EXPECT_TRUE(bool(u2));
     EXPECT_EQ(u2->x, 4);
     A tmp2(10);
-    u1 = make_unique<A, StandardAllocator>(std::move(tmp2));
+    u1 = make_unique<A, standard_allocator>(std::move(tmp2));
     EXPECT_EQ(A::n, 3);
     A* i = u2.release();
     delete i;

@@ -24,7 +24,7 @@ namespace battery {
 /** An allocator using the global memory of CUDA.
 This can be used from both the host and device side, but the memory can only be accessed when in a device function.
 Beware that allocation and deallocation must occur on the same side. */
-class GlobalAllocator {
+class global_allocator {
 public:
   CUDA void* allocate(size_t bytes) {
     if(bytes == 0) {
@@ -53,12 +53,12 @@ public:
 };
 
 /** An allocator using the managed memory of CUDA when the memory is allocated on the host.
- * We delegate the allocation to `GlobalAllocator` when the allocation is done on the device (since managed memory cannot be allocated in device functions). */
-class ManagedAllocator {
+ * We delegate the allocation to `global_allocator` when the allocation is done on the device (since managed memory cannot be allocated in device functions). */
+class managed_allocator {
 public:
   CUDA void* allocate(size_t bytes) {
     #ifdef __CUDA_ARCH__
-      return GlobalAllocator{}.allocate(bytes);
+      return global_allocator{}.allocate(bytes);
     #else
       if(bytes == 0) {
         return nullptr;
@@ -71,7 +71,7 @@ public:
 
   CUDA void deallocate(void* data) {
     #ifdef __CUDA_ARCH__
-      return GlobalAllocator{}.deallocate(data);
+      return global_allocator{}.deallocate(data);
     #else
       cudaFree(data);
     #endif
@@ -80,19 +80,19 @@ public:
 
 } // namespace battery
 
-CUDA inline void* operator new(size_t bytes, battery::ManagedAllocator& p) {
+CUDA inline void* operator new(size_t bytes, battery::managed_allocator& p) {
   return p.allocate(bytes);
 }
 
-CUDA inline void operator delete(void* ptr, battery::ManagedAllocator& p) {
+CUDA inline void operator delete(void* ptr, battery::managed_allocator& p) {
   return p.deallocate(ptr);
 }
 
-CUDA inline void* operator new(size_t bytes, battery::GlobalAllocator& p) {
+CUDA inline void* operator new(size_t bytes, battery::global_allocator& p) {
   return p.allocate(bytes);
 }
 
-CUDA inline void operator delete(void* ptr, battery::GlobalAllocator& p) {
+CUDA inline void operator delete(void* ptr, battery::global_allocator& p) {
   p.deallocate(ptr);
 }
 
@@ -105,16 +105,16 @@ The memory can for instance be the CUDA shared memory.
 This allocator is rather incomplete as it never frees the memory allocated.
 It allocates a control block using the "normal" `operator new`, where the address to the pool, its capacity and current offset are stored.
 */
-class PoolAllocator {
+class pool_allocator {
 
-  struct ControlBlock {
+  struct control_block {
     unsigned char* mem;
     size_t capacity;
     size_t offset;
     size_t alignment;
     size_t counter;
 
-    CUDA ControlBlock(unsigned char* mem, size_t capacity, size_t alignment)
+    CUDA control_block(unsigned char* mem, size_t capacity, size_t alignment)
      : mem(mem), capacity(capacity), offset(0), alignment(alignment), counter(1)
     {}
 
@@ -134,22 +134,22 @@ class PoolAllocator {
     }
   };
 
-  ControlBlock* block;
+  control_block* block;
 
 public:
-  CUDA PoolAllocator(const PoolAllocator& other):
+  CUDA pool_allocator(const pool_allocator& other):
     block(other.block)
   {
     block->counter++;
   }
 
-  CUDA PoolAllocator(unsigned char* mem, size_t capacity, size_t alignment = alignof(std::max_align_t))
-   : block(::new ControlBlock(mem, capacity, alignment))
+  CUDA pool_allocator(unsigned char* mem, size_t capacity, size_t alignment = alignof(std::max_align_t))
+   : block(::new control_block(mem, capacity, alignment))
   {}
 
-  CUDA PoolAllocator() = delete;
+  CUDA pool_allocator() = delete;
 
-  CUDA ~PoolAllocator() {
+  CUDA ~pool_allocator() {
     block->counter--;
     if(block->counter == 0) {
       ::delete block;
@@ -182,18 +182,18 @@ public:
 };
 }
 
-CUDA inline void* operator new(size_t bytes, battery::PoolAllocator& p) {
+CUDA inline void* operator new(size_t bytes, battery::pool_allocator& p) {
   return p.allocate(bytes);
 }
 
-CUDA inline void operator delete(void* ptr, battery::PoolAllocator& p) {
+CUDA inline void operator delete(void* ptr, battery::pool_allocator& p) {
   return p.deallocate(ptr);
 }
 
 namespace battery {
 
 /** This allocator call the standard `malloc` and `free`. */
-class StandardAllocator {
+class standard_allocator {
 public:
   CUDA void* allocate(size_t bytes) {
     if(bytes == 0) {
@@ -208,11 +208,11 @@ public:
 };
 }
 
-CUDA inline void* operator new(size_t bytes, battery::StandardAllocator& p) {
+CUDA inline void* operator new(size_t bytes, battery::standard_allocator& p) {
   return p.allocate(bytes);
 }
 
-CUDA inline void operator delete(void* ptr, battery::StandardAllocator& p) {
+CUDA inline void operator delete(void* ptr, battery::standard_allocator& p) {
   return p.deallocate(ptr);
 }
 

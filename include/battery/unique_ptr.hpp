@@ -12,7 +12,7 @@ namespace battery {
  *   - There is no specialization for arrays (e.g., unique_ptr<T[]>).
      - We rely on an allocator and provide a function `allocate_unique` to build the pointer in place.
     Similarly to vector, the allocator is scoped, meaning it is propagated to the underlying type constructor if it takes one. */
-template <class T, class Allocator = StandardAllocator>
+template <class T, class Allocator = standard_allocator>
 class unique_ptr {
 public:
   using element_type = T;

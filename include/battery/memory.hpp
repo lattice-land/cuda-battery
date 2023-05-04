@@ -19,7 +19,7 @@ namespace battery {
 
 /** Represent the memory of a variable that cannot be accessed by multiple threads (e.g., allocated on the stack), thus not needing any allocator.
     In other terms, a variable stored locally to a thread. */
-class LocalMemory {
+class local_memory {
 public:
   template <class T> using atomic_type = T;
 
@@ -38,7 +38,7 @@ public:
 };
 
 template <class Allocator, bool read_only = false>
-class Memory {
+class memory {
 public:
   using allocator_type = Allocator;
   template <class T> using atomic_type = T;
@@ -48,8 +48,8 @@ private:
   allocator_type alloc;
 
 public:
-  CUDA constexpr Memory(allocator_type alloc): alloc(alloc) {}
-  CUDA constexpr Memory(const Memory& seq): alloc(seq.alloc) {}
+  CUDA constexpr memory(allocator_type alloc): alloc(alloc) {}
+  CUDA constexpr memory(const memory& seq): alloc(seq.alloc) {}
 
   template <class T>
   CUDA static constexpr T load(const atomic_type<T>& a) {
@@ -67,12 +67,12 @@ public:
 };
 
 template <class Allocator>
-using ReadOnlyMemory = Memory<Allocator, true>;
+using read_only_memory = memory<Allocator, true>;
 
 #ifdef __NVCC__
 
 template <class Allocator, cuda::thread_scope scope, cuda::memory_order mem_order = cuda::memory_order_relaxed>
-class AtomicMemoryScoped {
+class atomic_memory_scoped {
 public:
   using allocator_type = Allocator;
   template <class T> using atomic_type = cuda::atomic<T, scope>;
@@ -82,8 +82,8 @@ private:
   allocator_type alloc;
 
 public:
-  CUDA constexpr AtomicMemoryScoped(allocator_type alloc): alloc(alloc) {}
-  CUDA constexpr AtomicMemoryScoped(const AtomicMemoryScoped& seq): alloc(seq.alloc) {}
+  CUDA constexpr atomic_memory_scoped(allocator_type alloc): alloc(alloc) {}
+  CUDA constexpr atomic_memory_scoped(const atomic_memory_scoped& seq): alloc(seq.alloc) {}
 
   template <class T>
   CUDA static T load(const atomic_type<T>& a) {
@@ -101,13 +101,13 @@ public:
 };
 
 template <class Allocator, cuda::memory_order mem_order = cuda::memory_order_relaxed>
-using AtomicMemoryBlock = AtomicMemoryScoped<Allocator, cuda::thread_scope_block, mem_order>;
+using atomic_memory_block = atomic_memory_scoped<Allocator, cuda::thread_scope_block, mem_order>;
 
 template <class Allocator, cuda::memory_order mem_order = cuda::memory_order_relaxed>
-using AtomicMemoryDevice = AtomicMemoryScoped<Allocator, cuda::thread_scope_device, mem_order>;
+using atomic_memory_grid = atomic_memory_scoped<Allocator, cuda::thread_scope_device, mem_order>;
 
 template <class Allocator, cuda::memory_order mem_order = cuda::memory_order_relaxed>
-using AtomicMemorySystem = AtomicMemoryScoped<Allocator, cuda::thread_scope_system, mem_order>;
+using atomic_memory_multi_grid = atomic_memory_scoped<Allocator, cuda::thread_scope_system, mem_order>;
 
 #endif // __NVCC__
 
@@ -130,7 +130,7 @@ using AtomicMemorySystem = AtomicMemoryScoped<Allocator, cuda::thread_scope_syst
 #endif
 
 template <class Allocator, memory_order mem_order = memory_order_relaxed>
-class AtomicMemory {
+class atomic_memory {
 public:
   using allocator_type = Allocator;
   template <class T> using atomic_type = impl::atomic_t<T>;
@@ -140,8 +140,8 @@ private:
   allocator_type alloc;
 
 public:
-  CUDA constexpr AtomicMemory(allocator_type alloc): alloc(alloc) {}
-  CUDA constexpr AtomicMemory(const AtomicMemory& am): alloc(am.alloc) {}
+  CUDA constexpr atomic_memory(allocator_type alloc): alloc(alloc) {}
+  CUDA constexpr atomic_memory(const atomic_memory& am): alloc(am.alloc) {}
 
   template <class T>
   CUDA static T load(const atomic_type<T>& a) {

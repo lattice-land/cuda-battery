@@ -135,7 +135,7 @@ CUDA constexpr inline double nextafter(double f, double dir) {
 }
 
 template<class T>
-struct Limits {
+struct limits {
   static constexpr T bot() {
     if constexpr (std::is_floating_point<T>()) {
       return -std::numeric_limits<T>::infinity();
@@ -152,11 +152,11 @@ struct Limits {
 
 #define MAP_LIMITS(x, From, To) \
   if(x == 0) { return 0; } \
-  if(x == Limits<From>::bot()) {\
-    return Limits<To>::bot();   \
+  if(x == limits<From>::bot()) {\
+    return limits<To>::bot();   \
   }                             \
-  if(x == Limits<From>::top()) {\
-    return Limits<To>::top();   \
+  if(x == limits<From>::top()) {\
+    return limits<To>::top();   \
   }
 
 /** Cast the variable `x` from type `From` to type `To` following upper rounding rule (cast in the direction of infinity).
