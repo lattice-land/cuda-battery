@@ -45,7 +45,12 @@ private:
     n = min(new_cap, n); // in case we shrink the initial array.
     data_ = allocate();
     for(size_t i = 0; i < n; ++i) {
-      new(&data_[i]) T(std::move(data2[i]));
+      if constexpr(std::is_constructible<value_type, value_type&&>{}) {
+       new(&data_[i]) T(std::move(data2[i]));
+      }
+      else {
+        new(&data_[i]) T(data2[i]);
+      }
     }
     // Free the old data array that has been reallocated.
     for(size_t i = 0; i < n2; ++i) {
