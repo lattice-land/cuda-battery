@@ -113,9 +113,10 @@ class pool_allocator {
     size_t offset;
     size_t alignment;
     size_t counter;
+    size_t num_deallocations;
 
     CUDA control_block(unsigned char* mem, size_t capacity, size_t alignment)
-     : mem(mem), capacity(capacity), offset(0), alignment(alignment), counter(1)
+     : mem(mem), capacity(capacity), offset(0), alignment(alignment), num_deallocations(0), counter(1)
     {}
 
     CUDA void* allocate(size_t bytes) {
@@ -131,6 +132,10 @@ class pool_allocator {
       void* m = (void*)&mem[offset];
       offset += bytes;
       return m;
+    }
+
+    CUDA void deallocate() {
+      num_deallocations++;
     }
   };
 
@@ -166,7 +171,9 @@ public:
     return block->allocate(bytes);
   }
 
-  CUDA void deallocate(void*) {}
+  CUDA void deallocate(void*) {
+    block->deallocate();
+  }
 
   CUDA void print() const {
     printf("Used %lu / %lu\n", block->offset, block->capacity);
@@ -178,6 +185,10 @@ public:
 
   CUDA size_t capacity() const {
     return block->capacity;
+  }
+
+  CUDA size_t num_deallocations() const {
+    return block->num_deallocations;
   }
 };
 }
