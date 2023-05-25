@@ -227,4 +227,74 @@ CUDA inline void operator delete(void* ptr, battery::standard_allocator& p) {
   return p.deallocate(ptr);
 }
 
+namespace battery {
+  template <class Allocator>
+  class statistics_allocator {
+    struct control_block {
+      Allocator allocator;
+      size_t counter;
+      size_t num_deallocations;
+      size_t num_allocations;
+      size_t total_bytes_allocated;
+
+      CUDA control_block(const Allocator& allocator)
+      : allocator(allocator), counter(1), num_deallocations(0), num_allocations(0), total_bytes_allocated(0)
+      {}
+
+      CUDA void* allocate(size_t bytes) {
+        num_allocations++;
+        total_bytes_allocated += bytes;
+        return allocator.allocate(bytes);
+      }
+
+      CUDA void deallocate(void* ptr) {
+        if(ptr != nullptr) {
+          num_deallocations++;
+          allocator.deallocate(ptr);
+        }
+      }
+    };
+
+    control_block* block;
+
+  public:
+    CUDA statistics_allocator(const statistics_allocator& other):
+      block(other.block)
+    {
+      block->counter++;
+    }
+
+    CUDA statistics_allocator(const Allocator& allocator)
+    : block(::new control_block(allocator))
+    {}
+
+    CUDA ~statistics_allocator() {
+      block->counter--;
+      if(block->counter == 0) {
+        ::delete block;
+      }
+    }
+
+    CUDA void* allocate(size_t bytes) {
+      return block->allocate(bytes);
+    }
+
+    CUDA void deallocate(void* ptr) {
+      block->deallocate(ptr);
+    }
+
+    CUDA size_t num_allocations() const {
+      return block->num_allocations;
+    }
+
+    CUDA size_t num_deallocations() const {
+      return block->num_deallocations;
+    }
+
+    CUDA size_t total_bytes_allocated() const {
+      return block->total_bytes_allocated;
+    }
+  };
+}
+
 #endif // ALLOCATOR_HPP
