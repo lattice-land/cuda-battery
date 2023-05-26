@@ -139,7 +139,7 @@ public:
     }
   }
 
-  CUDA vector(this_type&& other): this_type() {
+  CUDA vector(this_type&& other): this_type(other.allocator) {
     swap(other);
   }
 
