@@ -228,7 +228,7 @@ CUDA inline void operator delete(void* ptr, battery::standard_allocator& p) {
 }
 
 namespace battery {
-  template <class Allocator>
+  template <class Allocator, class InternalAllocator = Allocator>
   class statistics_allocator {
     struct control_block {
       Allocator allocator;
@@ -255,23 +255,27 @@ namespace battery {
       }
     };
 
+    InternalAllocator internal_allocator;
     control_block* block;
 
   public:
-    CUDA statistics_allocator(const statistics_allocator& other):
-      block(other.block)
+    CUDA statistics_allocator(const statistics_allocator& other)
+      : internal_allocator(other.internal_allocator), block(other.block)
     {
       block->counter++;
     }
 
-    CUDA statistics_allocator(const Allocator& allocator)
-    : block(::new control_block(allocator))
-    {}
+    CUDA statistics_allocator(const Allocator& allocator = Allocator(), const InternalAllocator& internal_allocator = InternalAllocator())
+      : internal_allocator(internal_allocator)
+    {
+      block = static_cast<control_block*>(internal_allocator.allocate(sizeof(control_block)));
+      new(block) control_block(allocator);
+    }
 
     CUDA ~statistics_allocator() {
       block->counter--;
       if(block->counter == 0) {
-        ::delete block;
+        internal_allocator.deallocate(block);
       }
     }
 
