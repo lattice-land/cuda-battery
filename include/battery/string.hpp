@@ -84,8 +84,8 @@ public:
     return std::move(buffer);
   }
 
-  template<typename Alloc>
-  CUDA friend bool operator==(const string<Alloc>& lhs, const string<Alloc>& rhs);
+  template<class Alloc1, class Alloc2>
+  CUDA friend bool operator==(const string<Alloc1>& lhs, const string<Alloc2>& rhs);
 };
 
 namespace impl {
@@ -99,8 +99,8 @@ namespace impl {
   }
 }
 
-template<class Allocator>
-CUDA bool operator==(const string<Allocator>& lhs, const string<Allocator>& rhs) {
+template<class Alloc1, class Alloc2>
+CUDA bool operator==(const string<Alloc1>& lhs, const string<Alloc2>& rhs) {
   return lhs.size() == rhs.size() && battery::strcmp(lhs.data(), rhs.data()) == 0;
 }
 
@@ -114,8 +114,8 @@ CUDA bool operator==(const string<Allocator>& lhs, const char* rhs) {
   return battery::strcmp(lhs.data(), rhs) == 0;
 }
 
-template<class Allocator>
-CUDA bool operator!=(const string<Allocator>& lhs, const string<Allocator>& rhs) {
+template<class Alloc1, class Alloc2>
+CUDA bool operator!=(const string<Alloc1>& lhs, const string<Alloc2>& rhs) {
   return !(lhs == rhs);
 }
 
