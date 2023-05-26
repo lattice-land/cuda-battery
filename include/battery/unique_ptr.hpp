@@ -26,13 +26,13 @@ private:
   template<class U, class Alloc>
   friend class unique_ptr;
 public:
-  CUDA unique_ptr(const allocator_type& alloc = allocator_type())
+  CUDA unique_ptr(const allocator_type& allocator = allocator_type())
    : allocator(allocator), ptr(nullptr) {}
-  CUDA unique_ptr(std::nullptr_t, const allocator_type& alloc = allocator_type())
+  CUDA unique_ptr(std::nullptr_t, const allocator_type& allocator = allocator_type())
    : allocator(allocator), ptr(nullptr) {}
 
   // `ptr` must have been allocated using `allocator_type`.
-  CUDA explicit unique_ptr(pointer ptr, const allocator_type& alloc = allocator_type())
+  CUDA explicit unique_ptr(pointer ptr, const allocator_type& allocator = allocator_type())
    : allocator(allocator), ptr(ptr) {}
   CUDA unique_ptr(this_type&& from) : ptr(from.ptr), allocator(from.allocator) {
     from.ptr = nullptr;

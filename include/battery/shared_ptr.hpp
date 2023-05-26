@@ -42,15 +42,16 @@ private:
   }
 
 public:
-  CUDA shared_ptr(const allocator_type& alloc = allocator_type())
+  CUDA shared_ptr(const allocator_type& allocator = allocator_type())
    : allocator(allocator), count(nullptr), ptr(nullptr) {}
-  CUDA shared_ptr(std::nullptr_t, const allocator_type& alloc = allocator_type())
+
+  CUDA shared_ptr(std::nullptr_t, const allocator_type& allocator = allocator_type())
    : allocator(allocator), count(nullptr), ptr(nullptr) {}
 
   // `ptr` must have been allocated using `allocator_type`.
   template<class Y>
-  CUDA explicit shared_ptr(Y* ptr, const allocator_type& alloc = allocator_type())
-   : allocator(alloc), count(allocate_counter()), ptr(static_cast<T*>(ptr))
+  CUDA explicit shared_ptr(Y* ptr, const allocator_type& allocator = allocator_type())
+   : allocator(allocator), count(allocate_counter()), ptr(static_cast<T*>(ptr))
   {
   }
 
