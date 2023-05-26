@@ -268,7 +268,7 @@ namespace battery {
     CUDA statistics_allocator(const Allocator& allocator = Allocator(), const InternalAllocator& internal_allocator = InternalAllocator())
       : internal_allocator(internal_allocator)
     {
-      block = static_cast<control_block*>(internal_allocator.allocate(sizeof(control_block)));
+      block = static_cast<control_block*>(this->internal_allocator.allocate(sizeof(control_block)));
       new(block) control_block(allocator);
     }
 
