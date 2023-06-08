@@ -135,3 +135,20 @@ TEST(Vector, PoolAlloc) {
   vector<int, pool_allocator> v3{3, alloc};
   EXPECT_EQ(alloc.used(), sizeof(int) * 9 + wasted_mem);
 }
+
+TEST(Vector, STLVectorConstructor) {
+  std::vector<std::vector<int>> v1(100, std::vector<int>(100, 0));
+  for(int i = 0; i < v1.size(); ++i) {
+    for(int j = 0; j < v1[i].size(); ++j) {
+      v1[i][j] = i+j*100;
+    }
+  }
+  vector<vector<int, battery::standard_allocator>, battery::standard_allocator> v(v1);
+  EXPECT_EQ(v.size(), v1.size());
+  for(size_t i = 0; i < v.size(); ++i) {
+    EXPECT_EQ(v[i].size(), v1[i].size());
+    for(size_t j = 0; j < v[i].size(); ++j) {
+      EXPECT_EQ(v[i][j], v1[i][j]);
+    }
+  }
+}

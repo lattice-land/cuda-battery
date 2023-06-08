@@ -34,6 +34,7 @@ public:
   // `ptr` must have been allocated using `allocator_type`.
   CUDA explicit unique_ptr(pointer ptr, const allocator_type& allocator = allocator_type())
    : allocator(allocator), ptr(ptr) {}
+
   CUDA unique_ptr(this_type&& from) : ptr(from.ptr), allocator(from.allocator) {
     from.ptr = nullptr;
   }

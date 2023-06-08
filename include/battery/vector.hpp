@@ -7,6 +7,7 @@
 #include "allocator.hpp"
 #include <memory>
 #include <initializer_list>
+#include <vector>
 
 namespace battery {
 
@@ -150,6 +151,15 @@ public:
     for(const T& v : init) {
       inplace_new(i, v);
       ++i;
+    }
+  }
+
+  template <class U, class Alloc2>
+  vector(const std::vector<U, Alloc2>& other, const allocator_type& alloc = allocator_type())
+   : n(other.size()), cap(other.size()), allocator(alloc), data_(allocate())
+  {
+    for(size_t i = 0; i < n; ++i) {
+      inplace_new(i, other[i]);
     }
   }
 
