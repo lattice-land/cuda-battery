@@ -179,16 +179,17 @@ public:
   }
 
   /** Beware that this operator does not free the memory of `this`, the capacity remains unchanged. */
-  CUDA this_type& operator=(const this_type& other) {
+  template <class Allocator2>
+  CUDA this_type& operator=(const vector<value_type, Allocator2>& other) {
     reserve(other.size());
     for(size_t i = 0; i < other.n; ++i) {
       if(i < n) {
-        data_[i].~T();
+        data_[i].~value_type();
       }
       inplace_new(i, other.data_[i]);
     }
     for(size_t i = other.n; i < n; ++i) {
-      data_[i].~T();
+      data_[i].~value_type();
     }
     n = other.n;
     return *this;

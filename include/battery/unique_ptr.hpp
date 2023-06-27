@@ -130,6 +130,59 @@ CUDA unique_ptr<T, Alloc> make_unique(Args&&... args) {
   return allocate_unique<T>(Alloc(), std::forward<Args>(args)...);
 }
 
+#ifdef __NVCC__
+
+}
+
+#include <cooperative_groups.h>
+
+namespace battery {
+
+/** We construct a `unique_ptr` in the style of `allocate_unique` but the function is allowed to be entered by all threads of a block.
+ * Only one thread of the block will call the function `allocate_unique`.
+ * The created pointer is stored in one of the `unique_ptr` passed as parameter to allow for RAII.
+ * The function returns a reference to the object created.
+ * Usage:
+ * ```
+ * battery::unique_ptr<int, battery::global_allocator> ptr;
+ * int& block_int = battery::make_unique_block(ptr, 10);
+ * // all threads can now use `block_int`.
+ * ```
+ *
+ * NOTE: this function use the cooperative groups library.
+ */
+template<class T, class Alloc, class... Args>
+__device__ T& make_unique_block(unique_ptr<T, Alloc>& ptr, Args&&... args) {
+  __shared__ T* raw_ptr;
+  auto block = cooperative_groups::this_thread_block();
+  invoke_one(block, [&](){
+    ptr = allocate_unique<T, Alloc>(ptr.get_allocator(), std::forward<Args>(args)...);
+    raw_ptr = ptr.get();
+  });
+  block.sync();
+  return *raw_ptr;
+}
+
+namespace impl {
+  __device__ void* raw_ptr;
+}
+
+/** Same as `make_unique_block` but for the grid (all blocks).
+ * NOTE: a kernel using this function must be launched using `cudaLaunchCooperativeKernel` instead of the `<<<...>>>` syntax.
+ */
+template<class T, class Alloc, class... Args>
+__device__ T& make_unique_grid(unique_ptr<T, Alloc>& ptr, Args&&... args) {
+  auto grid = cooperative_groups::this_grid();
+  invoke_one(grid, [&](){
+    ptr = allocate_unique<T, Alloc>(ptr.get_allocator(), std::forward<Args>(args)...);
+    impl::raw_ptr = static_cast<void*>(ptr.get());
+  });
+  grid.sync();
+  return *(static_cast<T*>(impl::raw_ptr));
+}
+
+#endif
+
 } // namespace battery
 
 #endif

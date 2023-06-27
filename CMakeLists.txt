@@ -116,6 +116,19 @@ if(GPU)
     $<$<CONFIG:Debug>:-g -DDEBUG>)
   target_link_libraries(gpu_allocator cuda_battery)
   add_test(NAME gpu_allocator COMMAND compute-sanitizer --error-exitcode 1 $<TARGET_FILE:gpu_allocator>)
+
+  set_source_files_properties(tests/unique_ptr_test_gpu.cpp PROPERTIES LANGUAGE CUDA)
+  add_executable(unique_ptr_test_gpu tests/unique_ptr_test_gpu.cpp)
+  set_property(TARGET unique_ptr_test_gpu PROPERTY CUDA_ARCHITECTURES 75)
+  # Not sure why we need RDC, but it fails to find cudaXX runtime functions at link time without it.
+  set_property(TARGET unique_ptr_test_gpu PROPERTY CUDA_SEPARABLE_COMPILATION ON)
+  target_compile_options(unique_ptr_test_gpu PRIVATE
+    $<$<COMPILE_LANGUAGE:CUDA>:
+      --expt-relaxed-constexpr
+      --compiler-options -frounding-math>
+    $<$<CONFIG:Debug>:-g -DDEBUG>)
+  target_link_libraries(unique_ptr_test_gpu cuda_battery)
+  add_test(NAME unique_ptr_test_gpu COMMAND compute-sanitizer --error-exitcode 1 $<TARGET_FILE:unique_ptr_test_gpu>)
 endif()
 
 endif()
