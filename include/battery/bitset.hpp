@@ -1,27 +1,24 @@
 // Copyright 2021 Pierre Talbot, Cem Guvel
 
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-
-//     http://www.apache.org/licenses/LICENSE-2.0
-
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
-#ifndef BITSET_HPP
-#define BITSET_HPP
+#ifndef CUDA_BATTERY_BITSET_HPP
+#define CUDA_BATTERY_BITSET_HPP
 
 #include <cstdio>
 #include <cassert>
 #include "utility.hpp"
 #include "string.hpp"
 
+/** \file bitset.hpp
+ *  An extension of the C++ STL bitset class with support for set operations (e.g., union and intersection) and for atomic read and write on the bitset blocks.
+ */
+
 namespace battery {
 
+/**
+ * \tparam `N` is the number of bits in the bitset.
+ * \tparam `Mem` is a memory consistency, for instance `local_memory`, see `memory.hpp`.
+ * \tparam `T` is the underlying type defining the blocks of the bitset.
+*/
 template <size_t N, class Mem, class T = unsigned long long>
 class bitset {
 private:

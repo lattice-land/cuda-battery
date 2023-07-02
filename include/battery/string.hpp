@@ -1,7 +1,7 @@
 // Copyright 2021 Pierre Talbot
 
-#ifndef STRING_HPP
-#define STRING_HPP
+#ifndef CUDA_BATTERY_STRING_HPP
+#define CUDA_BATTERY_STRING_HPP
 
 #include <string>
 #include "utility.hpp"
@@ -49,7 +49,7 @@ public:
     return *this;
   }
 
-  HOST string(const std::string& other, const allocator_type& alloc = allocator_type()):
+  string(const std::string& other, const allocator_type& alloc = allocator_type()):
     data_(other.data(), other.size()+1, alloc) {}
 
   CUDA allocator_type get_allocator() const { return data_.get_allocator(); }

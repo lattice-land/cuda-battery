@@ -8,12 +8,12 @@
 
 using namespace battery;
 
-using Bitset1 = bitset<1, memory<standard_allocator>>;
-using Bitset10 = bitset<10, memory<standard_allocator>>;
-using Bitset64 = bitset<64, memory<standard_allocator>>;
-using Bitset70 = bitset<70, memory<standard_allocator>>;
-using Bitset512 = bitset<512, memory<standard_allocator>>;
-using Bitset1001 = bitset<1001, memory<standard_allocator>>;
+using Bitset1 = bitset<1, local_memory>;
+using Bitset10 = bitset<10, local_memory>;
+using Bitset64 = bitset<64, local_memory>;
+using Bitset70 = bitset<70, local_memory>;
+using Bitset512 = bitset<512, local_memory>;
+using Bitset1001 = bitset<1001, local_memory>;
 
 #define TEST_ALL(fun) \
   fun<Bitset1>(); \
@@ -96,8 +96,8 @@ TEST(Bitset, SetAndTest) {
 }
 
 TEST(Bitset, Flip) {
-  bitset<19, memory<standard_allocator>, unsigned char> b1("0000001000101010111");
-  bitset<19, memory<standard_allocator>, unsigned char> b2("1111110111010101000");
+  bitset<19, local_memory, unsigned char> b1("0000001000101010111");
+  bitset<19, local_memory, unsigned char> b2("1111110111010101000");
   EXPECT_EQ(b1.count(), b2.size() - b2.count());
   EXPECT_EQ(b1.size() - b1.count(), b2.count());
   EXPECT_NE(b1, b2);
@@ -109,18 +109,18 @@ TEST(Bitset, Flip) {
 }
 
 TEST(Bitset, SetOperations) {
-  bitset<19, memory<standard_allocator>, unsigned char> zero;
-  bitset<19, memory<standard_allocator>, unsigned char> one("0000000000000000001");
-  bitset<19, memory<standard_allocator>, unsigned char> two("0000000000000000011");
-  bitset<19, memory<standard_allocator>, unsigned char> b1("1000000011000000000");
-  bitset<19, memory<standard_allocator>, unsigned char> b2("1000000011000000011");
-  bitset<19, memory<standard_allocator>, unsigned char> b3("0001000011000010000");
-  bitset<19, memory<standard_allocator>, unsigned char> b4("0000000011000000000");
-  bitset<19, memory<standard_allocator>, unsigned char> b5("1001000011000010000");
-  bitset<19, memory<standard_allocator>, unsigned char> b6("1001000011000010011");
-  bitset<19, memory<standard_allocator>, unsigned char> b7("1001000000000010000");
-  bitset<19, memory<standard_allocator>, unsigned char> b8("1001000000000010011");
-  bitset<19, memory<standard_allocator>, unsigned char> all;
+  bitset<19, local_memory, unsigned char> zero;
+  bitset<19, local_memory, unsigned char> one("0000000000000000001");
+  bitset<19, local_memory, unsigned char> two("0000000000000000011");
+  bitset<19, local_memory, unsigned char> b1("1000000011000000000");
+  bitset<19, local_memory, unsigned char> b2("1000000011000000011");
+  bitset<19, local_memory, unsigned char> b3("0001000011000010000");
+  bitset<19, local_memory, unsigned char> b4("0000000011000000000");
+  bitset<19, local_memory, unsigned char> b5("1001000011000010000");
+  bitset<19, local_memory, unsigned char> b6("1001000011000010011");
+  bitset<19, local_memory, unsigned char> b7("1001000000000010000");
+  bitset<19, local_memory, unsigned char> b8("1001000000000010011");
+  bitset<19, local_memory, unsigned char> all;
   all.set();
   // Intersection
 
@@ -199,8 +199,8 @@ TEST(Bitset, SetOperations) {
   EXPECT_EQ(b3 ^ b2, b8);
 
   // Inclusion
-  bitset<19, memory<standard_allocator>, unsigned char> b9("1111111100011111111");
-  bitset<19, memory<standard_allocator>, unsigned char> b10("1111111110111111111");
+  bitset<19, local_memory, unsigned char> b9("1111111100011111111");
+  bitset<19, local_memory, unsigned char> b10("1111111110111111111");
 
   EXPECT_TRUE(zero.is_subset_of(zero));
   EXPECT_TRUE(one.is_subset_of(one));
@@ -250,14 +250,14 @@ TEST(Bitset, SetOperations) {
 }
 
 TEST(Bitset, BitCountingOperations) {
-  bitset<19, memory<standard_allocator>, unsigned char> zero;
-  bitset<19, memory<standard_allocator>, unsigned char> one("0000000000000000001");
-  bitset<19, memory<standard_allocator>, unsigned char> two("0000000000000000011");
-  bitset<19, memory<standard_allocator>, unsigned char> b1("1000000011000000000");
-  bitset<19, memory<standard_allocator>, unsigned char> b2("1000000011000000011");
-  bitset<19, memory<standard_allocator>, unsigned char> b3("1111111100011111111");
-  bitset<19, memory<standard_allocator>, unsigned char> b4("1111111110111111111");
-  bitset<19, memory<standard_allocator>, unsigned char> all;
+  bitset<19, local_memory, unsigned char> zero;
+  bitset<19, local_memory, unsigned char> one("0000000000000000001");
+  bitset<19, local_memory, unsigned char> two("0000000000000000011");
+  bitset<19, local_memory, unsigned char> b1("1000000011000000000");
+  bitset<19, local_memory, unsigned char> b2("1000000011000000011");
+  bitset<19, local_memory, unsigned char> b3("1111111100011111111");
+  bitset<19, local_memory, unsigned char> b4("1111111110111111111");
+  bitset<19, local_memory, unsigned char> all;
   all.set();
 
   EXPECT_EQ(zero.countl_zero(), zero.size());

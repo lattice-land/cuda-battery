@@ -1,17 +1,21 @@
 // Copyright 2021 Pierre Talbot
 
-#ifndef UNIQUE_PTR_HPP
-#define UNIQUE_PTR_HPP
+#ifndef CUDA_BATTERY_UNIQUE_PTR_HPP
+#define CUDA_BATTERY_UNIQUE_PTR_HPP
 
 #include "utility.hpp"
 #include "allocator.hpp"
 
-namespace battery {
-
-/** Similar to std::unique_ptr with small differences:
+/** \file unique_ptr.hpp
+ Similar to std::unique_ptr with small technical differences:
  *   - There is no specialization for arrays (e.g., unique_ptr<T[]>).
      - We rely on an allocator and provide a function `allocate_unique` to build the pointer in place.
-    Similarly to vector, the allocator is scoped, meaning it is propagated to the underlying type constructor if it takes one. */
+     - Additional function `make_unique_block` and `make_unique_grid`
+ * Similarly to vector, the allocator is scoped, meaning it is propagated to the underlying type constructor if it takes one.
+*/
+
+namespace battery {
+
 template <class T, class Allocator = standard_allocator>
 class unique_ptr {
 public:

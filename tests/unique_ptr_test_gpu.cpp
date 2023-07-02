@@ -25,7 +25,7 @@ __global__ void block_kernel(vector<vector<int, managed_allocator>, managed_allo
 void make_unique_block_test() {
   auto vptr = make_unique<vector<vector<int, managed_allocator>, managed_allocator>, managed_allocator>(10, vector<int, managed_allocator>(10));
   block_kernel<<<10, 10>>>(vptr.get());
-  CUDIE(cudaDeviceSynchronize());
+  CUDAEX(cudaDeviceSynchronize());
   for(int i = 0; i < 10; ++i) {
     for(int j = 0; j < 10; ++j) {
       if((*vptr)[i][j] != 1100) {
@@ -57,7 +57,7 @@ void make_unique_grid_test() {
   dim3 dimBlock(1, 1, 1);
   dim3 dimGrid(10, 1, 1);
   cudaLaunchCooperativeKernel((void*)grid_kernel, dimGrid, dimBlock, kernelArgs);
-  CUDIE(cudaDeviceSynchronize());
+  CUDAEX(cudaDeviceSynchronize());
   for(int i = 0; i < 10; ++i) {
     if((*vptr)[i] != 1100) {
       printf("(*vptr)[%d] (= %d) != 1100 \n", i, (*vptr)[i]);

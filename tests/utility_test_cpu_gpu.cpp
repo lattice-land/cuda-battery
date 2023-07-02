@@ -111,7 +111,7 @@ void test_utility_ops(std::vector<T> inputs, std::vector<R> outputs, UtilityOper
     R cpu_result = run_utility_op<R>(inputs[i], op);
     R* gpu_result = new(managed_allocator) R();
     run_utility_op_gpu<R><<<1, 1>>>(gpu_result, inputs[i], op);
-    CUDIE(cudaDeviceSynchronize());
+    CUDAEX(cudaDeviceSynchronize());
     analyse_test_result(inputs[i], outputs[i], cpu_result, *gpu_result, op);
   }
 }

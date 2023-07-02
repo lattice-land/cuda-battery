@@ -1,13 +1,16 @@
 // Copyright 2022 Pierre Talbot
 
-#ifndef MEMORY_HPP
-#define MEMORY_HPP
+#ifndef CUDA_BATTERY_MEMORY_HPP
+#define CUDA_BATTERY_MEMORY_HPP
 
-/** An abstraction of memory useful to write a single version of an algorithm working either sequentially or in parallel, and on CPU or GPU. */
+/** \file memory.hpp
+ *  An abstraction of memory load and store useful to write a single version of an algorithm working either sequentially or in parallel, and on CPU or GPU.
+ * Note that these classes are mainly designed to work with a relaxed memory ordering; we are unsure of their applicability to other kinds of memory ordering.
+ */
 
 #include <cassert>
 #include <type_traits>
-#include "allocator.hpp"
+#include <utility>
 
 #ifdef __NVCC__
   #include <cuda/atomic>
@@ -17,147 +20,115 @@
 
 namespace battery {
 
-/** Represent the memory of a variable that cannot be accessed by multiple threads (e.g., allocated on the stack), thus not needing any allocator.
-    In other terms, a variable stored locally to a thread. */
-class local_memory {
+/** Represent the memory of a variable that cannot be accessed by multiple threads. */
+template <bool read_only>
+class memory {
 public:
   template <class T> using atomic_type = T;
 
   /** Indicate this memory is written by a single thread. */
   constexpr static const bool sequential = true;
 
+public:
   template <class T>
-  CUDA static constexpr T load(const atomic_type<T>& a) {
+  CUDA INLINE static constexpr T load(const atomic_type<T>& a) {
     return a;
   }
 
   template <class T>
-  CUDA static constexpr void store(atomic_type<T>& a, T v) {
-    a = v;
-  }
-};
-
-template <class Allocator, bool read_only = false>
-class memory {
-public:
-  using allocator_type = Allocator;
-  template <class T> using atomic_type = T;
-  constexpr static const bool sequential = true;
-
-private:
-  allocator_type alloc;
-
-public:
-  CUDA constexpr memory(allocator_type alloc): alloc(alloc) {}
-  CUDA constexpr memory(const memory& seq): alloc(seq.alloc) {}
-
-  template <class T>
-  CUDA static constexpr T load(const atomic_type<T>& a) {
-    return a;
-  }
-
-  template <class T>
-  CUDA static constexpr std::enable_if_t<!read_only, void> store(atomic_type<T>& a, T v) {
+  CUDA INLINE static constexpr std::enable_if_t<!read_only, void> store(atomic_type<T>& a, T v) {
     a = v;
   }
 
-  CUDA constexpr allocator_type get_allocator() const {
-    return alloc;
+  template <class T>
+  CUDA INLINE static constexpr std::enable_if_t<!read_only, T> exchange(atomic_type<T>& a, T v) {
+    return std::exchange(a, std::move(v));
   }
 };
 
-template <class Allocator>
-using read_only_memory = memory<Allocator, true>;
+using local_memory = memory<false>;
+using read_only_memory = memory<true>;
 
 #ifdef __NVCC__
 
-template <class Allocator, cuda::thread_scope scope, cuda::memory_order mem_order = cuda::memory_order_relaxed>
+/** Memory load and store operations relative to a cuda scope (per-thread, block, grid, ...) and given a certain memory order (by default relaxed). */
+template <cuda::thread_scope scope, cuda::memory_order mem_order = cuda::memory_order_relaxed>
 class atomic_memory_scoped {
 public:
-  using allocator_type = Allocator;
   template <class T> using atomic_type = cuda::atomic<T, scope>;
   constexpr static const bool sequential = false;
 
-private:
-  allocator_type alloc;
-
-public:
-  CUDA constexpr atomic_memory_scoped(allocator_type alloc): alloc(alloc) {}
-  CUDA constexpr atomic_memory_scoped(const atomic_memory_scoped& seq): alloc(seq.alloc) {}
-
   template <class T>
-  CUDA static T load(const atomic_type<T>& a) {
+  CUDA INLINE static T load(const atomic_type<T>& a) {
     return a.load(mem_order);
   }
 
   template <class T>
-  CUDA static void store(atomic_type<T>& a, T v) {
+  CUDA INLINE static void store(atomic_type<T>& a, T v) {
     a.store(v, mem_order);
   }
 
-  CUDA constexpr allocator_type get_allocator() const {
-    return alloc;
+  template <class T>
+  CUDA INLINE static T exchange(atomic_type<T>& a, T v) {
+    return a.exchange(v, mem_order);
   }
 };
 
-template <class Allocator, cuda::memory_order mem_order = cuda::memory_order_relaxed>
-using atomic_memory_block = atomic_memory_scoped<Allocator, cuda::thread_scope_block, mem_order>;
-
-template <class Allocator, cuda::memory_order mem_order = cuda::memory_order_relaxed>
-using atomic_memory_grid = atomic_memory_scoped<Allocator, cuda::thread_scope_device, mem_order>;
-
-template <class Allocator, cuda::memory_order mem_order = cuda::memory_order_relaxed>
-using atomic_memory_multi_grid = atomic_memory_scoped<Allocator, cuda::thread_scope_system, mem_order>;
+using atomic_memory_block = atomic_memory_scoped<cuda::thread_scope_block>;
+using atomic_memory_grid = atomic_memory_scoped<cuda::thread_scope_device>;
+using atomic_memory_multi_grid = atomic_memory_scoped<cuda::thread_scope_system>;
 
 #endif // __NVCC__
 
 #ifdef __NVCC__
+  /// @private
   namespace impl {
     template <class T>
     using atomic_t = cuda::std::atomic<T>;
   }
+  /// @private
   using memory_order = cuda::std::memory_order;
+  /// @private
   constexpr memory_order memory_order_relaxed = cuda::std::memory_order_relaxed;
+  /// @private
   constexpr memory_order memory_order_seq_cst = cuda::std::memory_order_seq_cst;
 #else
+  /// @private
   namespace impl {
     template <class T>
     using atomic_t = std::atomic<T>;
   }
+  /// @private
   using memory_order = std::memory_order;
+  /// @private
   constexpr memory_order memory_order_relaxed = std::memory_order_relaxed;
+  /// @private
   constexpr memory_order memory_order_seq_cst = std::memory_order_seq_cst;
 #endif
 
-template <class Allocator, memory_order mem_order = memory_order_relaxed>
+/** Use the standard C++ atomic type, either provided by libcudacxx if we compile with NVCC, or through the STL otherwise. */
+template <memory_order mem_order = memory_order_relaxed>
 class atomic_memory {
 public:
-  using allocator_type = Allocator;
   template <class T> using atomic_type = impl::atomic_t<T>;
   constexpr static const bool sequential = false;
 
-private:
-  allocator_type alloc;
-
-public:
-  CUDA constexpr atomic_memory(allocator_type alloc): alloc(alloc) {}
-  CUDA constexpr atomic_memory(const atomic_memory& am): alloc(am.alloc) {}
-
   template <class T>
-  CUDA static T load(const atomic_type<T>& a) {
+  CUDA INLINE static T load(const atomic_type<T>& a) {
     return a.load(mem_order);
   }
 
   template <class T>
-  CUDA static void store(atomic_type<T>& a, T v) {
+  CUDA INLINE static void store(atomic_type<T>& a, T v) {
     a.store(v, mem_order);
   }
 
-  CUDA constexpr allocator_type get_allocator() const {
-    return alloc;
+  template <class T>
+  CUDA INLINE static T exchange(atomic_type<T>& a, T v) {
+    return a.exchange(v, mem_order);
   }
 };
 
 }
 
-#endif // MEMORY_HPP
+#endif

@@ -2,13 +2,15 @@
 // Based on https://gist.github.com/calebh/fd00632d9c616d4b0c14e7c2865f3085
 // and on https://gist.github.com/tibordp/6909880
 
-#ifndef VARIANT_HPP
-#define VARIANT_HPP
+#ifndef CUDA_BATTERY_VARIANT_HPP
+#define CUDA_BATTERY_VARIANT_HPP
 
 #include <type_traits>
 #include "utility.hpp"
 
 namespace battery {
+
+/// @private
 namespace impl {
 
 template<size_t n, typename... Ts>

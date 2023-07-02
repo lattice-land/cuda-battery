@@ -1,13 +1,18 @@
 // Copyright 2021 Pierre Talbot
 
-#ifndef VECTOR_HPP
-#define VECTOR_HPP
+#ifndef CUDA_BATTERY_VECTOR_HPP
+#define CUDA_BATTERY_VECTOR_HPP
 
 #include "utility.hpp"
 #include "allocator.hpp"
 #include <memory>
 #include <initializer_list>
 #include <vector>
+
+/** \file vector.hpp
+ * A partial implementation of `std::vector`, with additional constructors to convert from `std::vector`.
+ * The allocator is scoped, meaning it will be passed to the constructor of `T` if `T` provides a suited constructor with an allocator.
+*/
 
 namespace battery {
 

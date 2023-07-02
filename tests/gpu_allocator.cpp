@@ -18,7 +18,7 @@ __global__ void kernel_managed_memory(iptr<managed_allocator> data) {
 void managed_memory_test() {
   iptr<managed_allocator> data = make_shared<int, managed_allocator>(0);
   kernel_managed_memory<<<1, 1>>>(data);
-  CUDIE(cudaDeviceSynchronize());
+  CUDAEX(cudaDeviceSynchronize());
   std::cout << *data << std::endl;
   assert(*data == 1);
 }
@@ -44,21 +44,21 @@ __global__ void kernel_test_global_memory2(iptr<global_allocator>& data) {
 void global_memory_test_passing1() {
   shared_ptr<iptr<global_allocator>, managed_allocator> data = make_shared<iptr<global_allocator>, managed_allocator>(nullptr);
   kernel_allocate_global_memory<<<1, 1>>>(data);
-  CUDIE(cudaDeviceSynchronize());
+  CUDAEX(cudaDeviceSynchronize());
   kernel_test_global_memory<<<1, 1>>>(data);
-  CUDIE(cudaDeviceSynchronize());
+  CUDAEX(cudaDeviceSynchronize());
   kernel_free_global_memory<<<1, 1>>>(data);
-  CUDIE(cudaDeviceSynchronize());
+  CUDAEX(cudaDeviceSynchronize());
 }
 
 void global_memory_test_passing2() {
   shared_ptr<iptr<global_allocator>, managed_allocator> data = make_shared<iptr<global_allocator>, managed_allocator>(nullptr);
   kernel_allocate_global_memory<<<1, 1>>>(data);
-  CUDIE(cudaDeviceSynchronize());
+  CUDAEX(cudaDeviceSynchronize());
   kernel_test_global_memory2<<<1, 1>>>(*data);
-  CUDIE(cudaDeviceSynchronize());
+  CUDAEX(cudaDeviceSynchronize());
   kernel_free_global_memory<<<1, 1>>>(data);
-  CUDIE(cudaDeviceSynchronize());
+  CUDAEX(cudaDeviceSynchronize());
 }
 
 __global__ void kernel_allocate_global_vector(shared_ptr<vector<int, global_allocator>, managed_allocator> data) {
@@ -74,11 +74,11 @@ void global_memory_vector_passing() {
   shared_ptr<vector<int, global_allocator>, managed_allocator> data =
     make_shared<vector<int, global_allocator>, managed_allocator>(vector<int, global_allocator>{});
   kernel_allocate_global_vector<<<1, 1>>>(data);
-  CUDIE(cudaDeviceSynchronize());
+  CUDAEX(cudaDeviceSynchronize());
   kernel_test_global_vector<<<1, 1>>>(*data);
-  CUDIE(cudaDeviceSynchronize());
+  CUDAEX(cudaDeviceSynchronize());
   kernel_free_global_memory<<<1, 1>>>(data);
-  CUDIE(cudaDeviceSynchronize());
+  CUDAEX(cudaDeviceSynchronize());
 }
 
 // Use size * 4 + 8 bytes of memory + some possible alignment overhead for the two integers of the shared_ptr allocated independently.
@@ -114,10 +114,10 @@ void shared_memory_max_usage(int shared_memory_size) {
   const int mem_usage = shared_memory_size / 4 - 2;
   shared_ptr<int, managed_allocator> measured_mem_usage = make_shared<int, managed_allocator>(0);
   kernel_measure_memory<<<1, 1>>>(*measured_mem_usage, mem_usage);
-  CUDIE(cudaDeviceSynchronize());
+  CUDAEX(cudaDeviceSynchronize());
   printf("measured mem usage: %d bytes\n", *measured_mem_usage);
   kernel_compute<<<1, 1, *measured_mem_usage>>>(*measured_mem_usage, mem_usage);
-  CUDIE(cudaDeviceSynchronize());
+  CUDAEX(cudaDeviceSynchronize());
 }
 
 void shared_memory_with_precomputation() {

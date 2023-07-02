@@ -1,19 +1,21 @@
 // Copyright 2021 Pierre Talbot
 
-#ifndef SHARED_PTR_HPP
-#define SHARED_PTR_HPP
+#ifndef CUDA_BATTERY_SHARED_PTR_HPP
+#define CUDA_BATTERY_SHARED_PTR_HPP
 
 #include "utility.hpp"
 #include "allocator.hpp"
 
 namespace battery {
 
-/** Similar to std::shared_ptr with small differences:
+/**
+ * Similar to std::shared_ptr but with some (technical) differences:
  *   - There is no specialization for arrays (e.g., shared_ptr<T[]>).
-     - We rely on an allocator to allocate/deallocate the memory.
+     - It is parametrized by an allocator to allocate/deallocate the memory.
      - No support for aliasing constructors.
      - No special thread-safety support.
-    Similarly to vector, the allocator is scoped, meaning it is propagated to the underlying type constructor if it takes one. */
+  * Similarly to vector, the allocator is scoped, meaning it is propagated to the underlying type constructor if it takes one.
+*/
 template <class T, class Allocator = standard_allocator>
 class shared_ptr {
 public:

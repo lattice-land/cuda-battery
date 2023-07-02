@@ -1,15 +1,15 @@
-// Copyright 2021 Pierre Talbot, Frédéric Pinel
+// Copyright 2021 Pierre Talbot
 
-#ifndef ALLOCATOR_HPP
-#define ALLOCATOR_HPP
+#ifndef CUDA_BATTERY_ALLOCATOR_HPP
+#define CUDA_BATTERY_ALLOCATOR_HPP
 
 /** \file allocator.hpp
-We provide several allocators compatible with the structure of the _lattice land_ project.
+We provide several allocators compatible with the data structures provided by this library.
 The allocators are aimed to be used to distinguish in which memory (shared, global, managed or the "standard" C++ memory) we should allocate data.
 This allows us to provide uniform interfaces for both host (C++) and device (CUDA) code.
 
 As a general comment, be careful to always deallocate the memory from the side you allocated it, e.g., do not allocate on the host then try to deallocate it on the device.
-To avoid these kind of mistakes, you should use `battery::shared_ptr` when passing data to a CUDA kernel.
+To avoid these kind of mistakes, you should use `battery::shared_ptr` when passing data to a CUDA kernel, see the manual for examples.
 */
 
 #include <cassert>
@@ -203,7 +203,7 @@ CUDA inline void operator delete(void* ptr, battery::pool_allocator& p) {
 
 namespace battery {
 
-/** This allocator call the standard `malloc` and `free`. */
+/** This allocator call the standard `malloc` and `free` functions. */
 class standard_allocator {
 public:
   CUDA void* allocate(size_t bytes) {
@@ -301,4 +301,4 @@ namespace battery {
   };
 }
 
-#endif // ALLOCATOR_HPP
+#endif

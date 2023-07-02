@@ -1,7 +1,7 @@
 // Copyright 2021 Pierre Talbot, Frédéric Pinel
 
-#ifndef UTILITY_HPP
-#define UTILITY_HPP
+#ifndef CUDA_BATTERY_UTILITY_HPP
+#define CUDA_BATTERY_UTILITY_HPP
 
 #include <cstdio>
 #include <cassert>
@@ -15,31 +15,48 @@
 
 #ifdef __NVCC__
   #define CUDA_GLOBAL __global__
-  #define DEVICE __device__
-  #define HOST __host__
-  #define SHARED __shared__
-  #define CUDA DEVICE HOST
+
+  /** `CUDA` is a macro indicating that a function can be executed on a GPU. It is defined to `__device__ __host__` when the code is compiled with `nvcc`. */
+  #define CUDA __device__ __host__
+
+  /** Request a function to be inlined. */
   #define INLINE __forceinline__
 
-  #define CUDIE(result) { \
-    cudaError_t e = (result); \
-    if (e != cudaSuccess) { \
-      printf("%s:%d CUDA runtime error %s\n", __FILE__, __LINE__, cudaGetErrorString(e)); \
-    }}
+  namespace battery {
+  namespace impl {
+    CUDA inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=true) {
+      if (code != cudaSuccess) {
+        printf("%s:%d CUDA runtime error %s\n", file, line, cudaGetErrorString(code));
+        if (abort) {
+          #ifdef __CUDA_ARCH__
+            assert(0);
+          #else
+            exit(code);
+          #endif
+        }
+      }
+    }
+  }}
 
-  #define CUDIE0() CUDIE(cudaGetLastError())
+  /** A macro checking the result of a CUDA API call.
+   * It prints an error message if an error occured.
+  */
+  #define CUDAE(result) { ::battery::impl::gpuAssert((result), __FILE__, __LINE__, false); }
+
+  /** Similar to CUDAE but abort the computation in addition, either with `assert` (GPU) or `exit` (CPU).
+  */
+  #define CUDAEX(result) { ::battery::impl::gpuAssert((result), __FILE__, __LINE__, true); }
+
 #else
   #define CUDA_GLOBAL
-  #define DEVICE
-  #define HOST
-  #define SHARED
   #define CUDA
-  #define CUDIE(S) S
-  #define CUDIE0
+  #define CUDAE(S) S
+  #define CUDAEX(S) S
   #define INLINE inline
 #endif
 
 namespace battery {
+
 namespace impl {
   template<class T> CUDA constexpr inline void swap(T& a, T& b) {
     T c(std::move(a));
@@ -134,6 +151,11 @@ CUDA constexpr inline double nextafter(double f, double dir) {
   #endif
 }
 
+/** `limits` is a structure to get "infinity points" of primitive types including integers.
+ * For floating-point numbers, we use their built-in representation of infinity.
+ * For integers, we use the minimal and maximal values of the underlying type to represent infinities.
+ * When converting using `ru_cast` and `rd_cast`, the infinities will be preserved across types.
+ */
 template<class T>
 struct limits {
   static constexpr T bot() {
@@ -162,8 +184,8 @@ struct limits {
 /** Cast the variable `x` from type `From` to type `To` following upper rounding rule (cast in the direction of infinity).
   Minimal and maximal values of `From` are interpreted as infinities, and are therefore mapped to the infinities of the new types accordingly (e.g., float INF maps to int MAX_INT).
 
-  * On CPU: Rounding mode is UPWARD after this operation.
-  * On GPU: CUDA intrinsics are used.
+  - On CPU: Rounding mode is UPWARD after this operation.
+  - On GPU: CUDA intrinsics are used.
 
   Overflow: Nothing is done to prevent overflow, it mostly behaves as with `static_cast`. */
 template<class To, class From, bool map_limits = true>
@@ -258,8 +280,8 @@ CUDA constexpr To ru_cast(From x) {
 /** Cast the variable `x` from type `From` to type `To` following down rounding rule (cast in the direction of negative infinity).
   Minimal and maximal values of `From` are interpreted as infinities, and are therefore mapped to the infinities of the new types accordingly (e.g., float INF maps to int MAX_INT).
 
-  * On CPU: Rounding mode is DOWNWARD after this operation.
-  * On GPU: CUDA intrinsics are used.
+  - On CPU: Rounding mode is DOWNWARD after this operation.
+  - On GPU: CUDA intrinsics are used.
 
   Overflow: Nothing is done to prevent overflow, it mostly behaves as with `static_cast`. */
 template<class To, class From, bool map_limits=true>
@@ -611,19 +633,6 @@ CUDA constexpr T div_down(T x, T y) {
     FLOAT_ARITHMETIC_CPP_IMPL(/, FE_DOWNWARD)
   #endif
 }
-
-#ifdef DEBUG
-  #define LDEBUG
-  #define LOG(X) X
-#else
-  #define LOG(X)
-#endif
-
-#ifdef LDEBUG
-  #define INFO(X) X
-#else
-  #define INFO(X)
-#endif
 
 template<typename T>
 CUDA inline void print(const T& t) {

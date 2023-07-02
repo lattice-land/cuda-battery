@@ -1,7 +1,7 @@
 // Copyright 2021 Pierre Talbot
 
-#ifndef TUPLE_HPP
-#define TUPLE_HPP
+#ifndef CUDA_BATTERY_TUPLE_HPP
+#define CUDA_BATTERY_TUPLE_HPP
 
 #ifdef __NVCC__
   #include <cuda/std/tuple>
