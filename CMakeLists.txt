@@ -13,8 +13,6 @@ project(cuda-battery LANGUAGES CUDA CXX)
 option(GPU "GPU" ON)
 option(BATTERY_BUILD_TESTS "BATTERY_BUILD_TESTS" OFF)
 
-add_link_options ($<DEVICE_LINK:-arch=sm_75>)
-
 if(NOT DEFINED CMAKE_CXX_STANDARD)
     set(CMAKE_CXX_STANDARD 20)
     set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -31,7 +29,7 @@ add_library(cuda_battery INTERFACE)
 target_include_directories(cuda_battery INTERFACE include)
 
 if(GPU)
-  set_property(TARGET cuda_battery PROPERTY CUDA_ARCHITECTURES 75)
+  set_property(TARGET cuda_battery PROPERTY CUDA_ARCHITECTURES native)
 endif()
 
 # --frounding-math is necessary with GCC because `#pragma STDC FENV_ACCESS ON` does not work.
@@ -95,7 +93,7 @@ gtest_discover_tests(bitset_test)
 if(GPU)
   set_source_files_properties(tests/utility_test_cpu_gpu.cpp PROPERTIES LANGUAGE CUDA)
   add_executable(utility_test_cpu_gpu tests/utility_test_cpu_gpu.cpp)
-  set_property(TARGET utility_test_cpu_gpu PROPERTY CUDA_ARCHITECTURES 75)
+  set_property(TARGET utility_test_cpu_gpu PROPERTY CUDA_ARCHITECTURES native)
   target_compile_options(utility_test_cpu_gpu PRIVATE
     $<$<COMPILE_LANGUAGE:CUDA>:
       --expt-relaxed-constexpr
@@ -106,7 +104,7 @@ if(GPU)
 
   set_source_files_properties(tests/gpu_allocator.cpp PROPERTIES LANGUAGE CUDA)
   add_executable(gpu_allocator tests/gpu_allocator.cpp)
-  set_property(TARGET gpu_allocator PROPERTY CUDA_ARCHITECTURES 75)
+  set_property(TARGET gpu_allocator PROPERTY CUDA_ARCHITECTURES native)
   # Not sure why we need RDC, but it fails to find cudaXX runtime functions at link time without it.
   set_property(TARGET gpu_allocator PROPERTY CUDA_SEPARABLE_COMPILATION ON)
   target_compile_options(gpu_allocator PRIVATE
@@ -119,7 +117,7 @@ if(GPU)
 
   set_source_files_properties(tests/unique_ptr_test_gpu.cpp PROPERTIES LANGUAGE CUDA)
   add_executable(unique_ptr_test_gpu tests/unique_ptr_test_gpu.cpp)
-  set_property(TARGET unique_ptr_test_gpu PROPERTY CUDA_ARCHITECTURES 75)
+  set_property(TARGET unique_ptr_test_gpu PROPERTY CUDA_ARCHITECTURES native)
   # Not sure why we need RDC, but it fails to find cudaXX runtime functions at link time without it.
   set_property(TARGET unique_ptr_test_gpu PROPERTY CUDA_SEPARABLE_COMPILATION ON)
   target_compile_options(unique_ptr_test_gpu PRIVATE
