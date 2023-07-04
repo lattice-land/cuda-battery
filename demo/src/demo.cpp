@@ -92,9 +92,3 @@ int main(int argc, char** argv) {
   }
   return 0;
 }
-
-// __global__ void local_vector_copy(mvector<int>* v_ptr) {
-//   battery::unique_ptr<gvector<int>, battery::global_allocator> block_local;
-//   gvector<int>& v_block = battery::make_unique_block(block_local, *v_ptr);
-//   // Now each block has its own local copy of the vector `*v_ptr`.
-// }

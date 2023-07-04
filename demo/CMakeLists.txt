@@ -40,6 +40,7 @@ FetchContent_MakeAvailable(cuda_battery)
 # If you want to keep `.cu` files, simply delete this command.
 set_source_files_properties(
   src/demo.cpp
+  src/inkernel_allocation.cpp
   PROPERTIES LANGUAGE CUDA)
 
 # Multiple CUDA files?
@@ -49,10 +50,6 @@ set_source_files_properties(
 # This is the main executable, add any additional `.cpp` files required to compile the project here, for instance:
 # add_executable(demo src/demo.cpp src/config.cpp)
 add_executable(demo src/demo.cpp)
-
-# Enable C++20.
-# target_compile_features(demo PUBLIC cxx_std_20)
-# target_compile_features(demo PUBLIC cuda_std_20)
 
 # Add the include directory.
 target_include_directories(demo PRIVATE include)
@@ -65,6 +62,10 @@ target_link_libraries(demo cuda_battery)
 target_compile_options(demo PRIVATE
   $<$<COMPILE_LANGUAGE:CUDA>:-diag-suppress 20011,20014>
 )
+
+# Describe the second executable.
+add_executable(inkernel_allocation src/inkernel_allocation.cpp)
+target_link_libraries(inkernel_allocation cuda_battery)
 
 # IV. Build and execute the CPU and GPU tests.
 # You can simply add new CPU tests by adding a new file in `tests/`, and GPU tests by terminating the filename with "gpu".
