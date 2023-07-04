@@ -64,20 +64,21 @@ public:
     printf("%s", data());
   }
 
-  CUDA static this_type from_int(int x, const allocator_type& alloc = allocator_type()) {
+  template <class IntegerType>
+  CUDA static this_type from_int(IntegerType x, const allocator_type& alloc = allocator_type()) {
     if(x == 0) { return this_type("0", alloc); }
-    int s = 0;
-    bool neg = x < 0;
+    size_t s = 0;
+    bool neg = x < IntegerType{0};
     if(neg) {
       x = -x;
       s++;
     }
-    for(int y = x; y > 0; y = y / 10, ++s) {}
+    for(size_t y = x; y > 0; y = y / 10, ++s) {}
     this_type buffer(s, alloc);
     if(neg) {
       buffer[0] = '-';
     }
-    for(int i = s-1; x > 0; --i) {
+    for(size_t i = s-1; x > 0; --i) {
       buffer[i] = '0' + (x % 10);
       x = x / 10;
     }
@@ -90,11 +91,11 @@ public:
 
 namespace impl {
   template<class Allocator>
-  CUDA string<Allocator> concat(const char* lhs, size_t lhs_len, const char* rhs, size_t rhs_len, Allocator alloc) {
+  CUDA string<Allocator> concat(const char* lhs, size_t lhs_len, const char* rhs, size_t rhs_len, const Allocator& alloc) {
     string<Allocator> res(lhs_len + rhs_len, alloc);
-    int k = 0;
-    for(int i = 0; i < lhs_len; ++i, ++k) { res[k] = lhs[i]; }
-    for(int i = 0; i < rhs_len; ++i, ++k) { res[k] = rhs[i]; }
+    size_t k = 0;
+    for(size_t i = 0; i < lhs_len; ++i, ++k) { res[k] = lhs[i]; }
+    for(size_t i = 0; i < rhs_len; ++i, ++k) { res[k] = rhs[i]; }
     return std::move(res);
   }
 }

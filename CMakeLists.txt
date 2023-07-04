@@ -1,59 +1,49 @@
 cmake_minimum_required(VERSION 3.20)
 
-# Avoid warning about DOWNLOAD_EXTRACT_TIMESTAMP in CMake 3.24:
-# Fix found at https://github.com/ethereum/solidity/pull/13429
 if (CMAKE_VERSION VERSION_GREATER_EQUAL "3.24.0")
   cmake_policy(SET CMP0135 NEW)
 endif()
 
+if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
+  set(CMAKE_CUDA_ARCHITECTURES native)
+endif()
+
 include(FetchContent)
-include(CMakePrintHelpers)
 
-project(cuda-battery LANGUAGES CUDA CXX)
+project(cuda-battery
+  VERSION 1.0.0
+  HOMEPAGE_URL "https://github.com/lattice-land/cuda-battery"
+  LANGUAGES CUDA CXX)
 option(GPU "GPU" ON)
-option(BATTERY_BUILD_TESTS "BATTERY_BUILD_TESTS" OFF)
-
-if(NOT DEFINED CMAKE_CXX_STANDARD)
-    set(CMAKE_CXX_STANDARD 20)
-    set(CMAKE_CXX_STANDARD_REQUIRED ON)
-endif()
-
-if(NOT DEFINED CMAKE_CUDA_STANDARD)
-    set(CMAKE_CUDA_STANDARD 20)
-    set(CMAKE_CUDA_STANDARD_REQUIRED ON)
-endif()
+option(CUDA_BATTERY_BUILD_TESTS "CUDA_BATTERY_BUILD_TESTS" OFF)
 
 # Preparing the library
 
 add_library(cuda_battery INTERFACE)
+target_compile_features(cuda_battery INTERFACE cxx_std_20)
+target_compile_features(cuda_battery INTERFACE cuda_std_20)
 target_include_directories(cuda_battery INTERFACE include)
-
-if(GPU)
-  set_property(TARGET cuda_battery PROPERTY CUDA_ARCHITECTURES native)
-endif()
-
-# --frounding-math is necessary with GCC because `#pragma STDC FENV_ACCESS ON` does not work.
-# This option will help in making the compiler take into account rounding modes, but bugs persist so floating-point arithmetic on CPUs might not always be sound right now...
-# C.f. https://gcc.gnu.org/bugzilla/show_bug.cgi?id=34678
-IF((CMAKE_CXX_COMPILER_ID STREQUAL "GNU") OR (CMAKE_CXX_COMPILER_ID STREQUAL "Clang"))
-  add_compile_options(-frounding-math)
-ENDIF()
 
 target_compile_options(cuda_battery INTERFACE
     $<$<COMPILE_LANGUAGE:CUDA>:
         --expt-relaxed-constexpr
-        --compiler-options -frounding-math
-        $<$<CONFIG:Debug>:-G>>
+        $<$<CONFIG:Debug>:-G -DDEBUG>
+        --compiler-options -frounding-math>
     $<$<CONFIG:Debug>:-g -DDEBUG>
+    # -frounding-math is necessary with GCC because `#pragma STDC FENV_ACCESS ON` does not work.
+    # This option will help in making the compiler take into account rounding modes, but bugs persist so floating-point arithmetic on CPUs might not always be correct right now...
+    # C.f. https://gcc.gnu.org/bugzilla/show_bug.cgi?id=34678
+    $<$<CXX_COMPILER_ID:GNU,Clang>:-frounding-math>
 )
 
-if(BATTERY_BUILD_TESTS)
+if(CUDA_BATTERY_BUILD_TESTS)
 
 # Google Test dependency
 
 FetchContent_Declare(
   googletest
-  URL https://github.com/google/googletest/archive/609281088cfefc76f9d0ce82e1ff6c30cc3591e5.zip
+  GIT_REPOSITORY "https://github.com/google/googletest"
+  GIT_TAG v1.13.0
 )
 # For Windows: Prevent overriding the parent project's compiler/linker settings
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
@@ -62,71 +52,25 @@ FetchContent_MakeAvailable(googletest)
 enable_testing()
 include(GoogleTest)
 
-add_executable(utility_test_cpu tests/utility_test_cpu.cpp)
-target_link_libraries(utility_test_cpu cuda_battery gtest_main)
-gtest_discover_tests(utility_test_cpu)
+# I. CPU Tests (ending with "_test.cpp")
+file(GLOB cpu_test_files tests/*_test.cpp)
+foreach(file ${cpu_test_files})
+  cmake_path(GET file STEM test_name)
+  add_executable(${test_name} ${file})
+  target_link_libraries(${test_name} cuda_battery gtest_main)
+  gtest_discover_tests(${test_name})
+endforeach()
 
-add_executable(string_test tests/string_test.cpp)
-target_link_libraries(string_test cuda_battery gtest_main)
-gtest_discover_tests(string_test)
-
-add_executable(variant_test tests/variant_test.cpp)
-target_link_libraries(variant_test cuda_battery gtest_main)
-gtest_discover_tests(variant_test)
-
-add_executable(vector_test tests/vector_test.cpp)
-target_link_libraries(vector_test cuda_battery gtest_main)
-gtest_discover_tests(vector_test)
-
-add_executable(unique_ptr_test tests/unique_ptr_test.cpp)
-target_link_libraries(unique_ptr_test cuda_battery gtest_main)
-gtest_discover_tests(unique_ptr_test)
-
-add_executable(shared_ptr_test tests/shared_ptr_test.cpp)
-target_link_libraries(shared_ptr_test cuda_battery gtest_main)
-gtest_discover_tests(shared_ptr_test)
-
-add_executable(bitset_test tests/bitset_test.cpp)
-target_link_libraries(bitset_test cuda_battery gtest_main)
-gtest_discover_tests(bitset_test)
-
+# II. GPU Tests (ending with "_gpu.cpp")
 if(GPU)
-  set_source_files_properties(tests/utility_test_cpu_gpu.cpp PROPERTIES LANGUAGE CUDA)
-  add_executable(utility_test_cpu_gpu tests/utility_test_cpu_gpu.cpp)
-  set_property(TARGET utility_test_cpu_gpu PROPERTY CUDA_ARCHITECTURES native)
-  target_compile_options(utility_test_cpu_gpu PRIVATE
-    $<$<COMPILE_LANGUAGE:CUDA>:
-      --expt-relaxed-constexpr
-      --compiler-options -frounding-math>
-    $<$<CONFIG:Debug>:-g -DDEBUG>)
-  target_link_libraries(utility_test_cpu_gpu cuda_battery)
-  add_test(NAME utility_test_cpu_gpu COMMAND compute-sanitizer --error-exitcode 1 $<TARGET_FILE:utility_test_cpu_gpu>)
-
-  set_source_files_properties(tests/gpu_allocator.cpp PROPERTIES LANGUAGE CUDA)
-  add_executable(gpu_allocator tests/gpu_allocator.cpp)
-  set_property(TARGET gpu_allocator PROPERTY CUDA_ARCHITECTURES native)
-  # Not sure why we need RDC, but it fails to find cudaXX runtime functions at link time without it.
-  set_property(TARGET gpu_allocator PROPERTY CUDA_SEPARABLE_COMPILATION ON)
-  target_compile_options(gpu_allocator PRIVATE
-    $<$<COMPILE_LANGUAGE:CUDA>:
-      --expt-relaxed-constexpr
-      --compiler-options -frounding-math>
-    $<$<CONFIG:Debug>:-g -DDEBUG>)
-  target_link_libraries(gpu_allocator cuda_battery)
-  add_test(NAME gpu_allocator COMMAND compute-sanitizer --error-exitcode 1 $<TARGET_FILE:gpu_allocator>)
-
-  set_source_files_properties(tests/unique_ptr_test_gpu.cpp PROPERTIES LANGUAGE CUDA)
-  add_executable(unique_ptr_test_gpu tests/unique_ptr_test_gpu.cpp)
-  set_property(TARGET unique_ptr_test_gpu PROPERTY CUDA_ARCHITECTURES native)
-  # Not sure why we need RDC, but it fails to find cudaXX runtime functions at link time without it.
-  set_property(TARGET unique_ptr_test_gpu PROPERTY CUDA_SEPARABLE_COMPILATION ON)
-  target_compile_options(unique_ptr_test_gpu PRIVATE
-    $<$<COMPILE_LANGUAGE:CUDA>:
-      --expt-relaxed-constexpr
-      --compiler-options -frounding-math>
-    $<$<CONFIG:Debug>:-g -DDEBUG>)
-  target_link_libraries(unique_ptr_test_gpu cuda_battery)
-  add_test(NAME unique_ptr_test_gpu COMMAND compute-sanitizer --error-exitcode 1 $<TARGET_FILE:unique_ptr_test_gpu>)
+  file(GLOB gpu_test_files tests/*_gpu.cpp)
+  foreach(file ${gpu_test_files})
+    cmake_path(GET file STEM test_name)
+    set_source_files_properties(${file} PROPERTIES LANGUAGE CUDA)
+    add_executable(${test_name} ${file})
+    target_link_libraries(${test_name} cuda_battery)
+    add_test(NAME ${test_name} COMMAND compute-sanitizer --error-exitcode 1 $<TARGET_FILE:${test_name}>)
+  endforeach()
 endif()
 
 endif()
