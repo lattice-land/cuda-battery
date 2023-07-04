@@ -30,7 +30,7 @@ option(CUDA_BATTERY_DEMO_BUILD_TESTS "CUDA_BATTERY_DEMO_BUILD_TESTS" ON)
 FetchContent_Declare(
   cuda_battery
   GIT_REPOSITORY "https://github.com/lattice-land/cuda-battery.git"
-  GIT_TAG        develop
+  GIT_TAG        v1.0.0
 )
 FetchContent_MakeAvailable(cuda_battery)
 
