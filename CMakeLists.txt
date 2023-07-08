@@ -1,14 +1,9 @@
-cmake_minimum_required(VERSION 3.20)
-
-if (CMAKE_VERSION VERSION_GREATER_EQUAL "3.24.0")
-  cmake_policy(SET CMP0135 NEW)
-endif()
+cmake_minimum_required(VERSION 3.24)
+cmake_policy(SET CMP0135 NEW)
 
 if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
   set(CMAKE_CUDA_ARCHITECTURES native)
 endif()
-
-include(FetchContent)
 
 project(cuda-battery
   VERSION 1.0.0
@@ -39,6 +34,8 @@ target_compile_options(cuda_battery INTERFACE
 if(CUDA_BATTERY_BUILD_TESTS)
 
 # Google Test dependency
+
+include(FetchContent)
 
 FetchContent_Declare(
   googletest

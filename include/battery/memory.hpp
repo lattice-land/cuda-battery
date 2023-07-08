@@ -18,6 +18,8 @@
   #include <atomic>
 #endif
 
+#include "utility.hpp"
+
 namespace battery {
 
 /** Represent the memory of a variable that cannot be accessed by multiple threads. */

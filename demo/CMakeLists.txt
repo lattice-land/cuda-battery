@@ -1,10 +1,6 @@
-cmake_minimum_required(VERSION 3.20)
+cmake_minimum_required(VERSION 3.24)
 
-if (CMAKE_VERSION VERSION_GREATER_EQUAL "3.24.0")
-  cmake_policy(SET CMP0135 NEW)
-endif()
-
-include(FetchContent)
+cmake_policy(SET CMP0135 NEW)
 
 # I. Project main description and options.
 
@@ -24,6 +20,8 @@ project(cuda-battery-demo
 option(CUDA_BATTERY_DEMO_BUILD_TESTS "CUDA_BATTERY_DEMO_BUILD_TESTS" ON)
 
 # II. Add dependencies.
+
+include(FetchContent)
 
 # This is how you add a dependency to a CMake project, of course the dependency must have a CMakeLists.txt file in its repository for CMake to know how to build it.
 # Here, we automatically download the cuda-battery library from Github.
@@ -54,7 +52,7 @@ add_executable(demo src/demo.cpp)
 # Add the include directory.
 target_include_directories(demo PRIVATE include)
 
-# We include the library `cuda_battery` (it is not really linked since it is just a header-only library, that's just the CMake terminology).
+# We include the library `cuda_battery` (it is not really linked since it is just a header-only library, that's just the CMake terminology), note that all the compile options of cuda_battery are inherited by the executable.
 target_link_libraries(demo cuda_battery)
 
 # The executable inherits the compiler options of cuda_battery.
@@ -92,8 +90,6 @@ foreach(file ${test_files})
   cmake_path(GET file STEM test_name)
   set_source_files_properties(${file} PROPERTIES LANGUAGE CUDA)
   add_executable(${test_name} ${file})
-  target_compile_features(${test_name} PUBLIC cxx_std_20)
-  target_compile_features(${test_name} PUBLIC cuda_std_20)
   target_include_directories(${test_name} PRIVATE include)
   target_compile_options(${test_name} PRIVATE
     $<$<COMPILE_LANGUAGE:CUDA>:-diag-suppress 20011,20014>
