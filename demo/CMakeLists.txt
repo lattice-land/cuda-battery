@@ -58,7 +58,7 @@ target_link_libraries(demo cuda_battery)
 # The executable inherits the compiler options of cuda_battery.
 # We also delete warnings telling us that calling __host__ from __host__ __device__ is forbidden (they are generated due to templated functions working on both CPU/GPU).
 target_compile_options(demo PRIVATE
-  $<$<COMPILE_LANGUAGE:CUDA>:-diag-suppress 20011,20014>
+  "$<$<COMPILE_LANGUAGE:CUDA>:SHELL:-diag-suppress 20011,20014>"
 )
 
 # Describe the second executable.
@@ -92,7 +92,7 @@ foreach(file ${test_files})
   add_executable(${test_name} ${file})
   target_include_directories(${test_name} PRIVATE include)
   target_compile_options(${test_name} PRIVATE
-    $<$<COMPILE_LANGUAGE:CUDA>:-diag-suppress 20011,20014>
+    "$<$<COMPILE_LANGUAGE:CUDA>:SHELL:-diag-suppress 20011,20014>"
   )
   if(${test_name} MATCHES ".*gpu$")
     target_link_libraries(${test_name} cuda_battery)

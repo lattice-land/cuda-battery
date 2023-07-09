@@ -20,15 +20,11 @@ target_compile_features(cuda_battery INTERFACE cuda_std_20)
 target_include_directories(cuda_battery INTERFACE include)
 
 target_compile_options(cuda_battery INTERFACE
-    $<$<COMPILE_LANGUAGE:CUDA>:
-        --expt-relaxed-constexpr
-        $<$<CONFIG:Debug>:-G -DDEBUG>
-        --compiler-options -frounding-math>
-    $<$<CONFIG:Debug>:-g -DDEBUG>
+    "$<$<COMPILE_LANGUAGE:CUDA>:--expt-relaxed-constexpr;$<$<CONFIG:Debug>:-G>>"
     # -frounding-math is necessary with GCC because `#pragma STDC FENV_ACCESS ON` does not work.
     # This option will help in making the compiler take into account rounding modes, but bugs persist so floating-point arithmetic on CPUs might not always be correct right now...
     # C.f. https://gcc.gnu.org/bugzilla/show_bug.cgi?id=34678
-    $<$<CXX_COMPILER_ID:GNU,Clang>:-frounding-math>
+    "$<$<CXX_COMPILER_ID:GNU,Clang>:SHELL:$<$<COMPILE_LANGUAGE:CUDA>:--compiler-options> -frounding-math>"
 )
 
 if(CUDA_BATTERY_BUILD_TESTS)
