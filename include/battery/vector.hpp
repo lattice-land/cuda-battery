@@ -184,8 +184,8 @@ public:
   }
 
   /** Beware that this operator does not free the memory of `this`, the capacity remains unchanged. */
-  template <class Allocator2>
-  CUDA this_type& operator=(const vector<value_type, Allocator2>& other) {
+  template <class U, class Allocator2>
+  CUDA this_type& operator=(const vector<U, Allocator2>& other) {
     reserve(other.size());
     for(size_t i = 0; i < other.n; ++i) {
       if(i < n) {
