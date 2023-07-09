@@ -151,6 +151,10 @@ namespace battery {
  * battery::unique_ptr<int, battery::global_allocator> ptr;
  * int& block_int = battery::make_unique_block(ptr, 10);
  * // all threads can now use `block_int`.
+ * // ...
+ * // Don't forget to synchronize at the end of the function, to avoid deleting the unique_ptr before all threads are done using it.
+ * auto block = cooperative_groups::this_thread_block();
+ * block.sync(); // or __syncthreads();
  * ```
  *
  * NOTE: this function use the cooperative groups library.
@@ -164,7 +168,11 @@ __device__ T& make_unique_block(unique_ptr<T, Alloc>& ptr, Args&&... args) {
     raw_ptr = ptr.get();
   });
   block.sync();
-  return *raw_ptr;
+  T* data_ptr = raw_ptr;
+  // This extra synchronization is required in case a thread returns quickly and re-enter the function to allocate another pointer.
+  // Indeed, it seems that shared variable (`raw_ptr` above) are static.
+  block.sync();
+  return *data_ptr;
 }
 
 namespace impl {
@@ -182,7 +190,10 @@ __device__ T& make_unique_grid(unique_ptr<T, Alloc>& ptr, Args&&... args) {
     impl::raw_ptr = static_cast<void*>(ptr.get());
   });
   grid.sync();
-  return *(static_cast<T*>(impl::raw_ptr));
+  T* data_ptr = static_cast<T*>(impl::raw_ptr);
+  // See comment of make_unique_block for why this extra barrier is required.
+  grid.sync();
+  return *data_ptr;
 }
 
 #endif
