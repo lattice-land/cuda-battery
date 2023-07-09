@@ -183,9 +183,9 @@ public:
     return *this;
   }
 
-  /** Beware that this operator does not free the memory of `this`, the capacity remains unchanged. */
+private:
   template <class U, class Allocator2>
-  CUDA this_type& operator=(const vector<U, Allocator2>& other) {
+  CUDA this_type& assignment(const vector<U, Allocator2>& other) {
     reserve(other.size());
     for(size_t i = 0; i < other.n; ++i) {
       if(i < n) {
@@ -198,6 +198,17 @@ public:
     }
     n = other.n;
     return *this;
+  }
+
+public:
+  CUDA this_type& operator=(const this_type& other) {
+    return assignment(other);
+  }
+
+  /** Beware that this operator does not free the memory of `this`, the capacity remains unchanged. */
+  template <class U, class Allocator2>
+  CUDA this_type& operator=(const vector<U, Allocator2>& other) {
+    return assignment(other);
   }
 
   CUDA allocator_type get_allocator() const {
