@@ -187,7 +187,7 @@ CUDA shared_ptr<T, Alloc> allocate_shared(const Alloc& alloc, Args&&... args) {
 /** Similar to `allocate_shared` but with an default-constructed allocator. */
 template<class T, class Alloc, class... Args>
 CUDA shared_ptr<T, Alloc> make_shared(Args&&... args) {
-  return allocate_shared<T>(Alloc(), std::forward<Args>(args)...);
+  return ::battery::allocate_shared<T>(Alloc(), std::forward<Args>(args)...);
 }
 
 } // namespace battery
