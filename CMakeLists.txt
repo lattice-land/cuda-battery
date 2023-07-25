@@ -72,7 +72,6 @@ endif()
 
 find_package(Doxygen REQUIRED doxygen)
 
-# Options based on those of Halide: https://github.com/halide/Halide/blob/feb81a2a0f7bc39cfa499e4e1a7dfedbc5250aaa/doc/CMakeLists.txt
 set(DOXYGEN_PROJECT_NAME "Cuda battery library")
 set(DOXYGEN_BUILTIN_STL_SUPPORT YES)
 set(DOXYGEN_CASE_SENSE_NAMES NO)

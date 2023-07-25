@@ -102,7 +102,7 @@ namespace battery {
 
 /** An allocator allocating memory from a pool of memory.
 The memory can for instance be the CUDA shared memory.
-This allocator is rather incomplete as it never frees the memory allocated.
+This allocator is incomplete as it never frees the memory allocated.
 It allocates a control block using the "normal" `operator new`, where the address to the pool, its capacity and current offset are stored.
 */
 class pool_allocator {
@@ -142,52 +142,63 @@ class pool_allocator {
   control_block* block;
 
 public:
+  pool_allocator() = default;
+
   CUDA pool_allocator(const pool_allocator& other):
     block(other.block)
   {
-    block->counter++;
+    if(block != nullptr) {
+      block->counter++;
+    }
   }
 
   CUDA pool_allocator(unsigned char* mem, size_t capacity, size_t alignment = alignof(std::max_align_t))
    : block(::new control_block(mem, capacity, alignment))
   {}
 
-  CUDA pool_allocator() = delete;
-
   CUDA ~pool_allocator() {
-    block->counter--;
-    if(block->counter == 0) {
-      ::delete block;
+    if(block != nullptr) {
+      block->counter--;
+      if(block->counter == 0) {
+        ::delete block;
+      }
     }
   }
 
   CUDA size_t align_at(size_t alignment) {
+    assert(block != nullptr);
     size_t old = block->alignment;
     block->alignment = alignment;
     return old;
   }
 
   CUDA void* allocate(size_t bytes) {
+    assert(block != nullptr);
     return block->allocate(bytes);
   }
 
   CUDA void deallocate(void*) {
+    assert(block != nullptr);
     block->deallocate();
   }
 
   CUDA void print() const {
+    assert(block != nullptr);
     printf("Used %lu / %lu\n", block->offset, block->capacity);
   }
 
   CUDA size_t used() const {
+    assert(block != nullptr);
     return block->offset;
   }
 
   CUDA size_t capacity() const {
+    assert(block != nullptr);
     return block->capacity;
   }
 
   CUDA size_t num_deallocations() const {
+    assert(block != nullptr);
     return block->num_deallocations;
   }
 };
