@@ -19,6 +19,9 @@
   /** `CUDA` is a macro indicating that a function can be executed on a GPU. It is defined to `__device__ __host__` when the code is compiled with `nvcc`. */
   #define CUDA __device__ __host__
 
+  /** `NI` stands for noinline, to hint `nvcc` the function should not be inlined. */
+  #define NI __noinline__
+
   /** Request a function to be inlined. */
   #define INLINE __forceinline__
 
@@ -52,6 +55,7 @@
   #define CUDA
   #define CUDAE(S) S
   #define CUDAEX(S) S
+  #define NI
   #define INLINE inline
 #endif
 
