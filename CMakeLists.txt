@@ -10,6 +10,7 @@ project(cuda-battery
   HOMEPAGE_URL "https://github.com/lattice-land/cuda-battery"
   LANGUAGES CUDA CXX)
 option(GPU "GPU" ON)
+option(NOINLINE_BY_DEFAULT "NOINLINE_BY_DEFAULT" OFF)
 option(CUDA_BATTERY_BUILD_TESTS "CUDA_BATTERY_BUILD_TESTS" OFF)
 
 # Preparing the library
@@ -26,6 +27,10 @@ target_compile_options(cuda_battery INTERFACE
     # C.f. https://gcc.gnu.org/bugzilla/show_bug.cgi?id=34678
     "$<$<CXX_COMPILER_ID:GNU,Clang>:SHELL:$<$<COMPILE_LANGUAGE:CUDA>:--compiler-options> -frounding-math>"
 )
+
+if(NOINLINE_BY_DEFAULT)
+  target_compile_definitions(cuda_battery INTERFACE "$<$<COMPILE_LANGUAGE:CUDA>:NOINLINE_BY_DEFAULT>")
+endif()
 
 if(CUDA_BATTERY_BUILD_TESTS)
 

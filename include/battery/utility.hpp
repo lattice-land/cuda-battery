@@ -16,14 +16,23 @@
 #ifdef __NVCC__
   #define CUDA_GLOBAL __global__
 
-  /** `CUDA` is a macro indicating that a function can be executed on a GPU. It is defined to `__device__ __host__` when the code is compiled with `nvcc`. */
-  #define CUDA __device__ __host__
-
   /** `NI` stands for noinline, to hint `nvcc` the function should not be inlined. */
   #define NI __noinline__
 
   /** Request a function to be inlined. */
   #define INLINE __forceinline__
+
+  #ifdef NOINLINE_BY_DEFAULT
+    #define CUDA __device__ __host__ NI
+  #else
+    /** `CUDA` is a macro indicating that a function can be executed on a GPU. It is defined to `__device__ __host__` when the code is compiled with `nvcc`.
+    When the macro `NOINLINE_BY_DEFAULT` is specified, this macro also defines `__noinline__`.
+     */
+    #define CUDA __device__ __host__
+  #endif
+
+  /** For device host functions that should be inlined. */
+  #define CUDAIN __device__ __host__ INLINE
 
   namespace battery {
   namespace impl {
@@ -57,6 +66,7 @@
   #define CUDAEX(S) S
   #define NI
   #define INLINE inline
+  #define CUDAIN INLINE
 #endif
 
 namespace battery {
