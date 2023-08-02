@@ -44,7 +44,7 @@ private:
     allocator.deallocate(data_);
   }
 
-  CUDA void reallocate(size_t new_cap) {
+  CUDA NI void reallocate(size_t new_cap) {
     size_t n2 = n;
     value_type* data2 = data_;
     cap = new_cap;
@@ -96,7 +96,7 @@ private:
 public:
   /** Allocate an array of size `n` using `allocator`, with `n` default-inserted instances of `T`.
    *  `Allocator` is scoped, meaning it will be passed to the constructor of `T` if `T(const Allocator&)` exists, otherwise `T()` is called. */
-  CUDA vector(size_t n, const allocator_type& alloc = allocator_type()):
+  CUDA NI vector(size_t n, const allocator_type& alloc = allocator_type()):
     n(n), cap(n), allocator(alloc), data_(allocate())
   {
       for(size_t i = 0; i < n; ++i) {
@@ -112,7 +112,7 @@ public:
       Initialize the elements of the array with those of the array `from`.
       `Allocator` is scoped, meaning it will be passed to the constructor of `T` if `T(const T&, const Allocator&)` exists, otherwise `T(const T&)` is called.  */
   template <class U>
-  CUDA vector(const U* from, size_t n, const allocator_type& alloc = allocator_type())
+  CUDA NI vector(const U* from, size_t n, const allocator_type& alloc = allocator_type())
    : n(n), cap(n), allocator(alloc), data_(allocate())
   {
     for(size_t i = 0; i < n; ++i) {
@@ -137,7 +137,7 @@ public:
   /** Initialize of an array of size `n` with each element initialized to `from` using `allocator`.
    * `Allocator` is scoped, meaning it will be passed to the constructor of `T` if `T(const T&, const Allocator&)` exists, otherwise `T(const T&)` is called.  */
   template <class U>
-  CUDA vector(size_t n, const U& from, const allocator_type& alloc = allocator_type())
+  CUDA NI vector(size_t n, const U& from, const allocator_type& alloc = allocator_type())
    : n(n), cap(n), allocator(alloc), data_(allocate())
   {
     for(size_t i = 0; i < n; ++i) {
@@ -145,11 +145,11 @@ public:
     }
   }
 
-  CUDA vector(this_type&& other): this_type(other.allocator) {
+  CUDA NI vector(this_type&& other): this_type(other.allocator) {
     swap(other);
   }
 
-  CUDA vector(std::initializer_list<T> init, const Allocator& alloc = Allocator())
+  CUDA NI vector(std::initializer_list<T> init, const Allocator& alloc = Allocator())
    : n(init.size()), cap(init.size()), allocator(alloc), data_(allocate())
   {
     size_t i = 0;
@@ -168,7 +168,7 @@ public:
     }
   }
 
-  CUDA ~vector() {
+  CUDA NI ~vector() {
     for(size_t i = 0; i < n; ++i) {
       data_[i].~T();
     }
@@ -201,13 +201,13 @@ private:
   }
 
 public:
-  CUDA this_type& operator=(const this_type& other) {
+  CUDA NI this_type& operator=(const this_type& other) {
     return assignment(other);
   }
 
   /** Beware that this operator does not free the memory of `this`, the capacity remains unchanged. */
   template <class U, class Allocator2>
-  CUDA this_type& operator=(const vector<U, Allocator2>& other) {
+  CUDA NI this_type& operator=(const vector<U, Allocator2>& other) {
     return assignment(other);
   }
 
@@ -237,7 +237,7 @@ public:
   CUDA size_t capacity() const { return cap; }
   CUDA void shrink_to_fit() { if(cap > n) reallocate(n); }
 
-  CUDA void clear() {
+  CUDA NI void clear() {
     size_t n2 = n;
     n = 0;
     for(size_t i = 0; i < n2; ++i) {
@@ -276,7 +276,7 @@ public:
     --n;
   }
 
-  CUDA void resize(size_t count) {
+  CUDA NI void resize(size_t count) {
     if(count < n) {
       for(size_t i = count; i < n; ++i) {
         data_[i].~T();
@@ -301,7 +301,7 @@ public:
     ::battery::swap(allocator, other.allocator);
   }
 
-  CUDA void print() const {
+  CUDA NI void print() const {
     for(size_t i = 0; i < n; ++i) {
       ::battery::print(data_[i]);
       if(i < n - 1) {
@@ -312,7 +312,7 @@ public:
 };
 
 template<class T, class Allocator>
-CUDA bool operator==(const vector<T, Allocator>& lhs, const vector<T, Allocator>& rhs) {
+CUDA NI bool operator==(const vector<T, Allocator>& lhs, const vector<T, Allocator>& rhs) {
   if(lhs.size() != rhs.size()) {
     return false;
   }

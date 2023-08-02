@@ -60,12 +60,12 @@ public:
   CUDA char* data() { return data_.data(); }
   CUDA const char* data() const { return data_.data(); }
 
-  CUDA void print() const {
+  CUDA NI void print() const {
     printf("%s", data());
   }
 
   template <class IntegerType>
-  CUDA static this_type from_int(IntegerType x, const allocator_type& alloc = allocator_type()) {
+  CUDA NI static this_type from_int(IntegerType x, const allocator_type& alloc = allocator_type()) {
     if(x == 0) { return this_type("0", alloc); }
     size_t s = 0;
     bool neg = x < IntegerType{0};
@@ -91,7 +91,7 @@ public:
 
 namespace impl {
   template<class Allocator>
-  CUDA string<Allocator> concat(const char* lhs, size_t lhs_len, const char* rhs, size_t rhs_len, const Allocator& alloc) {
+  CUDA NI string<Allocator> concat(const char* lhs, size_t lhs_len, const char* rhs, size_t rhs_len, const Allocator& alloc) {
     string<Allocator> res(lhs_len + rhs_len, alloc);
     size_t k = 0;
     for(size_t i = 0; i < lhs_len; ++i, ++k) { res[k] = lhs[i]; }

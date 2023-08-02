@@ -26,7 +26,7 @@ This can be used from both the host and device side, but the memory can only be 
 Beware that allocation and deallocation must occur on the same side. */
 class global_allocator {
 public:
-  CUDA void* allocate(size_t bytes) {
+  CUDA NI void* allocate(size_t bytes) {
     if(bytes == 0) {
       return nullptr;
     }
@@ -43,7 +43,7 @@ public:
     #endif
   }
 
-  CUDA void deallocate(void* data) {
+  CUDA NI void deallocate(void* data) {
     #ifdef __CUDA_ARCH__
       std::free(data);
     #else
@@ -56,7 +56,7 @@ public:
  * We delegate the allocation to `global_allocator` when the allocation is done on the device (since managed memory cannot be allocated in device functions). */
 class managed_allocator {
 public:
-  CUDA void* allocate(size_t bytes) {
+  CUDA NI void* allocate(size_t bytes) {
     #ifdef __CUDA_ARCH__
       return global_allocator{}.allocate(bytes);
     #else
@@ -69,7 +69,7 @@ public:
     #endif
   }
 
-  CUDA void deallocate(void* data) {
+  CUDA NI void deallocate(void* data) {
     #ifdef __CUDA_ARCH__
       return global_allocator{}.deallocate(data);
     #else
@@ -144,7 +144,7 @@ class pool_allocator {
 public:
   pool_allocator() = default;
 
-  CUDA pool_allocator(const pool_allocator& other):
+  CUDA NI pool_allocator(const pool_allocator& other):
     block(other.block)
   {
     if(block != nullptr) {
@@ -152,11 +152,11 @@ public:
     }
   }
 
-  CUDA pool_allocator(unsigned char* mem, size_t capacity, size_t alignment = alignof(std::max_align_t))
+  CUDA NI pool_allocator(unsigned char* mem, size_t capacity, size_t alignment = alignof(std::max_align_t))
    : block(::new control_block(mem, capacity, alignment))
   {}
 
-  CUDA ~pool_allocator() {
+  CUDA NI ~pool_allocator() {
     if(block != nullptr) {
       block->counter--;
       if(block->counter == 0) {
@@ -172,17 +172,17 @@ public:
     return old;
   }
 
-  CUDA void* allocate(size_t bytes) {
+  CUDA NI void* allocate(size_t bytes) {
     assert(block != nullptr);
     return block->allocate(bytes);
   }
 
-  CUDA void deallocate(void*) {
+  CUDA NI void deallocate(void*) {
     assert(block != nullptr);
     block->deallocate();
   }
 
-  CUDA void print() const {
+  CUDA NI void print() const {
     assert(block != nullptr);
     printf("Used %lu / %lu\n", block->offset, block->capacity);
   }
@@ -217,14 +217,14 @@ namespace battery {
 /** This allocator call the standard `malloc` and `free` functions. */
 class standard_allocator {
 public:
-  CUDA void* allocate(size_t bytes) {
+  CUDA NI void* allocate(size_t bytes) {
     if(bytes == 0) {
       return nullptr;
     }
     return std::malloc(bytes);
   }
 
-  CUDA void deallocate(void* data) {
+  CUDA NI void deallocate(void* data) {
     std::free(data);
   }
 };
@@ -252,13 +252,13 @@ namespace battery {
       : allocator(allocator), counter(1), num_deallocations(0), num_allocations(0), total_bytes_allocated(0)
       {}
 
-      CUDA void* allocate(size_t bytes) {
+      CUDA NI void* allocate(size_t bytes) {
         num_allocations++;
         total_bytes_allocated += bytes;
         return allocator.allocate(bytes);
       }
 
-      CUDA void deallocate(void* ptr) {
+      CUDA NI void deallocate(void* ptr) {
         if(ptr != nullptr) {
           num_deallocations++;
           allocator.deallocate(ptr);
@@ -270,31 +270,31 @@ namespace battery {
     control_block* block;
 
   public:
-    CUDA statistics_allocator(const statistics_allocator& other)
+    CUDA NI statistics_allocator(const statistics_allocator& other)
       : internal_allocator(other.internal_allocator), block(other.block)
     {
       block->counter++;
     }
 
-    CUDA statistics_allocator(const Allocator& allocator = Allocator(), const InternalAllocator& internal_allocator = InternalAllocator())
+    CUDA NI statistics_allocator(const Allocator& allocator = Allocator(), const InternalAllocator& internal_allocator = InternalAllocator())
       : internal_allocator(internal_allocator)
     {
       block = static_cast<control_block*>(this->internal_allocator.allocate(sizeof(control_block)));
       new(block) control_block(allocator);
     }
 
-    CUDA ~statistics_allocator() {
+    CUDA NI ~statistics_allocator() {
       block->counter--;
       if(block->counter == 0) {
         internal_allocator.deallocate(block);
       }
     }
 
-    CUDA void* allocate(size_t bytes) {
+    CUDA NI void* allocate(size_t bytes) {
       return block->allocate(bytes);
     }
 
-    CUDA void deallocate(void* ptr) {
+    CUDA NI void deallocate(void* ptr) {
       block->deallocate(ptr);
     }
 

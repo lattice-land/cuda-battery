@@ -16,27 +16,26 @@
 #ifdef __NVCC__
   #define CUDA_GLOBAL __global__
 
-  /** `NI` stands for noinline, to hint `nvcc` the function should not be inlined. */
-  #define NI __noinline__
+  #ifdef REDUCE_PTX_SIZE
+    /** `NI` stands for noinline, to hint `nvcc` the function should not be inlined. */
+    #define NI __noinline__
+  #else
+    #define NI
+  #endif
 
   /** Request a function to be inlined. */
   #define INLINE __forceinline__
 
-  #ifdef NOINLINE_BY_DEFAULT
+  /** `CUDA` is a macro indicating that a function can be executed on a GPU. It is defined to `__device__ __host__` when the code is compiled with `nvcc`. */
+  #ifdef REDUCE_PTX_SIZE
     #define CUDA __device__ __host__ NI
   #else
-    /** `CUDA` is a macro indicating that a function can be executed on a GPU. It is defined to `__device__ __host__` when the code is compiled with `nvcc`.
-    When the macro `NOINLINE_BY_DEFAULT` is specified, this macro also defines `__noinline__`.
-     */
     #define CUDA __device__ __host__
   #endif
 
-  /** For device host functions that could be optimized (inlined), overriding NOINLINE_BY_DEFAULT. */
-  #define CUDO __device__ __host__
-
   namespace battery {
   namespace impl {
-    CUDA inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=true) {
+    CUDA NI inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=true) {
       if (code != cudaSuccess) {
         printf("%s:%d CUDA runtime error %s\n", file, line, cudaGetErrorString(code));
         if (abort) {
@@ -62,7 +61,6 @@
 #else
   #define CUDA_GLOBAL
   #define CUDA
-  #define CUDO
   #define CUDAE(S) S
   #define CUDAEX(S) S
   #define NI
@@ -203,7 +201,7 @@ struct limits {
 
   Overflow: Nothing is done to prevent overflow, it mostly behaves as with `static_cast`. */
 template<class To, class From, bool map_limits = true>
-CUDA constexpr To ru_cast(From x) {
+CUDA NI constexpr To ru_cast(From x) {
   if constexpr(std::is_same_v<To, From>) {
     return x;
   }
@@ -299,7 +297,7 @@ CUDA constexpr To ru_cast(From x) {
 
   Overflow: Nothing is done to prevent overflow, it mostly behaves as with `static_cast`. */
 template<class To, class From, bool map_limits=true>
-CUDA constexpr To rd_cast(From x) {
+CUDA NI constexpr To rd_cast(From x) {
   if constexpr(std::is_same_v<To, From>) {
     return x;
   }
@@ -388,7 +386,7 @@ CUDA constexpr To rd_cast(From x) {
 }
 
 template<class T>
-CUDA constexpr int popcount(T x) {
+CUDA NI constexpr int popcount(T x) {
   static_assert(std::is_integral_v<T> && std::is_unsigned_v<T>, "popcount only works on unsigned integers");
   #ifdef __CUDA_ARCH__
     if constexpr(std::is_same_v<T, unsigned int>) {
@@ -413,7 +411,7 @@ CUDA constexpr int popcount(T x) {
 }
 
 template<class T>
-CUDA constexpr int countl_zero(T x) {
+CUDA NI constexpr int countl_zero(T x) {
   static_assert(std::is_integral_v<T> && std::is_unsigned_v<T>, "countl_zero only works on unsigned integers");
   #ifdef __CUDA_ARCH__
     // If the size of `T` is smaller than `int` or `long long int` we must remove the extra zeroes that are added after conversion.
@@ -441,7 +439,7 @@ CUDA constexpr int countl_zero(T x) {
 }
 
 template<class T>
-CUDA constexpr int countl_one(T x) {
+CUDA NI constexpr int countl_one(T x) {
   static_assert(std::is_integral_v<T> && std::is_unsigned_v<T>, "countl_one only works on unsigned integers");
   #ifdef __CUDA_ARCH__
     return countl_zero((T)~x);
@@ -460,7 +458,7 @@ CUDA constexpr int countl_one(T x) {
 }
 
 template<class T>
-CUDA constexpr int countr_zero(T x) {
+CUDA NI constexpr int countr_zero(T x) {
   static_assert(std::is_integral_v<T> && std::is_unsigned_v<T>, "countl_zero only works on unsigned integers");
   #ifdef __CUDA_ARCH__
     if(x == 0) {
@@ -490,7 +488,7 @@ CUDA constexpr int countr_zero(T x) {
 }
 
 template<class T>
-CUDA constexpr int countr_one(T x) {
+CUDA NI constexpr int countr_one(T x) {
   static_assert(std::is_integral_v<T> && std::is_unsigned_v<T>, "countr_one only works on unsigned integers");
   #ifdef __CUDA_ARCH__
     return countr_zero((T)~x);
@@ -516,7 +514,7 @@ CUDA constexpr int signum(T val) {
 
 /** Precondition: T is an integer with b >= 0.*/
 template <class T>
-CUDA constexpr T ipow(T a, T b) {
+CUDA NI constexpr T ipow(T a, T b) {
   static_assert(std::is_integral_v<T>, "ipow is only working on integer value.");
   assert(b >= 0);
   if(b == 2) {
@@ -649,22 +647,22 @@ CUDA constexpr T div_down(T x, T y) {
 }
 
 template<typename T>
-CUDA inline void print(const T& t) {
+CUDA NI void print(const T& t) {
   t.print();
 }
-template<> CUDA inline void print(const char &x) { printf("%c", x); }
-template<> CUDA inline void print(const short &x) { printf("%d", (int)x); }
-template<> CUDA inline void print(const int &x) { printf("%d", x); }
-template<> CUDA inline void print(const long long int &x) { printf("%lld", x); }
-template<> CUDA inline void print(const long int &x) { printf("%ld", x); }
-template<> CUDA inline void print(const unsigned char &x) { printf("%d", (int)x); }
-template<> CUDA inline void print(const unsigned short &x) { printf("%d", (int)x); }
-template<> CUDA inline void print(const unsigned int &x) { printf("%u", x); }
-template<> CUDA inline void print(const unsigned long &x) { printf("%lu", x); }
-template<> CUDA inline void print(const unsigned long long &x) { printf("%llu", x); }
-template<> CUDA inline void print(const float &x) { printf("%f", x); }
-template<> CUDA inline void print(const double &x) { printf("%lf", x); }
-template<> CUDA inline void print(char const* const &x) { printf("%s", x); }
+template<> CUDA NI inline void print(const char &x) { printf("%c", x); }
+template<> CUDA NI inline void print(const short &x) { printf("%d", (int)x); }
+template<> CUDA NI inline void print(const int &x) { printf("%d", x); }
+template<> CUDA NI inline void print(const long long int &x) { printf("%lld", x); }
+template<> CUDA NI inline void print(const long int &x) { printf("%ld", x); }
+template<> CUDA NI inline void print(const unsigned char &x) { printf("%d", (int)x); }
+template<> CUDA NI inline void print(const unsigned short &x) { printf("%d", (int)x); }
+template<> CUDA NI inline void print(const unsigned int &x) { printf("%u", x); }
+template<> CUDA NI inline void print(const unsigned long &x) { printf("%lu", x); }
+template<> CUDA NI inline void print(const unsigned long long &x) { printf("%llu", x); }
+template<> CUDA NI inline void print(const float &x) { printf("%f", x); }
+template<> CUDA NI inline void print(const double &x) { printf("%lf", x); }
+template<> CUDA NI inline void print(char const* const &x) { printf("%s", x); }
 
 } // namespace battery
 

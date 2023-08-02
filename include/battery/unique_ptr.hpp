@@ -52,7 +52,7 @@ public:
 
   CUDA unique_ptr(const this_type&) = delete;
 
-  CUDA ~unique_ptr() {
+  CUDA NI ~unique_ptr() {
     if(ptr != nullptr) {
       ptr->~T();
       allocator.deallocate(ptr);
@@ -115,7 +115,7 @@ public:
 };
 
 template<class T, class Alloc, class... Args>
-CUDA unique_ptr<T, Alloc> allocate_unique(const Alloc& alloc, Args&&... args) {
+CUDA NI unique_ptr<T, Alloc> allocate_unique(const Alloc& alloc, Args&&... args) {
   Alloc allocator(alloc);
   T* ptr = static_cast<T*>(allocator.allocate(sizeof(T)));
   assert(ptr != nullptr);
@@ -160,7 +160,7 @@ namespace battery {
  * NOTE: this function use the cooperative groups library.
  */
 template<class T, class Alloc, class... Args>
-__device__ T& make_unique_block(unique_ptr<T, Alloc>& ptr, Args&&... args) {
+__device__ NI T& make_unique_block(unique_ptr<T, Alloc>& ptr, Args&&... args) {
   __shared__ T* raw_ptr;
   auto block = cooperative_groups::this_thread_block();
   invoke_one(block, [&](){
@@ -183,7 +183,7 @@ namespace impl {
  * NOTE: a kernel using this function must be launched using `cudaLaunchCooperativeKernel` instead of the `<<<...>>>` syntax.
  */
 template<class T, class Alloc, class... Args>
-__device__ T& make_unique_grid(unique_ptr<T, Alloc>& ptr, Args&&... args) {
+__device__ NI T& make_unique_grid(unique_ptr<T, Alloc>& ptr, Args&&... args) {
   auto grid = cooperative_groups::this_grid();
   invoke_one(grid, [&](){
     ptr = allocate_unique<T, Alloc>(ptr.get_allocator(), std::forward<Args>(args)...);

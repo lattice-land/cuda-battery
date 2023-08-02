@@ -31,7 +31,7 @@ private:
   template<class Y, class Alloc>
   friend class shared_ptr;
 
-  CUDA int* allocate_counter() {
+  CUDA NI int* allocate_counter() {
     int* c = static_cast<int*>(allocator.allocate(sizeof(int)));
     *c = 1;
     return c;
@@ -52,7 +52,7 @@ public:
 
   // `ptr` must have been allocated using `allocator_type`.
   template<class Y>
-  CUDA explicit shared_ptr(Y* ptr, const allocator_type& allocator = allocator_type())
+  CUDA NI explicit shared_ptr(Y* ptr, const allocator_type& allocator = allocator_type())
    : allocator(allocator), count(allocate_counter()), ptr(static_cast<T*>(ptr))
   {
   }
@@ -85,7 +85,7 @@ public:
     inc_counter();
   }
 
-  CUDA ~shared_ptr() {
+  CUDA NI ~shared_ptr() {
     if(ptr != nullptr) {
       if(*count <= 1) {
         ptr->~T();
@@ -171,7 +171,7 @@ public:
 };
 
 template<class T, class Alloc, class... Args>
-CUDA shared_ptr<T, Alloc> allocate_shared(const Alloc& alloc, Args&&... args) {
+CUDA NI shared_ptr<T, Alloc> allocate_shared(const Alloc& alloc, Args&&... args) {
   Alloc allocator(alloc);
   T* ptr = static_cast<T*>(allocator.allocate(sizeof(T)));
   assert(ptr != nullptr);
@@ -186,7 +186,7 @@ CUDA shared_ptr<T, Alloc> allocate_shared(const Alloc& alloc, Args&&... args) {
 
 /** Similar to `allocate_shared` but with an default-constructed allocator. */
 template<class T, class Alloc, class... Args>
-CUDA shared_ptr<T, Alloc> make_shared(Args&&... args) {
+CUDA NI shared_ptr<T, Alloc> make_shared(Args&&... args) {
   return ::battery::allocate_shared<T>(Alloc(), std::forward<Args>(args)...);
 }
 

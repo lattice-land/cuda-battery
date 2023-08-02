@@ -166,7 +166,7 @@ private:
 
 public:
   template<size_t i>
-  CUDA static variant create(const alternative<i>& value)
+  CUDA NI static variant create(const alternative<i>& value)
   {
     variant ret(i);
     impl::variant_helper_static<alternative<i>>::copy(&value, &ret.data);
@@ -174,23 +174,23 @@ public:
   }
 
   template<size_t i>
-  CUDA static variant create(alternative<i>&& value) {
+  CUDA NI static variant create(alternative<i>&& value) {
     variant ret(i);
     impl::variant_helper_static<alternative<i>>::move(&value, &ret.data);
     return ret;
   }
 
-  CUDA variant(const variant<Ts...>& from) : variant_id(from.variant_id)
+  CUDA NI variant(const variant<Ts...>& from) : variant_id(from.variant_id)
   {
     helper_t::copy(from.variant_id, &from.data, &data);
   }
 
-  CUDA variant(variant<Ts...>&& from) : variant_id(from.variant_id)
+  CUDA NI variant(variant<Ts...>&& from) : variant_id(from.variant_id)
   {
     helper_t::move(from.variant_id, &from.data, &data);
   }
 
-  CUDA variant<Ts...>& operator= (variant<Ts...>& rhs)
+  CUDA NI variant<Ts...>& operator= (variant<Ts...>& rhs)
   {
     helper_t::destroy(variant_id, &data);
     variant_id = rhs.variant_id;
@@ -198,7 +198,7 @@ public:
     return *this;
   }
 
-  CUDA variant<Ts...>& operator= (variant<Ts...>&& rhs)
+  CUDA NI variant<Ts...>& operator= (variant<Ts...>&& rhs)
   {
     helper_t::destroy(variant_id, &data);
     variant_id = rhs.variant_id;
@@ -211,7 +211,7 @@ public:
   }
 
   template<size_t i>
-  CUDA void set(alternative<i>& value)
+  CUDA NI void set(alternative<i>& value)
   {
     helper_t::destroy(variant_id, &data);
     variant_id = i;
@@ -219,23 +219,23 @@ public:
   }
 
   template<size_t i>
-  CUDA void set(alternative<i>&& value)
+  CUDA NI void set(alternative<i>&& value)
   {
     helper_t::destroy(variant_id, &data);
     variant_id = i;
     impl::variant_helper_static<alternative<i>>::move(&value, &data);
   }
 
-  CUDA ~variant() {
+  CUDA NI ~variant() {
     helper_t::destroy(variant_id, &data);
   }
 
-  CUDA void print() const {
+  CUDA NI void print() const {
     helper_t::print(variant_id, &data);
   }
 
   template<typename... Us>
-  CUDA friend bool operator==(const variant<Us...>& lhs, const variant<Us...>& rhs);
+  CUDA NI friend bool operator==(const variant<Us...>& lhs, const variant<Us...>& rhs);
   template<size_t i, typename... Us>
   CUDA friend typename impl::variant_alternative<i, Us...>::type& get(variant<Us...>& v);
   template<size_t i, typename... Us>
@@ -255,7 +255,7 @@ CUDA const typename impl::variant_alternative<i, Ts...>::type& get(const variant
 }
 
 template<typename... Ts>
-CUDA bool operator==(const variant<Ts...>& lhs, const variant<Ts...>& rhs) {
+CUDA NI bool operator==(const variant<Ts...>& lhs, const variant<Ts...>& rhs) {
   if(lhs.index() == rhs.index()) {
     return impl::variant_helper<Ts...>::equals(lhs.index(), &lhs.data, &rhs.data);
   }

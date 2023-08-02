@@ -33,17 +33,17 @@ public:
 
 public:
   template <class T>
-  CUDO INLINE static constexpr T load(const atomic_type<T>& a) {
+  CUDA INLINE static constexpr T load(const atomic_type<T>& a) {
     return a;
   }
 
   template <class T>
-  CUDO INLINE static constexpr std::enable_if_t<!read_only, void> store(atomic_type<T>& a, T v) {
+  CUDA INLINE static constexpr std::enable_if_t<!read_only, void> store(atomic_type<T>& a, T v) {
     a = v;
   }
 
   template <class T>
-  CUDO INLINE static constexpr std::enable_if_t<!read_only, T> exchange(atomic_type<T>& a, T v) {
+  CUDA INLINE static constexpr std::enable_if_t<!read_only, T> exchange(atomic_type<T>& a, T v) {
     return std::exchange(a, std::move(v));
   }
 };
@@ -61,17 +61,17 @@ public:
   constexpr static const bool sequential = false;
 
   template <class T>
-  CUDO INLINE static T load(const atomic_type<T>& a) {
+  CUDA INLINE static T load(const atomic_type<T>& a) {
     return a.load(mem_order);
   }
 
   template <class T>
-  CUDO INLINE static void store(atomic_type<T>& a, T v) {
+  CUDA INLINE static void store(atomic_type<T>& a, T v) {
     a.store(v, mem_order);
   }
 
   template <class T>
-  CUDO INLINE static T exchange(atomic_type<T>& a, T v) {
+  CUDA INLINE static T exchange(atomic_type<T>& a, T v) {
     return a.exchange(v, mem_order);
   }
 };
@@ -116,17 +116,17 @@ public:
   constexpr static const bool sequential = false;
 
   template <class T>
-  CUDO INLINE static T load(const atomic_type<T>& a) {
+  CUDA INLINE static T load(const atomic_type<T>& a) {
     return a.load(mem_order);
   }
 
   template <class T>
-  CUDO INLINE static void store(atomic_type<T>& a, T v) {
+  CUDA INLINE static void store(atomic_type<T>& a, T v) {
     a.store(v, mem_order);
   }
 
   template <class T>
-  CUDO INLINE static T exchange(atomic_type<T>& a, T v) {
+  CUDA INLINE static T exchange(atomic_type<T>& a, T v) {
     return a.exchange(v, mem_order);
   }
 };
