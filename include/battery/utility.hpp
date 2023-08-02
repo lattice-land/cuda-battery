@@ -27,11 +27,7 @@
   #define INLINE __forceinline__
 
   /** `CUDA` is a macro indicating that a function can be executed on a GPU. It is defined to `__device__ __host__` when the code is compiled with `nvcc`. */
-  #ifdef REDUCE_PTX_SIZE
-    #define CUDA __device__ __host__ NI
-  #else
-    #define CUDA __device__ __host__
-  #endif
+  #define CUDA __device__ __host__
 
   namespace battery {
   namespace impl {
