@@ -31,8 +31,8 @@
     #define CUDA __device__ __host__
   #endif
 
-  /** For device host functions that should be inlined. */
-  #define CUDAIN __device__ __host__ INLINE
+  /** For device host functions that could be optimized (inlined), overriding NOINLINE_BY_DEFAULT. */
+  #define CUDO __device__ __host__
 
   namespace battery {
   namespace impl {
@@ -62,11 +62,11 @@
 #else
   #define CUDA_GLOBAL
   #define CUDA
+  #define CUDO
   #define CUDAE(S) S
   #define CUDAEX(S) S
   #define NI
   #define INLINE inline
-  #define CUDAIN INLINE
 #endif
 
 namespace battery {
