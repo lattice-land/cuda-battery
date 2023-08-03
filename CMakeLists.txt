@@ -22,7 +22,7 @@ target_include_directories(cuda_battery INTERFACE include)
 
 target_compile_options(cuda_battery INTERFACE
     "$<$<AND:$<COMPILE_LANGUAGE:CUDA>,$<CUDA_COMPILER_ID:NVIDIA>>:--expt-relaxed-constexpr>"
-    "$<$<AND:$<COMPILE_LANGUAGE:CUDA>,$<CUDA_COMPILER_ID:NVIDIA>,$<CONFIG:Debug>>:--G>"
+    "$<$<AND:$<COMPILE_LANGUAGE:CUDA>,$<CUDA_COMPILER_ID:NVIDIA>,$<CONFIG:Debug>>:-G>"
     "$<$<AND:$<COMPILE_LANGUAGE:CUDA>,$<CUDA_COMPILER_ID:Clang>,$<CONFIG:Debug>>:--cuda-noopt-device-debug>"
     # -frounding-math is necessary with GCC because `#pragma STDC FENV_ACCESS ON` does not work.
     # This option will help in making the compiler take into account rounding modes, but bugs persist so floating-point arithmetic on CPUs might not always be correct right now...
