@@ -134,7 +134,7 @@ CUDA unique_ptr<T, Alloc> make_unique(Args&&... args) {
   return allocate_unique<T>(Alloc(), std::forward<Args>(args)...);
 }
 
-#ifdef __NVCC__
+#ifdef __CUDACC__
 
 }
 

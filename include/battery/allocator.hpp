@@ -17,7 +17,7 @@ To avoid these kind of mistakes, you should use `battery::shared_ptr` when passi
 #include <type_traits>
 #include "utility.hpp"
 
-#ifdef __NVCC__
+#ifdef __CUDACC__
 
 namespace battery {
 
@@ -96,7 +96,7 @@ CUDA inline void operator delete(void* ptr, battery::global_allocator& p) {
   p.deallocate(ptr);
 }
 
-#endif // __NVCC__
+#endif // __CUDACC__
 
 namespace battery {
 

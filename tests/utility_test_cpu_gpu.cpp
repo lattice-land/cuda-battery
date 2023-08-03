@@ -58,6 +58,7 @@ CUDA R run_utility_op(T input, UtilityOperation op) {
       case COUNTL_ONE: return battery::countl_one(input);
       case COUNTR_ZERO: return battery::countr_zero(input);
       case COUNTR_ONE: return battery::countr_one(input);
+      default: break;
     }
   }
   switch(op) {

@@ -13,7 +13,7 @@
 #include <cfenv>
 #include <bit>
 
-#ifdef __NVCC__
+#ifdef __CUDACC__
   #define CUDA_GLOBAL __global__
 
   #ifdef REDUCE_PTX_SIZE

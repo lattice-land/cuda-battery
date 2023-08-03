@@ -34,7 +34,7 @@ private:
       We have 10 % 8 = 2, then ONES << 2 gives 11111100, and ~(ONES << 2) = 00000011. */
   constexpr static T ONES_LAST = PADDING_LAST_BLOCK == 0 ? ONES : (T)(~(ONES << BITS_LAST_BLOCK));
 
-  using block_type = typename Mem::atomic_type<T>;
+  using block_type = typename Mem::template atomic_type<T>;
 
   /** Suppose T = char, with 2 blocks. Then the bitset "0000 00100000" is represented as:
    *
