@@ -12,7 +12,7 @@
 #include <type_traits>
 #include <utility>
 
-#ifdef __NVCC__
+#ifdef __CUDACC__
   #include <cuda/atomic>
 #else
   #include <atomic>
@@ -51,7 +51,7 @@ public:
 using local_memory = memory<false>;
 using read_only_memory = memory<true>;
 
-#ifdef __NVCC__
+#ifdef __CUDACC__
 
 /** Memory load and store operations relative to a cuda scope (per-thread, block, grid, ...) and given a certain memory order (by default relaxed). */
 template <cuda::thread_scope scope, cuda::memory_order mem_order = cuda::memory_order_relaxed>
@@ -80,9 +80,9 @@ using atomic_memory_block = atomic_memory_scoped<cuda::thread_scope_block>;
 using atomic_memory_grid = atomic_memory_scoped<cuda::thread_scope_device>;
 using atomic_memory_multi_grid = atomic_memory_scoped<cuda::thread_scope_system>;
 
-#endif // __NVCC__
+#endif // __CUDACC__
 
-#ifdef __NVCC__
+#ifdef __CUDACC__
   /// @private
   namespace impl {
     template <class T>
@@ -108,7 +108,7 @@ using atomic_memory_multi_grid = atomic_memory_scoped<cuda::thread_scope_system>
   constexpr memory_order memory_order_seq_cst = std::memory_order_seq_cst;
 #endif
 
-/** Use the standard C++ atomic type, either provided by libcudacxx if we compile with NVCC, or through the STL otherwise. */
+/** Use the standard C++ atomic type, either provided by libcudacxx if we compile with a CUDA compiler, or through the STL otherwise. */
 template <memory_order mem_order = memory_order_relaxed>
 class atomic_memory {
 public:
