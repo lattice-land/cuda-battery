@@ -100,6 +100,13 @@ CUDA inline void operator delete(void* ptr, battery::global_allocator& p) {
 
 namespace battery {
 
+namespace impl {
+#ifdef __CUDA_ARCH__
+  __constant__
+#endif
+static const int power2[17] = {0, 1, 2, 2, 4, 4, 4, 4, 8, 8, 8, 8, 8, 8, 8, 8, 16};
+}
+
 /** An allocator allocating memory from a pool of memory.
 The memory can for instance be the CUDA shared memory.
 This allocator is incomplete as it never frees the memory allocated.
@@ -112,11 +119,13 @@ class pool_allocator {
     size_t capacity;
     size_t offset;
     size_t alignment;
-    size_t counter;
     size_t num_deallocations;
+    size_t num_allocations;
+    size_t unaligned_wasted_bytes;
+    size_t counter;
 
     CUDA control_block(unsigned char* mem, size_t capacity, size_t alignment)
-     : mem(mem), capacity(capacity), offset(0), alignment(alignment), num_deallocations(0), counter(1)
+     : mem(mem), capacity(capacity), offset(0), alignment(alignment), num_deallocations(0), num_allocations(0), unaligned_wasted_bytes(0), counter(1)
     {}
 
     CUDA void* allocate(size_t bytes) {
@@ -124,18 +133,24 @@ class pool_allocator {
       if(bytes == 0) {
         return nullptr;
       }
-      if(size_t(&mem[offset]) % alignment != 0) { // If we are currently unaligned.
-        offset += alignment - (size_t(&mem[offset]) % alignment);
+      size_t smallest_alignment = (bytes > alignment || alignment > 16) ? alignment : impl::power2[bytes];
+      if(size_t(&mem[offset]) % smallest_alignment != 0) { // If we are currently unaligned.
+        size_t old_offset = offset;
+        offset += smallest_alignment - (size_t(&mem[offset]) % smallest_alignment);
+        unaligned_wasted_bytes += (offset - old_offset);
       }
       assert(offset + bytes <= capacity);
-      assert((size_t)&mem[offset] % alignment == 0);
+      assert((size_t)&mem[offset] % smallest_alignment == 0);
       void* m = (void*)&mem[offset];
       offset += bytes;
+      num_allocations++;
       return m;
     }
 
-    CUDA void deallocate() {
-      num_deallocations++;
+    CUDA void deallocate(void* ptr) {
+      if(ptr != nullptr) {
+        num_deallocations++;
+      }
     }
   };
 
@@ -173,12 +188,20 @@ public:
     return block->allocate(bytes);
   }
 
-  CUDA NI void deallocate(void*) {
-    block->deallocate();
+  CUDA NI void deallocate(void* ptr) {
+    block->deallocate(ptr);
   }
 
   CUDA NI void print() const {
-    printf("Used %lu / %lu\n", block->offset, block->capacity);
+    printf("%% %lu / %lu used [%lu/%lu]KB [%lu/%lu]MB\n",
+      block->offset, block->capacity,
+      block->offset/1000, block->capacity/1000,
+      block->offset/1000/1000, block->capacity/1000/1000);
+    printf("%% %lu / %lu wasted for alignment [%lu/%lu]KB [%lu/%lu]MB\n",
+      block->unaligned_wasted_bytes, block->offset,
+      block->unaligned_wasted_bytes/1000, block->offset/1000,
+      block->unaligned_wasted_bytes/1000/1000, block->offset/1000/1000);
+    printf("%% %lu allocations and %lu deallocations\n", block->num_allocations, block->num_deallocations);
   }
 
   CUDA size_t used() const {
@@ -191,6 +214,14 @@ public:
 
   CUDA size_t num_deallocations() const {
     return block->num_deallocations;
+  }
+
+  CUDA size_t num_allocations() const {
+    return block->num_allocations;
+  }
+
+  CUDA size_t unaligned_wasted_bytes() const {
+    return block->unaligned_wasted_bytes;
   }
 };
 }
