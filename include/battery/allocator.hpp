@@ -142,8 +142,6 @@ class pool_allocator {
   control_block* block;
 
 public:
-  pool_allocator() = default;
-
   CUDA NI pool_allocator(const pool_allocator& other):
     block(other.block)
   {
@@ -166,39 +164,32 @@ public:
   }
 
   CUDA size_t align_at(size_t alignment) {
-    assert(block != nullptr);
     size_t old = block->alignment;
     block->alignment = alignment;
     return old;
   }
 
   CUDA NI void* allocate(size_t bytes) {
-    assert(block != nullptr);
     return block->allocate(bytes);
   }
 
   CUDA NI void deallocate(void*) {
-    assert(block != nullptr);
     block->deallocate();
   }
 
   CUDA NI void print() const {
-    assert(block != nullptr);
     printf("Used %lu / %lu\n", block->offset, block->capacity);
   }
 
   CUDA size_t used() const {
-    assert(block != nullptr);
     return block->offset;
   }
 
   CUDA size_t capacity() const {
-    assert(block != nullptr);
     return block->capacity;
   }
 
   CUDA size_t num_deallocations() const {
-    assert(block != nullptr);
     return block->num_deallocations;
   }
 };
