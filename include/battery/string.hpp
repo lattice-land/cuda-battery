@@ -64,6 +64,11 @@ public:
     printf("%s", data());
   }
 
+  CUDA NI bool ends_with(const char* suffix) const {
+    size_t suffix_len = strlen(suffix);
+    return battery::strcmp(data() + size() - suffix_len, suffix) == 0;
+  }
+
   template <class IntegerType>
   CUDA NI static this_type from_int(IntegerType x, const allocator_type& alloc = allocator_type()) {
     if(x == 0) { return this_type("0", alloc); }
@@ -84,6 +89,7 @@ public:
     }
     return std::move(buffer);
   }
+
 
   template<class Alloc1, class Alloc2>
   CUDA friend bool operator==(const string<Alloc1>& lhs, const string<Alloc2>& rhs);

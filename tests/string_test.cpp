@@ -97,3 +97,21 @@ TEST(String, FromInt) {
   EXPECT_EQ(string<>::from_int(-101), "-101");
   EXPECT_EQ(string<>::from_int(-2320194), "-2320194");
 }
+
+TEST(String, EndsWith) {
+  string<> empty;
+  string<> a1("a");
+  string<> a2("abc");
+  EXPECT_TRUE(empty.ends_with(""));
+  EXPECT_FALSE(empty.ends_with("a"));
+  EXPECT_TRUE(a1.ends_with(""));
+  EXPECT_TRUE(a1.ends_with("a"));
+  EXPECT_FALSE(a1.ends_with("b"));
+  EXPECT_FALSE(a1.ends_with("aa"));
+  EXPECT_TRUE(a2.ends_with(""));
+  EXPECT_TRUE(a2.ends_with("c"));
+  EXPECT_TRUE(a2.ends_with("bc"));
+  EXPECT_TRUE(a2.ends_with("abc"));
+  EXPECT_FALSE(a2.ends_with("ab"));
+  EXPECT_FALSE(a2.ends_with("a"));
+}
