@@ -1,9 +1,18 @@
-# Standard Library for CUDA programming
+# Standard Library for CUDA Programming
 
 [![Build Status](https://travis-ci.com/lattice-land/cuda-battery.svg?branch=main)](https://travis-ci.com/lattice-land/cuda-battery)
 
 This library provides data structures to ease programming in CUDA (version 12 or higher).
-For a tutorial and further information, please read [this manual](https://lattice-land.github.io/CUDA-Battery.html).
+For a tutorial and further information, please read [this manual](https://lattice-land.github.io/1-cuda-battery.html).
+
+## Common Questions
+
+* [How to transfer data from the CPU to the GPU?](https://lattice-land.github.io/2-cuda-battery.html)
+* [How to create a CMake project for CUDA project?](https://lattice-land.github.io/3-cuda-battery.html)
+* [How to allocate a vector shared by all threads of a block inside a kernel?](https://lattice-land.github.io/4-cuda-battery.html#block-local-memory)
+* [How to allocate a vector shared by all blocks inside a kernel?](https://lattice-land.github.io/4-cuda-battery.html#grid-local-memory)
+* [CUDA runtime error an illegal memory access was encountered](https://lattice-land.github.io/4-cuda-battery.html#avoiding-obscure-cuda-runtime-errors)
+* [How to allocate a vector in shared memory?](https://lattice-land.github.io/5-cuda-battery.html)
 
 ## Quick Reference
 
@@ -27,12 +36,3 @@ For a tutorial and further information, please read [this manual](https://lattic
 | | [`mul_up`](https://lattice-land.github.io/cuda-battery/namespacebattery.html#ae3edf2725aaea683aff7a100733b26f2) | [`mul_down`](https://lattice-land.github.io/cuda-battery/namespacebattery.html#a6dd3e5546b5286d98cb29c7560542759) | [`div_up`](https://lattice-land.github.io/cuda-battery/namespacebattery.html#a3ce4b4df0f80c5b19c7d3b401464f309) | [`div_down`](https://lattice-land.github.io/cuda-battery/namespacebattery.html#ac253a56f7fa54ade8f2eb762d3b317f9) |
 | [Memory](https://lattice-land.github.io/cuda-battery/memory_8hpp.html)  | [`local_memory`](https://lattice-land.github.io/cuda-battery/namespacebattery.html#a09111ca968cc4d8defa60555963dd052) | [`read_only_memory`](https://lattice-land.github.io/cuda-battery/namespacebattery.html#a22ff3da8ce553868de9c2b8fe604fe3c) | [`atomic_memory`](https://lattice-land.github.io/cuda-battery/classbattery_1_1atomic__memory.html) | |
 | | [`atomic_scoped_memory`](https://lattice-land.github.io/cuda-battery/classbattery_1_1atomic__memory__scoped.html) | [`atomic_memory_block`](https://lattice-land.github.io/cuda-battery/namespacebattery.html#afb485d8f961537d1ca590f78d16ac1c4) | [`atomic_memory_grid`](https://lattice-land.github.io/cuda-battery/namespacebattery.html#a2af42ce969d94b6b8bb1ed9a94b9cf49) | |
-
-## Highlights
-
-* [How to transfer data from the CPU to the GPU?](https://lattice-land.github.io/CUDA-Battery.html#transferring-data-from-the-cpu-to-the-gpu)
-* [How to create a CMake project for CUDA project?](https://lattice-land.github.io/CUDA-Battery.html#cmake-cuda-project)
-* [How to allocate a vector shared by all threads of a block inside a kernel?](https://lattice-land.github.io/CUDA-Battery.html#block-local-memory)
-* [How to allocate a vector shared by all blocks inside a kernel?](https://lattice-land.github.io/CUDA-Battery.html#grid-local-memory)
-* [CUDA runtime error an illegal memory access was encountered](https://lattice-land.github.io/CUDA-Battery.html#avoiding-obscure-cuda-runtime-errors)
-* [How to allocate a vector in shared memory?](https://lattice-land.github.io/CUDA-Battery.html#shared-memory-allocator)
