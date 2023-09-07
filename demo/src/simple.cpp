@@ -1,7 +1,6 @@
 // Copyright 2023 Pierre Talbot
 
 #include <vector>
-#include <string>
 #include "battery/vector.hpp"
 #include "battery/unique_ptr.hpp"
 #include "battery/allocator.hpp"
