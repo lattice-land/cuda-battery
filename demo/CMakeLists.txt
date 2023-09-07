@@ -10,9 +10,8 @@ if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
   set(CMAKE_CUDA_ARCHITECTURES native)
 endif()
 
-# Name, version and information about this project.
+# Name and information about this project.
 project(cuda-battery-demo
-  VERSION 1.0.0
   HOMEPAGE_URL "https://github.com/lattice-land/cuda-battery"
   LANGUAGES CUDA CXX)
 

@@ -6,7 +6,6 @@ if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
 endif()
 
 project(cuda-battery
-  VERSION 1.1.0
   HOMEPAGE_URL "https://github.com/lattice-land/cuda-battery"
   LANGUAGES CUDA CXX)
 option(GPU "GPU" ON)
