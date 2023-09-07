@@ -39,6 +39,7 @@ FetchContent_MakeAvailable(cuda_battery)
 set_source_files_properties(
   src/demo.cpp
   src/inkernel_allocation.cpp
+  src/simple.cpp
   PROPERTIES LANGUAGE CUDA)
 
 # Multiple CUDA files?
@@ -64,6 +65,10 @@ target_compile_options(demo PRIVATE
 # Describe the second executable.
 add_executable(inkernel_allocation src/inkernel_allocation.cpp)
 target_link_libraries(inkernel_allocation cuda_battery)
+
+# Describe the third executable.
+add_executable(simple src/simple.cpp)
+target_link_libraries(simple cuda_battery)
 
 # IV. Build and execute the CPU and GPU tests.
 # You can simply add new CPU tests by adding a new file in `tests/`, and GPU tests by terminating the filename with "gpu".
