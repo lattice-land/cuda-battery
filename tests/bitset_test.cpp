@@ -1,6 +1,7 @@
 // Copyright 2022 Pierre Talbot
 
 #include <gtest/gtest.h>
+#include "battery/dynamic_bitset.hpp"
 #include "battery/bitset.hpp"
 #include "battery/memory.hpp"
 #include <climits>
@@ -8,6 +9,7 @@
 
 using namespace battery;
 
+using DynBitset = dynamic_bitset<local_memory>;
 using Bitset1 = bitset<1, local_memory>;
 using Bitset10 = bitset<10, local_memory>;
 using Bitset64 = bitset<64, local_memory>;
@@ -15,7 +17,7 @@ using Bitset70 = bitset<70, local_memory>;
 using Bitset512 = bitset<512, local_memory>;
 using Bitset1001 = bitset<1001, local_memory>;
 
-#define TEST_ALL(fun) \
+#define TEST_ALL_STATIC(fun) \
   fun<Bitset1>(); \
   fun<Bitset10>(); \
   fun<Bitset64>(); \
@@ -23,12 +25,16 @@ using Bitset1001 = bitset<1001, local_memory>;
   fun<Bitset512>(); \
   fun<Bitset1001>();
 
+#define TEST_ALL(fun) \
+  fun<DynBitset>(); \
+  TEST_ALL_STATIC(fun);
+
 template<class B>
 void test_default_constructor() {
   const B b;
   EXPECT_TRUE(b.none());
   EXPECT_FALSE(b.any());
-  EXPECT_FALSE(b.all());
+  EXPECT_FALSE(b.size() == 0 ? !b.all() : b.all());
   EXPECT_EQ(b.count(), 0);
   for(int i = 0; i < b.size(); ++i) {
     EXPECT_FALSE(b.test(i));
@@ -54,17 +60,25 @@ void test_string_constructor() {
   EXPECT_FALSE(b2.none());
   EXPECT_TRUE(b2.any());
   EXPECT_EQ(b2.all(), b2.size() == b2.count());
-  EXPECT_EQ(b2.count(), b2.size());
-  for(int i = 0; i < b2.size(); ++i) {
+  EXPECT_EQ(b2.count(), b1.size());
+  for(int i = 0; i < b1.size(); ++i) {
     EXPECT_TRUE(b2.test(i));
   }
   const B b3(b2);
   EXPECT_FALSE(b3.none());
   EXPECT_TRUE(b3.any());
   EXPECT_EQ(b3.all(), b3.size() == b3.count());
-  EXPECT_EQ(b3.count(), b3.size());
-  for(int i = 0; i < b3.size(); ++i) {
+  EXPECT_EQ(b3.count(), b1.size());
+  for(int i = 0; i < b1.size(); ++i) {
     EXPECT_TRUE(b3.test(i));
+  }
+  const B b4("");
+  EXPECT_TRUE(b4.none());
+  EXPECT_FALSE(b4.any());
+  EXPECT_EQ(b4.all(), b4.size() == b4.count());
+  EXPECT_EQ(b4.count(), 0);
+  for(int i = 0; i < b4.size(); ++i) {
+    EXPECT_FALSE(b4.test(i));
   }
 }
 
@@ -92,7 +106,7 @@ void test_set_and_test() {
 }
 
 TEST(Bitset, SetAndTest) {
-  TEST_ALL(test_set_and_test);
+  TEST_ALL_STATIC(test_set_and_test);
 }
 
 TEST(Bitset, Flip) {
@@ -108,20 +122,21 @@ TEST(Bitset, Flip) {
   EXPECT_EQ(b1, b2);
 }
 
-TEST(Bitset, SetOperations) {
-  bitset<19, local_memory, unsigned char> zero;
-  bitset<19, local_memory, unsigned char> one("0000000000000000001");
-  bitset<19, local_memory, unsigned char> two("0000000000000000011");
-  bitset<19, local_memory, unsigned char> b1("1000000011000000000");
-  bitset<19, local_memory, unsigned char> b2("1000000011000000011");
-  bitset<19, local_memory, unsigned char> b3("0001000011000010000");
-  bitset<19, local_memory, unsigned char> b4("0000000011000000000");
-  bitset<19, local_memory, unsigned char> b5("1001000011000010000");
-  bitset<19, local_memory, unsigned char> b6("1001000011000010011");
-  bitset<19, local_memory, unsigned char> b7("1001000000000010000");
-  bitset<19, local_memory, unsigned char> b8("1001000000000010011");
-  bitset<19, local_memory, unsigned char> all;
-  all.set();
+template <class B>
+void set_operations() {
+  B zero("0000000000000000000");
+  B one("0000000000000000001");
+  B two("0000000000000000011");
+  B b1("1000000011000000000");
+  B b2("1000000011000000011");
+  B b3("0001000011000010000");
+  B b4("0000000011000000000");
+  B b5("1001000011000010000");
+  B b6("1001000011000010011");
+  B b7("1001000000000010000");
+  B b8("1001000000000010011");
+  B all(zero);
+  all.flip();
   // Intersection
 
   // Zero
@@ -199,8 +214,8 @@ TEST(Bitset, SetOperations) {
   EXPECT_EQ(b3 ^ b2, b8);
 
   // Inclusion
-  bitset<19, local_memory, unsigned char> b9("1111111100011111111");
-  bitset<19, local_memory, unsigned char> b10("1111111110111111111");
+  B b9("1111111100011111111");
+  B b10("1111111110111111111");
 
   EXPECT_TRUE(zero.is_subset_of(zero));
   EXPECT_TRUE(one.is_subset_of(one));
@@ -247,6 +262,11 @@ TEST(Bitset, SetOperations) {
 
   EXPECT_FALSE(b2.is_proper_subset_of(b3));
   EXPECT_FALSE(b3.is_proper_subset_of(b2));
+}
+
+TEST(Bitset, SetOperations) {
+  set_operations<bitset<19, local_memory, unsigned char>>();
+  set_operations<dynamic_bitset<local_memory, standard_allocator, unsigned char>>();
 }
 
 TEST(Bitset, BitCountingOperations) {
