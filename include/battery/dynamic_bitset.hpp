@@ -68,10 +68,10 @@ public:
     }
   }
 
-  /** Set all bits in the range [start..end] to `1` and create a bitset with at least `end` bits.
+  /** Set all bits in the range [start..end] to `1` and create a bitset with at least `end+1` bits.
    * `end >= start`. */
   CUDA dynamic_bitset(size_t start, size_t end, const allocator_type& alloc = allocator_type())
-   : dynamic_bitset(end, alloc) {
+   : dynamic_bitset(end+1, alloc) {
     assert(end >= start);
     int block_start = start / BITS_PER_BLOCK;
     int block_end = end / BITS_PER_BLOCK;
@@ -79,7 +79,7 @@ public:
     for(int k = block_start + 1; k <= block_end; ++k) {
       store(blocks[k], ONES);
     }
-    store(blocks[block_end], load(blocks[block_end]) & ~(ONES << (end % BITS_PER_BLOCK)));
+    store(blocks[block_end], Mem::load(blocks[block_end]) & (ONES >> ((BITS_PER_BLOCK-(end % BITS_PER_BLOCK)-1))));
   }
 
   template<class Mem2, class Alloc2>

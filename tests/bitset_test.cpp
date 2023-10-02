@@ -87,6 +87,35 @@ TEST(Bitset, Constructor) {
   TEST_ALL(test_string_constructor);
 }
 
+void test_range(int s, int e) {
+  DynBitset b(s, e);
+  EXPECT_EQ(b.count(), e-s+1);
+  int pos = 0;
+  for(; pos < s; ++pos) {
+    EXPECT_FALSE(b.test(pos));
+  }
+  for(; pos <= e; ++pos) {
+    EXPECT_TRUE(b.test(pos));
+  }
+  for(; pos < b.size(); ++pos) {
+    EXPECT_FALSE(b.test(pos));
+  }
+}
+
+TEST(Bitset, RangeConstructor) {
+  test_range(0, 10);
+  test_range(0, 100);
+  test_range(50, 100);
+  test_range(10, 10);
+  test_range(0, 0);
+  test_range(64, 64);
+  test_range(63, 63);
+  test_range(64, 127);
+  test_range(63, 128);
+  test_range(0, 63);
+  test_range(0, 64);
+}
+
 template<class B>
 void test_set_and_test() {
   B b;
