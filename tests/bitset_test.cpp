@@ -116,6 +116,13 @@ TEST(Bitset, RangeConstructor) {
   test_range(0, 64);
 }
 
+TEST(DynBitset, Assignment) {
+  DynBitset b("111111111");
+  test_range(0, 8);
+  b = DynBitset("1111");
+  test_range(0, 3);
+}
+
 template<class B>
 void test_set_and_test() {
   B b;

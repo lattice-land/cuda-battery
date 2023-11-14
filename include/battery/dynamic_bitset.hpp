@@ -95,6 +95,11 @@ public:
   CUDA dynamic_bitset(const this_type& from)
    : this_type(from, from.get_allocator()) {}
 
+  CUDA this_type& operator=(this_type&& other) {
+    blocks = std::move(other.blocks);
+    return *this;
+  }
+
   CUDA allocator_type get_allocator() const {
     return blocks.get_allocator();
   }
