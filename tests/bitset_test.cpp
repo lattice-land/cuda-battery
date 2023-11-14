@@ -123,6 +123,13 @@ TEST(DynBitset, Assignment) {
   test_range(0, 3);
 }
 
+TEST(DynBitset, Resize) {
+  DynBitset b(0, 4);
+  EXPECT_EQ(b.size(), CHAR_BIT * sizeof(unsigned long long));
+  b.resize((-3) + 100 * CHAR_BIT * sizeof(unsigned long long));
+  EXPECT_EQ(b.size(), 100 * CHAR_BIT * sizeof(unsigned long long));
+}
+
 template<class B>
 void test_set_and_test() {
   B b;

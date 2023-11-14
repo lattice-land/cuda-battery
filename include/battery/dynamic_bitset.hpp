@@ -27,6 +27,7 @@ private:
   constexpr static T ZERO = T{0};
   constexpr static T ONES = ~T{0};
 
+private:
   using block_type = typename Mem::template atomic_type<T>;
   using allocator_type = Allocator;
   using this_type = dynamic_bitset<Mem, Allocator, T>;
@@ -164,6 +165,10 @@ public:
 
   CUDA constexpr size_t size() const {
     return BITS_PER_BLOCK * blocks.size();
+  }
+
+  CUDA void resize(size_t at_least_num_bits) {
+    blocks.resize(num_blocks(at_least_num_bits));
   }
 
   CUDA constexpr size_t count() const {
