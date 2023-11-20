@@ -79,7 +79,7 @@ private:
       new(&data_[i]) value_type(allocator);
     }
     else {
-      new(&data_[i]) value_type;
+      new(&data_[i]) value_type{};
     }
   }
 

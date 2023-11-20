@@ -167,8 +167,15 @@ public:
     return BITS_PER_BLOCK * blocks.size();
   }
 
+  // Only the values of the first `at_least_num_bits` are copied in the new resized bitset.
   CUDA void resize(size_t at_least_num_bits) {
-    blocks.resize(num_blocks(at_least_num_bits));
+    // NOTE: We cannot call vector.resize because it does not support resizing non-copyable, non-movable types such as atomics.
+    // Therefore, we implement our own resizing function using explicit load and store operations.
+    this_type bitset2(at_least_num_bits, get_allocator());
+    for(int i = 0; i < at_least_num_bits && i < size(); ++i) {
+      bitset2.set(i, test(i));
+    }
+    blocks.swap(bitset2.blocks);
   }
 
   CUDA constexpr size_t count() const {

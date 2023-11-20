@@ -87,8 +87,7 @@ TEST(Bitset, Constructor) {
   TEST_ALL(test_string_constructor);
 }
 
-void test_range(int s, int e) {
-  DynBitset b(s, e);
+void test_range(const DynBitset& b, int s, int e) {
   EXPECT_EQ(b.count(), e-s+1);
   int pos = 0;
   for(; pos < s; ++pos) {
@@ -100,6 +99,11 @@ void test_range(int s, int e) {
   for(; pos < b.size(); ++pos) {
     EXPECT_FALSE(b.test(pos));
   }
+}
+
+void test_range(int s, int e) {
+  DynBitset b(s, e);
+  test_range(b, s, e);
 }
 
 TEST(Bitset, RangeConstructor) {
@@ -118,16 +122,36 @@ TEST(Bitset, RangeConstructor) {
 
 TEST(DynBitset, Assignment) {
   DynBitset b("111111111");
-  test_range(0, 8);
+  test_range(b, 0, 8);
   b = DynBitset("1111");
-  test_range(0, 3);
+  test_range(b, 0, 3);
 }
 
 TEST(DynBitset, Resize) {
-  DynBitset b(0, 4);
-  EXPECT_EQ(b.size(), CHAR_BIT * sizeof(unsigned long long));
-  b.resize((-3) + 100 * CHAR_BIT * sizeof(unsigned long long));
-  EXPECT_EQ(b.size(), 100 * CHAR_BIT * sizeof(unsigned long long));
+  DynBitset b1(0, 4);
+  EXPECT_EQ(b1.size(), CHAR_BIT * sizeof(unsigned long long));
+  test_range(b1, 0, 4);
+  b1.resize((-3) + 100 * CHAR_BIT * sizeof(unsigned long long));
+  EXPECT_EQ(b1.size(), 100 * CHAR_BIT * sizeof(unsigned long long));
+  test_range(b1, 0, 4);
+
+  DynBitset b2;
+  EXPECT_TRUE(b2.none());
+  EXPECT_EQ(b2.size(), 0);
+  EXPECT_EQ(b2.count(), 0);
+  b2.resize(1);
+  EXPECT_TRUE(b2.none());
+  EXPECT_EQ(b2.size(), CHAR_BIT * sizeof(unsigned long long));
+  EXPECT_EQ(b2.count(), 0);
+  b2.resize(1000 * CHAR_BIT * sizeof(unsigned long long));
+  EXPECT_TRUE(b2.none());
+  EXPECT_EQ(b2.size(), 1000 * CHAR_BIT * sizeof(unsigned long long));
+  EXPECT_EQ(b2.count(), 0);
+  b2.flip();
+  b2.resize(0);
+  EXPECT_TRUE(b2.none());
+  EXPECT_EQ(b2.size(), 0);
+  EXPECT_EQ(b2.count(), 0);
 }
 
 template<class B>
