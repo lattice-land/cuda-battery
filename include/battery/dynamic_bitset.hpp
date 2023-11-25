@@ -23,11 +23,12 @@ namespace battery {
 template <class Mem, class Allocator = standard_allocator, class T = unsigned long long>
 class dynamic_bitset {
 private:
-  constexpr static size_t BITS_PER_BLOCK = sizeof(T) * CHAR_BIT;
-  constexpr static T ZERO = T{0};
-  constexpr static T ONES = ~T{0};
+  constexpr static const size_t BITS_PER_BLOCK = sizeof(T) * CHAR_BIT;
 
-private:
+  // Would be better to have constexpr, but it gives an error "undefined in device code", probably because of the call to the constructor of `T`.
+  #define ZERO (T{0})
+  #define ONES (~T{0})
+
   using block_type = typename Mem::template atomic_type<T>;
   using allocator_type = Allocator;
   using this_type = dynamic_bitset<Mem, Allocator, T>;
@@ -50,6 +51,9 @@ private:
   }
 
 public:
+  template <class Mem2, class Allocator2, class T2>
+  friend class dynamic_bitset;
+
   static_assert(std::is_integral_v<T> && std::is_unsigned_v<T>, "Block of a bitset must be defined on an unsigned integer type.");
 
   CUDA dynamic_bitset(const allocator_type& alloc = allocator_type())
@@ -344,6 +348,9 @@ template<class Mem, class Alloc, class T>
 CUDA constexpr dynamic_bitset<Mem, Alloc, T> operator^(const dynamic_bitset<Mem, Alloc, T>& lhs, const dynamic_bitset<Mem, Alloc, T>& rhs) {
   return dynamic_bitset<Mem, Alloc, T>(lhs) ^= rhs;
 }
+
+#undef ZERO
+#undef ONES
 
 } // namespace battery
 
