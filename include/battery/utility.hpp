@@ -646,6 +646,7 @@ template<typename T>
 CUDA NI void print(const T& t) {
   t.print();
 }
+template<> CUDA NI inline void print(const bool &x) { x ? printf("true") : printf("false"); }
 template<> CUDA NI inline void print(const char &x) { printf("%c", x); }
 template<> CUDA NI inline void print(const short &x) { printf("%d", (int)x); }
 template<> CUDA NI inline void print(const int &x) { printf("%d", x); }
