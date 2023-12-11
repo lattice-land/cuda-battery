@@ -165,6 +165,10 @@ private:
   }
 
 public:
+  CUDA variant(): variant_id(0) {
+    new(&data) alternative<0>{};
+  }
+
   template<size_t i>
   CUDA NI static variant create(const alternative<i>& value)
   {
