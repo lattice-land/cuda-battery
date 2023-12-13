@@ -105,14 +105,14 @@ public:
   }
 
   /** Default constructor.*/
-  CUDA vector(const allocator_type& alloc = allocator_type())
+  CUDA vector(const allocator_type& alloc = allocator_type{})
    : n(0), cap(0), allocator(alloc), data_(nullptr) {}
 
   /** Allocate an array of size `n` using `allocator`.
       Initialize the elements of the array with those of the array `from`.
       `Allocator` is scoped, meaning it will be passed to the constructor of `T` if `T(const T&, const Allocator&)` exists, otherwise `T(const T&)` is called.  */
   template <class U>
-  CUDA NI vector(const U* from, size_t n, const allocator_type& alloc = allocator_type())
+  CUDA NI vector(const U* from, size_t n, const allocator_type& alloc = allocator_type{})
    : n(n), cap(n), allocator(alloc), data_(allocate())
   {
     for(size_t i = 0; i < n; ++i) {
@@ -122,7 +122,7 @@ public:
 
   /** Copy constructor with an allocator, useful when the vector we copied from was declared using another allocator. */
   template <class U, class Allocator2>
-  CUDA vector(const vector<U, Allocator2>& from, const allocator_type& alloc = allocator_type())
+  CUDA vector(const vector<U, Allocator2>& from, const allocator_type& alloc = allocator_type{})
    : this_type(from.data(), from.size(), alloc) {}
 
   /** Copy constructor with different underlying types. */
@@ -137,7 +137,7 @@ public:
   /** Initialize of an array of size `n` with each element initialized to `from` using `allocator`.
    * `Allocator` is scoped, meaning it will be passed to the constructor of `T` if `T(const T&, const Allocator&)` exists, otherwise `T(const T&)` is called.  */
   template <class U>
-  CUDA NI vector(size_t n, const U& from, const allocator_type& alloc = allocator_type())
+  CUDA NI vector(size_t n, const U& from, const allocator_type& alloc = allocator_type{})
    : n(n), cap(n), allocator(alloc), data_(allocate())
   {
     for(size_t i = 0; i < n; ++i) {
@@ -149,7 +149,7 @@ public:
     swap(other);
   }
 
-  CUDA NI vector(std::initializer_list<T> init, const Allocator& alloc = Allocator())
+  CUDA NI vector(std::initializer_list<T> init, const allocator_type& alloc = allocator_type{})
    : n(init.size()), cap(init.size()), allocator(alloc), data_(allocate())
   {
     size_t i = 0;
@@ -160,7 +160,7 @@ public:
   }
 
   template <class U, class Alloc2>
-  vector(const std::vector<U, Alloc2>& other, const allocator_type& alloc = allocator_type())
+  vector(const std::vector<U, Alloc2>& other, const allocator_type& alloc = allocator_type{})
    : n(other.size()), cap(other.size()), allocator(alloc), data_(allocate())
   {
     for(size_t i = 0; i < n; ++i) {
