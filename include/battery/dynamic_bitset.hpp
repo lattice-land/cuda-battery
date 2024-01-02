@@ -185,7 +185,7 @@ public:
   CUDA constexpr size_t count() const {
     size_t bits_at_one = 0;
     for(int i = 0; i < blocks.size(); ++i){
-      bits_at_one += popcount(blocks[i]);
+      bits_at_one += popcount(Mem::load(blocks[i]));
     }
     return bits_at_one;
   }
@@ -306,7 +306,7 @@ public:
   template<class Mem2, class Alloc2>
   CUDA constexpr bool operator==(const dynamic_bitset<Mem2, Alloc2, T>& other) const {
     for(int i = 0; i < blocks.size(); ++i) {
-      if(blocks[i] != other.blocks[i]) {
+      if(Mem::load(blocks[i]) != Mem2::load(other.blocks[i])) {
         return false;
       }
     }
