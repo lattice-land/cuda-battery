@@ -642,6 +642,58 @@ CUDA constexpr T div_down(T x, T y) {
   #endif
 }
 
+// Truncated division and modulus, by default in C++.
+template <class T>
+CUDA constexpr T tdiv(T x, T y) {
+  static_assert(std::is_integral_v<T>, "tdiv only works on integer values.");
+  return x / y;
+}
+
+template <class T>
+CUDA constexpr T tmod(T x, T y) {
+  static_assert(std::is_integral_v<T>, "tdiv only works on integer values.");
+  return x % y;
+}
+
+// Floor division and modulus, see (Leijen D. (2003). Division and Modulus for Computer Scientists).
+template <class T>
+CUDA constexpr T fdiv(T x, T y) {
+  static_assert(std::is_integral_v<T>, "fdiv only works on integer values.");
+  return x / y - (battery::signum(x % y) == -battery::signum(y));
+}
+
+template <class T>
+CUDA constexpr T fmod(T x, T y) {
+  static_assert(std::is_integral_v<T>, "fmod only works on integer values.");
+  return x % y + y * (battery::signum(x % y) == -battery::signum(y));
+}
+
+// Ceil division and modulus.
+template <class T>
+CUDA constexpr T cdiv(T x, T y) {
+  static_assert(std::is_integral_v<T>, "cdiv only works on integer values.");
+  return x / y + (battery::signum(x % y) == battery::signum(y));
+}
+
+template <class T>
+CUDA constexpr T cmod(T x, T y) {
+  static_assert(std::is_integral_v<T>, "cmod only works on integer values.");
+  return x % y - y * (battery::signum(x % y) == battery::signum(y));
+}
+
+// Euclidean division and modulus, see (Leijen D. (2003). Division and Modulus for Computer Scientists).
+template <class T>
+CUDA constexpr T ediv(T x, T y) {
+  static_assert(std::is_integral_v<T>, "ediv only works on integer values.");
+  return x / y - ((x % y >= 0) ? 0 : battery::signum(y));
+}
+
+template <class T>
+CUDA constexpr T emod(T x, T y) {
+  static_assert(std::is_integral_v<T>, "emod only works on integer values.");
+  return x % y + y * ((x % y >= 0) ? 0 : battery::signum(y));
+}
+
 template<typename T>
 CUDA NI void print(const T& t) {
   t.print();
