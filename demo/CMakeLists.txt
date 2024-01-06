@@ -2,12 +2,16 @@ cmake_minimum_required(VERSION 3.24)
 
 cmake_policy(SET CMP0135 NEW)
 
+if(MSVC)
+  set(CMAKE_CONFIGURATION_TYPES "Debug;Release" CACHE STRING "Available configuration types to select")
+endif()
+
 # I. Project main description and options.
 
 # We compile the project for the native architecture, unless the user has specified a different architecture.
 # An architecture specification can be given at configuration time using `-DCMAKE_CUDA_ARCHITECTURES=75`.
-if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
-  set(CMAKE_CUDA_ARCHITECTURES native)
+if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES AND "$ENV{CUDAARCHS}" STREQUAL "")
+  set(CMAKE_CUDA_ARCHITECTURES native CACHE STRING "Targeted CUDA architectures")
 endif()
 
 # Name and information about this project.

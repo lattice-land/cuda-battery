@@ -67,6 +67,7 @@ void make_unique_grid_test() {
 }
 
 int main() {
+  battery::configuration::gpu.init();
   make_unique_block_test();
   int supportsCoopLaunch = 0;
   cudaDeviceGetAttribute(&supportsCoopLaunch, cudaDevAttrCooperativeLaunch, 0);

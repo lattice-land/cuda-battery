@@ -1,8 +1,12 @@
 cmake_minimum_required(VERSION 3.24)
 cmake_policy(SET CMP0135 NEW)
 
-if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
-  set(CMAKE_CUDA_ARCHITECTURES native)
+if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES AND "$ENV{CUDAARCHS}" STREQUAL "")
+  set(CMAKE_CUDA_ARCHITECTURES native CACHE STRING "Targeted CUDA architectures")
+endif()
+
+if(MSVC)
+  set(CMAKE_CONFIGURATION_TYPES "Debug;Release" CACHE STRING "Available configuration types to select")
 endif()
 
 project(cuda-battery
@@ -26,7 +30,7 @@ target_compile_options(cuda_battery INTERFACE
     # -frounding-math is necessary with GCC because `#pragma STDC FENV_ACCESS ON` does not work.
     # This option will help in making the compiler take into account rounding modes, but bugs persist so floating-point arithmetic on CPUs might not always be correct right now...
     # C.f. https://gcc.gnu.org/bugzilla/show_bug.cgi?id=34678
-    "$<$<AND:$<COMPILE_LANGUAGE:CUDA>,$<CUDA_COMPILER_ID:NVIDIA>>:SHELL:--compiler-options -frounding-math>"
+    "$<$<AND:$<CXX_COMPILER_ID:GNU,Clang>,$<COMPILE_LANGUAGE:CUDA>,$<CUDA_COMPILER_ID:NVIDIA>>:SHELL:--compiler-options -frounding-math>"
     "$<$<CXX_COMPILER_ID:GNU,Clang>:-frounding-math>"
 )
 
@@ -44,6 +48,7 @@ FetchContent_Declare(
   googletest
   GIT_REPOSITORY "https://github.com/google/googletest"
   GIT_TAG v1.14.0
+  GIT_SHALLOW 1
 )
 # For Windows: Prevent overriding the parent project's compiler/linker settings
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
@@ -69,6 +74,7 @@ if(GPU)
     set_source_files_properties(${file} PROPERTIES LANGUAGE CUDA)
     add_executable(${test_name} ${file})
     target_link_libraries(${test_name} cuda_battery)
+    target_link_options(${test_name} PRIVATE $<$<CXX_COMPILER_ID:MSVC>:/NODEFAULTLIB:LIBCMT>)
     add_test(NAME ${test_name} COMMAND compute-sanitizer --error-exitcode 1 $<TARGET_FILE:${test_name}>)
   endforeach()
 endif()

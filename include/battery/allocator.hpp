@@ -14,6 +14,9 @@ To avoid these kind of mistakes, you should use `battery::shared_ptr` when passi
 
 #include <cassert>
 #include <cstddef>
+#include <iostream>
+#include <stdexcept>
+#include <string>
 #include <type_traits>
 #include "utility.hpp"
 
@@ -31,12 +34,23 @@ public:
       return nullptr;
     }
     #ifdef __CUDA_ARCH__
-      return std::malloc(bytes);
+      void* data = std::malloc(bytes);
+      if (data == nullptr) {
+        printf("Allocation of device memory failed\n");
+        //assert(0); // Q: How to check configuration::gpu.mem_abort?
+      }
+      return data;
     #else
-      void* data;
+      void* data = nullptr;
       cudaError_t rc = cudaMalloc(&data, bytes);
       if (rc != cudaSuccess) {
-        printf("Allocation in global memory failed (error = %d)\n", rc);
+        std::string err = "Allocation of global memory failed (error = ";
+        err += std::to_string(rc);
+        err += ")";
+        std::cout << err << std::endl;
+        if (configuration::gpu.mem_abort) {
+          throw std::runtime_error(err.data());
+        }
         return nullptr;
       }
       return data;
@@ -47,7 +61,16 @@ public:
     #ifdef __CUDA_ARCH__
       std::free(data);
     #else
-      cudaFree(data);
+      cudaError_t rc = cudaFree(data);
+      if (rc != cudaSuccess) {
+        std::string err = "Free of global memory failed (error = ";
+        err += std::to_string(rc);
+        err += ")";
+        std::cout << err << std::endl;
+        if (configuration::gpu.mem_abort) {
+          throw std::runtime_error(err.data());
+        }
+      }
     #endif
   }
 };
@@ -63,8 +86,18 @@ public:
       if(bytes == 0) {
         return nullptr;
       }
-      void* data;
-      cudaMallocManaged(&data, bytes);
+      void* data = nullptr;
+      cudaError_t rc = cudaMallocManaged(&data, bytes);
+      if (rc != cudaSuccess) {
+        std::string err = "Allocation of managed memory failed (error = ";
+        err += std::to_string(rc);
+        err += ")";
+        std::cout << err << std::endl;
+        if (configuration::gpu.mem_abort) {
+          throw std::runtime_error(err.data());
+        }
+        return nullptr;
+      }
       return data;
     #endif
   }
@@ -73,7 +106,16 @@ public:
     #ifdef __CUDA_ARCH__
       return global_allocator{}.deallocate(data);
     #else
-      cudaFree(data);
+      cudaError_t rc = cudaFree(data);
+      if (rc != cudaSuccess) {
+        std::string err = "Free of managed memory failed (error = ";
+        err += std::to_string(rc);
+        err += ")";
+        std::cout << err << std::endl;
+        if (configuration::gpu.mem_abort) {
+          throw std::runtime_error(err.data());
+        }
+      }
     #endif
   }
 };
@@ -193,15 +235,15 @@ public:
   }
 
   CUDA NI void print() const {
-    printf("%% %lu / %lu used [%lu/%lu]KB [%lu/%lu]MB\n",
+    printf("%% %zu / %zu used [%zu/%zu]KB [%zu/%zu]MB\n",
       block->offset, block->capacity,
       block->offset/1000, block->capacity/1000,
       block->offset/1000/1000, block->capacity/1000/1000);
-    printf("%% %lu / %lu wasted for alignment [%lu/%lu]KB [%lu/%lu]MB\n",
+    printf("%% %zu / %zu wasted for alignment [%zu/%zu]KB [%zu/%zu]MB\n",
       block->unaligned_wasted_bytes, block->offset,
       block->unaligned_wasted_bytes/1000, block->offset/1000,
       block->unaligned_wasted_bytes/1000/1000, block->offset/1000/1000);
-    printf("%% %lu allocations and %lu deallocations\n", block->num_allocations, block->num_deallocations);
+    printf("%% %zu allocations and %zu deallocations\n", block->num_allocations, block->num_deallocations);
   }
 
   CUDA size_t used() const {

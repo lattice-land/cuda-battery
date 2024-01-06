@@ -128,6 +128,7 @@ void shared_memory_with_precomputation() {
 }
 
 int main() {
+  battery::configuration::gpu.init();
   managed_memory_test();
   global_memory_test_passing1();
   global_memory_test_passing2();
