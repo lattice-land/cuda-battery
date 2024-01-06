@@ -8,6 +8,7 @@
 #include <limits>
 #include <climits>
 #include <algorithm>
+#include <atomic>
 #include <cstring>
 #include <cmath>
 #include <cfenv>
@@ -28,6 +29,8 @@
 
   /** `CUDA` is a macro indicating that a function can be executed on a GPU. It is defined to `__device__ __host__` when the code is compiled with `nvcc`. */
   #define CUDA __device__ __host__
+
+  //#define NON_UNIFIED_MEMORY_SUPPORT
 
   namespace battery {
   namespace impl {
@@ -63,7 +66,74 @@
   #define INLINE inline
 #endif
 
+#ifdef _MSC_VER
+// The pragma for fenv_access must be declared at global scope
+#pragma fenv_access(on)
+#endif
+
 namespace battery {
+
+  /** Configuration settings for battery.
+  *
+  *  configuration::gpu.mem_abort
+  *   Print an error message and abort if the GPU runs out of memory.
+  *
+  *  configuration::gpu.no_um
+  *    Turn off the use of Unified Memory. (Not currently supported)
+  *
+  *    You can use the no_um flag to benchmark non-UM vs UM,
+  *    or to run on the NVIDIA GRID (Cloud/Enterprise vGPUs).
+  *    Unified Memory support is very limited in NVIDIA GRID.
+  *    For example, NVIDIA's GRID driver for Windows does not support it.
+  */
+  struct configuration {
+    // GPU configuration settings
+    typedef struct _gpu {
+      bool mem_abort;     // battery::configuration::gpu.mem_abort
+      bool no_um;         // battery::configuration::gpu.no_um
+      _gpu() :
+        mem_abort(false),
+        no_um(false)
+      {}
+
+      /** Query the GPU device to set the default memory allocation
+      * behavior.
+      *
+      * battery::configuration::gpu.init();
+      *
+      * This should be called once, before the first access the GPU.
+      *
+      * If skipped, the gpu flags will default to false.
+      */
+      void init() {
+#ifdef __CUDACC__
+        static std::atomic<int> once{0};
+        if (once++) {
+          return;
+        }
+        int dev = 0;
+        int supportsManagedMemory = 0;
+        CUDAEX(cudaDeviceGetAttribute(&supportsManagedMemory, cudaDevAttrManagedMemory, dev));
+        if (!supportsManagedMemory) {
+          gpu.no_um = true;
+        }
+        int supportsConcurrentManagedAccess = 0;
+        CUDAEX(cudaDeviceGetAttribute(&supportsConcurrentManagedAccess, cudaDevAttrConcurrentManagedAccess, dev))
+        if (!supportsConcurrentManagedAccess) {
+          gpu.no_um = true;
+        }
+# ifndef NON_UNIFIED_MEMORY_SUPPORT
+        if (gpu.no_um) {
+          printf("ERROR: Unified Memory is required. The GPU does not support it.\n");
+          exit(EXIT_FAILURE);
+        }
+# endif
+#endif // __CUDACC__
+      }
+
+    } gpu_t;
+    inline static gpu_t gpu;
+  };
 
 namespace impl {
   template<class T> CUDA constexpr inline void swap(T& a, T& b) {
@@ -143,7 +213,14 @@ template<class T> CUDA constexpr T isnan(T a) {
   #endif
 }
 
-CUDA constexpr inline float nextafter(float f, float dir) {
+#ifdef _MSC_VER
+// MSVC omits constexpr for nextafter (officially not available until C++23)
+# define CONSTEXPR_NEXTAFTER
+#else
+# define CONSTEXPR_NEXTAFTER constexpr
+#endif
+
+CUDA CONSTEXPR_NEXTAFTER inline float nextafter(float f, float dir) {
   #ifdef __CUDA_ARCH__
     return ::nextafterf(f, dir);
   #else
@@ -151,7 +228,7 @@ CUDA constexpr inline float nextafter(float f, float dir) {
   #endif
 }
 
-CUDA constexpr inline double nextafter(double f, double dir) {
+CUDA CONSTEXPR_NEXTAFTER inline double nextafter(double f, double dir) {
   #ifdef __CUDA_ARCH__
     return ::nextafter(f, dir);
   #else
@@ -261,7 +338,7 @@ CUDA NI constexpr To ru_cast(From x) {
   #else
     // Integer to floating-point number cast.
     if constexpr(std::is_integral_v<From> && std::is_floating_point_v<To>) {
-      #ifndef __GNUC__
+      #if !defined(__GNUC__) && !defined(_MSC_VER)
         #pragma STDC FENV_ACCESS ON
       #endif
       int r = std::fesetround(FE_UPWARD);
@@ -274,7 +351,7 @@ CUDA NI constexpr To ru_cast(From x) {
     }
     // Floating-point to floating-point.
     else if constexpr(std::is_same_v<From, double> && std::is_same_v<To, float>) {
-      #ifndef __GNUC__
+      #if !defined(__GNUC__) && !defined(_MSC_VER)
         #pragma STDC FENV_ACCESS ON
       #endif
       int r = std::fesetround(FE_UPWARD);
@@ -357,7 +434,7 @@ CUDA NI constexpr To rd_cast(From x) {
   #else
     // Integer to floating-point number cast.
     if constexpr(std::is_integral_v<From> && std::is_floating_point_v<To>) {
-      #ifndef __GNUC__
+      #if !defined(__GNUC__) && !defined(_MSC_VER)
         #pragma STDC FENV_ACCESS ON
       #endif
       int r = std::fesetround(FE_DOWNWARD);
@@ -370,7 +447,7 @@ CUDA NI constexpr To rd_cast(From x) {
     }
     // Floating-point to floating-point.
     else if constexpr(std::is_same_v<From, double> && std::is_same_v<To, float>) {
-      #ifndef __GNUC__
+      #if !defined(__GNUC__) && !defined(_MSC_VER)
         #pragma STDC FENV_ACCESS ON
       #endif
       int r = std::fesetround(FE_DOWNWARD);
@@ -551,7 +628,7 @@ CUDA constexpr T add_up(T x, T y) {
   #ifdef __CUDA_ARCH__
     FLOAT_ARITHMETIC_CUDA_IMPL(add_up, add_ru)
   #else
-    #ifndef __GNUC__
+    #if !defined(__GNUC__) && !defined(_MSC_VER)
       #pragma STDC FENV_ACCESS ON
     #endif
     FLOAT_ARITHMETIC_CPP_IMPL(+, FE_UPWARD)
@@ -563,7 +640,7 @@ CUDA constexpr T add_down(T x, T y) {
   #ifdef __CUDA_ARCH__
     FLOAT_ARITHMETIC_CUDA_IMPL(add_down, add_rd)
   #else
-    #ifndef __GNUC__
+    #if !defined(__GNUC__) && !defined(_MSC_VER)
       #pragma STDC FENV_ACCESS ON
     #endif
     FLOAT_ARITHMETIC_CPP_IMPL(+, FE_DOWNWARD)
@@ -575,7 +652,7 @@ CUDA constexpr T sub_up(T x, T y) {
   #ifdef __CUDA_ARCH__
     FLOAT_ARITHMETIC_CUDA_IMPL(sub_up, sub_ru)
   #else
-    #ifndef __GNUC__
+    #if !defined(__GNUC__) && !defined(_MSC_VER)
       #pragma STDC FENV_ACCESS ON
     #endif
     FLOAT_ARITHMETIC_CPP_IMPL(-, FE_UPWARD)
@@ -587,7 +664,7 @@ CUDA constexpr T sub_down(T x, T y) {
   #ifdef __CUDA_ARCH__
     FLOAT_ARITHMETIC_CUDA_IMPL(sub_down, sub_rd)
   #else
-    #ifndef __GNUC__
+    #if !defined(__GNUC__) && !defined(_MSC_VER)
       #pragma STDC FENV_ACCESS ON
     #endif
     FLOAT_ARITHMETIC_CPP_IMPL(-, FE_DOWNWARD)
@@ -599,7 +676,7 @@ CUDA constexpr T mul_up(T x, T y) {
   #ifdef __CUDA_ARCH__
     FLOAT_ARITHMETIC_CUDA_IMPL(mul_up, mul_ru)
   #else
-    #ifndef __GNUC__
+    #if !defined(__GNUC__) && !defined(_MSC_VER)
       #pragma STDC FENV_ACCESS ON
     #endif
     FLOAT_ARITHMETIC_CPP_IMPL(*, FE_UPWARD)
@@ -611,7 +688,7 @@ CUDA constexpr T mul_down(T x, T y) {
   #ifdef __CUDA_ARCH__
     FLOAT_ARITHMETIC_CUDA_IMPL(mul_down, mul_rd)
   #else
-    #ifndef __GNUC__
+    #if !defined(__GNUC__) && !defined(_MSC_VER)
       #pragma STDC FENV_ACCESS ON
     #endif
     FLOAT_ARITHMETIC_CPP_IMPL(*, FE_DOWNWARD)
@@ -623,7 +700,7 @@ CUDA constexpr T div_up(T x, T y) {
   #ifdef __CUDA_ARCH__
     FLOAT_ARITHMETIC_CUDA_IMPL(div_up, div_ru)
   #else
-    #ifndef __GNUC__
+    #if !defined(__GNUC__) && !defined(_MSC_VER)
       #pragma STDC FENV_ACCESS ON
     #endif
     FLOAT_ARITHMETIC_CPP_IMPL(/, FE_UPWARD)
@@ -635,7 +712,7 @@ CUDA constexpr T div_down(T x, T y) {
   #ifdef __CUDA_ARCH__
     FLOAT_ARITHMETIC_CUDA_IMPL(div_down, div_rd)
   #else
-    #ifndef __GNUC__
+    #if !defined(__GNUC__) && !defined(_MSC_VER)
       #pragma STDC FENV_ACCESS ON
     #endif
     FLOAT_ARITHMETIC_CPP_IMPL(/, FE_DOWNWARD)
@@ -714,5 +791,10 @@ template<> CUDA NI inline void print(const double &x) { printf("%lf", x); }
 template<> CUDA NI inline void print(char const* const &x) { printf("%s", x); }
 
 } // namespace battery
+
+#ifdef _MSC_VER
+// The pragma for fenv_access must be declared at global scope
+#pragma fenv_access(off)
+#endif
 
 #endif // UTILITY_HPP

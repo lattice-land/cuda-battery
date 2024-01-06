@@ -45,11 +45,17 @@ int main() {
   block_vector_copy<<<256, 256>>>(ptr);
   CUDAEX(cudaDeviceSynchronize());
 
-  void *kernelArgs[] = { &ptr }; // be careful, we need to take the address of the parameter we wish to pass.
-  dim3 dimBlock(256, 1, 1);
-  dim3 dimGrid(256, 1, 1);
-  cudaLaunchCooperativeKernel((void*)grid_vector_copy, dimGrid, dimBlock, kernelArgs);
-  CUDAEX(cudaDeviceSynchronize());
+  int dev = 0;
+  int supportsCoopLaunch = 0;
+  cudaDeviceGetAttribute(&supportsCoopLaunch, cudaDevAttrCooperativeLaunch, dev);
+  if (supportsCoopLaunch) {
+
+      void *kernelArgs[] = { &ptr }; // be careful, we need to take the address of the parameter we wish to pass.
+      dim3 dimBlock(256, 1, 1);
+      dim3 dimGrid(256, 1, 1);
+      cudaLaunchCooperativeKernel((void*)grid_vector_copy, dimGrid, dimBlock, kernelArgs);
+      CUDAEX(cudaDeviceSynchronize());
+  }
 
   mvector expected(100000, 42);
   if(expected != *ptr) {

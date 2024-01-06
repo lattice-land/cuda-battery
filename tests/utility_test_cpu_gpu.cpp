@@ -240,6 +240,7 @@ void test_bitwise_operations() {
 }
 
 int main() {
+  battery::configuration::gpu.init();
   test_all_casts();
   test_bitwise_operations<unsigned char>();
   test_bitwise_operations<unsigned short>();

@@ -32,6 +32,9 @@ private:
   /** The last block might not be fully used.
       If we have two blocks of size 8 each, but N = 10, only 2 bits are relevant in the last block.
       We have 10 % 8 = 2, then ONES << 2 gives 11111100, and ~(ONES << 2) = 00000011. */
+#ifdef _MSC_VER
+# pragma warning(disable: 4293) // The C++ standard says that the behavior of uintptr64_t << 64 is undefined (works ok though)
+#endif
   constexpr static T ONES_LAST = PADDING_LAST_BLOCK == 0 ? ONES : (T)(~(ONES << BITS_LAST_BLOCK));
 
   using block_type = typename Mem::template atomic_type<T>;
