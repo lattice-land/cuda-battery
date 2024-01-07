@@ -87,7 +87,8 @@ TEST(Bitset, Constructor) {
   TEST_ALL(test_string_constructor);
 }
 
-void test_range(const DynBitset& b, int s, int e) {
+template <class B>
+void test_range(const B& b, int s, int e) {
   EXPECT_EQ(b.count(), e-s+1);
   int pos = 0;
   for(; pos < s; ++pos) {
@@ -106,7 +107,7 @@ void test_range(int s, int e) {
   test_range(b, s, e);
 }
 
-TEST(Bitset, RangeConstructor) {
+TEST(DynBitset, RangeConstructor) {
   test_range(0, 10);
   test_range(0, 100);
   test_range(50, 100);
@@ -118,6 +119,35 @@ TEST(Bitset, RangeConstructor) {
   test_range(63, 128);
   test_range(0, 63);
   test_range(0, 64);
+}
+
+template<size_t N>
+void test_range(int s, int e) {
+  bitset<N, local_memory> b(s, e);
+  test_range(b, s, e);
+}
+
+TEST(Bitset, RangeConstructor) {
+  test_range<128>(0, 10);
+  test_range<128>(0, 100);
+  test_range<128>(50, 100);
+  test_range<128>(10, 10);
+  test_range<128>(0, 0);
+  test_range<128>(64, 64);
+  test_range<128>(63, 63);
+  test_range<128>(64, 127);
+  test_range<128>(0, 63);
+  test_range<128>(0, 64);
+
+  // Overflow
+  bitset<128, local_memory> b1(0, 128);
+  EXPECT_TRUE(b1.all());
+  bitset<64, local_memory> b2(1, 128);
+  EXPECT_EQ(b2.count(), 63);
+  bitset<64, local_memory> b3(1280, 2560);
+  EXPECT_EQ(b3.count(), 0);
+  bitset<64, local_memory> b4(63, 2560);
+  EXPECT_EQ(b4.count(), 1);
 }
 
 TEST(DynBitset, Assignment) {

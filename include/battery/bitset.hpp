@@ -21,8 +21,11 @@ namespace battery {
 */
 template <size_t N, class Mem, class T = unsigned long long>
 class bitset {
-  constexpr static size_t MAX_SIZE = N;
+public:
+  using memory_type = Mem;
+
 private:
+  constexpr static size_t MAX_SIZE = N;
   constexpr static size_t BITS_PER_BLOCK = sizeof(T) * CHAR_BIT;
   constexpr static size_t BITS_LAST_BLOCK = (N % BITS_PER_BLOCK) == 0 ? BITS_PER_BLOCK : (N % BITS_PER_BLOCK);
   constexpr static size_t PADDING_LAST_BLOCK = BITS_PER_BLOCK - BITS_LAST_BLOCK;
@@ -52,6 +55,26 @@ public:
   static_assert(std::is_integral_v<T> && std::is_unsigned_v<T>, "Block of a bitset must be defined on an unsigned integer type.");
 
   CUDA constexpr bitset(): blocks() {}
+
+  /** Create a bitset which is the intersection between bitset().set() and [start..end].
+   * `end >= start`. */
+  CUDA bitset(size_t start, size_t end): bitset() {
+    assert(end >= start);
+    int block_start = start / BITS_PER_BLOCK;
+    // The range is completely out of the bitset.
+    if(block_start >= BLOCKS) {
+      return;
+    }
+    int block_end = min(end / BITS_PER_BLOCK, BLOCKS - 1);
+    store(blocks[block_start], ONES << (start % BITS_PER_BLOCK));
+    for(int k = block_start + 1; k <= block_end; ++k) {
+      store(blocks[k], ONES);
+    }
+    // If no overflow detected.
+    if(end / BITS_PER_BLOCK == block_end) {
+      store(blocks[block_end], Mem::load(blocks[block_end]) & (ONES >> ((BITS_PER_BLOCK-(end % BITS_PER_BLOCK)-1))));
+    }
+  }
 
   CUDA constexpr bitset(const char* bit_str): blocks() {
     size_t n = min(strlen(bit_str), MAX_SIZE);

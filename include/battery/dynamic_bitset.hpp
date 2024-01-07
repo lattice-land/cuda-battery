@@ -22,6 +22,9 @@ namespace battery {
 */
 template <class Mem, class Allocator = standard_allocator, class T = unsigned long long>
 class dynamic_bitset {
+public:
+  using memory_type = Mem;
+  using allocator_type = Allocator;
 private:
   constexpr static const size_t BITS_PER_BLOCK = sizeof(T) * CHAR_BIT;
 
@@ -30,7 +33,6 @@ private:
   #define ONES (~T{0})
 
   using block_type = typename Mem::template atomic_type<T>;
-  using allocator_type = Allocator;
   using this_type = dynamic_bitset<Mem, Allocator, T>;
 
   /** Suppose T = char, with 2 blocks. Then the bitset "0000 00100000" is represented as:
@@ -188,6 +190,13 @@ public:
       bits_at_one += popcount(Mem::load(blocks[i]));
     }
     return bits_at_one;
+  }
+
+  CUDA constexpr dynamic_bitset& set() {
+    for(int i = 0; i < blocks.size(); ++i) {
+      store(blocks[i], ONES);
+    }
+    return *this;
   }
 
   CUDA constexpr dynamic_bitset& set(size_t pos) {
