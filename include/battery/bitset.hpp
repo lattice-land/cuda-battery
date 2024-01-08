@@ -6,6 +6,7 @@
 #include <cstdio>
 #include <cassert>
 #include "utility.hpp"
+#include "memory.hpp"
 #include "string.hpp"
 
 /** \file bitset.hpp
@@ -343,19 +344,19 @@ public:
   }
 };
 
-template<size_t N, class Mem, class T>
-CUDA constexpr bitset<N, Mem, T> operator&(const bitset<N, Mem, T>& lhs, const bitset<N, Mem, T>& rhs) {
-  return bitset<N, Mem, T>(lhs) &= rhs;
+template<size_t N, class M1, class M2, class T>
+CUDA constexpr bitset<N, local_memory, T> operator&(const bitset<N, M1, T>& lhs, const bitset<N, M2, T>& rhs) {
+  return bitset<N, local_memory, T>(lhs) &= rhs;
 }
 
-template<size_t N, class Mem, class T>
-CUDA constexpr bitset<N, Mem, T> operator|(const bitset<N, Mem, T>& lhs, const bitset<N, Mem, T>& rhs) {
-  return bitset<N, Mem, T>(lhs) |= rhs;
+template<size_t N, class M1, class M2, class T>
+CUDA constexpr bitset<N, local_memory, T> operator|(const bitset<N, M1, T>& lhs, const bitset<N, M2, T>& rhs) {
+  return bitset<N, local_memory, T>(lhs) |= rhs;
 }
 
-template<size_t N, class Mem, class T>
-CUDA constexpr bitset<N, Mem, T> operator^(const bitset<N, Mem, T>& lhs, const bitset<N, Mem, T>& rhs) {
-  return bitset<N, Mem, T>(lhs) ^= rhs;
+template<size_t N, class M1, class M2, class T>
+CUDA constexpr bitset<N, local_memory, T> operator^(const bitset<N, M1, T>& lhs, const bitset<N, M2, T>& rhs) {
+  return bitset<N, local_memory, T>(lhs) ^= rhs;
 }
 
 } // namespace battery
