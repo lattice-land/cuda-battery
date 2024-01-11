@@ -11,6 +11,7 @@ using namespace battery;
 
 using DynBitset = dynamic_bitset<local_memory>;
 using Bitset1 = bitset<1, local_memory>;
+using Bitset2 = bitset<2, local_memory>;
 using Bitset10 = bitset<10, local_memory>;
 using Bitset64 = bitset<64, local_memory>;
 using Bitset70 = bitset<70, local_memory>;
@@ -364,6 +365,11 @@ void set_operations() {
 TEST(Bitset, SetOperations) {
   set_operations<bitset<19, local_memory, unsigned char>>();
   set_operations<dynamic_bitset<local_memory, standard_allocator, unsigned char>>();
+
+  // Fix a bug in interval constructor where `end` was greater than b.size();
+  Bitset2 b11("11");
+  Bitset2 b01(1,2);
+  EXPECT_TRUE(b01.is_proper_subset_of(b11));
 }
 
 TEST(Bitset, BitCountingOperations) {

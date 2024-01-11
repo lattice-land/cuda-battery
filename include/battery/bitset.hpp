@@ -66,15 +66,13 @@ public:
     if(block_start >= BLOCKS) {
       return;
     }
+    end = min(N-1, end);
     int block_end = min(end / BITS_PER_BLOCK, BLOCKS - 1);
     store(blocks[block_start], ONES << (start % BITS_PER_BLOCK));
     for(int k = block_start + 1; k <= block_end; ++k) {
       store(blocks[k], ONES);
     }
-    // If no overflow detected.
-    if(end / BITS_PER_BLOCK == block_end) {
-      store(blocks[block_end], Mem::load(blocks[block_end]) & (ONES >> ((BITS_PER_BLOCK-(end % BITS_PER_BLOCK)-1))));
-    }
+    store(blocks[block_end], Mem::load(blocks[block_end]) & (ONES >> ((BITS_PER_BLOCK-(end % BITS_PER_BLOCK)-1))));
   }
 
   CUDA constexpr bitset(const char* bit_str): blocks() {
