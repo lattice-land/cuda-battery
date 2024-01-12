@@ -366,7 +366,7 @@ TEST(Bitset, SetOperations) {
   set_operations<bitset<19, local_memory, unsigned char>>();
   set_operations<dynamic_bitset<local_memory, standard_allocator, unsigned char>>();
 
-  // Fix a bug in interval constructor where `end` was greater than b.size();
+  // Fix a bug in bitset interval constructor in case end is greater than b.size().
   Bitset2 b11("11");
   Bitset2 b01(1,2);
   EXPECT_TRUE(b01.is_proper_subset_of(b11));
