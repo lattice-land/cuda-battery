@@ -139,6 +139,7 @@ TEST(Bitset, RangeConstructor) {
   test_range<128>(64, 127);
   test_range<128>(0, 63);
   test_range<128>(0, 64);
+  test_range<128>(1, 1);
 
   // Overflow
   bitset<128, local_memory> b1(0, 128);
@@ -422,4 +423,8 @@ TEST(Bitset, BitCountingOperations) {
   EXPECT_EQ(b4.countr_zero(), 0);
   EXPECT_EQ(b4.countl_one(), 9);
   EXPECT_EQ(b4.countr_one(), 9);
+
+  bitset<128, local_memory, unsigned long long> b5(1,1);
+  EXPECT_EQ(b5.countl_zero(), 1);
+  EXPECT_EQ(b5.countr_zero(), 126);
 }

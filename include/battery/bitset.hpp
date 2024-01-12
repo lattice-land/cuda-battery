@@ -40,7 +40,7 @@ private:
 
   using block_type = typename Mem::template atomic_type<T>;
 
-  /** Suppose T = char, with 2 blocks. Then the bitset "0000 00100000" is represented as:
+  /** Suppose T = char, with 2 blocks. Then the bitset "00000000 00100000" is represented as:
    *
    *    blocks index:       0       1
    *    blocks:         00100000 00000000
