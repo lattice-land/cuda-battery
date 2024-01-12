@@ -424,7 +424,8 @@ TEST(Bitset, BitCountingOperations) {
   EXPECT_EQ(b4.countl_one(), 9);
   EXPECT_EQ(b4.countr_one(), 9);
 
+  // Note that bitsets are indexed from right to left.
   bitset<128, local_memory, unsigned long long> b5(1,1);
-  EXPECT_EQ(b5.countl_zero(), 1);
-  EXPECT_EQ(b5.countr_zero(), 126);
+  EXPECT_EQ(b5.countl_zero(), 126);
+  EXPECT_EQ(b5.countr_zero(), 1);
 }

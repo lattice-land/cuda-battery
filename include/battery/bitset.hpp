@@ -47,6 +47,7 @@ private:
    *    indexes:        76543210    ...98
    *
    *    We have `bitset.test(5) == true`.
+   *    This follows the C++ standard where the least significant bit is at index 0.
    *
    *    Note that the last block is the one carrying the most significant bits, and also the one that is potentially padded with zeroes.
    *  */
@@ -57,7 +58,7 @@ public:
 
   CUDA constexpr bitset(): blocks() {}
 
-  /** Create a bitset which is the intersection between bitset().set() and [start..end].
+  /** Create a bitset which is the intersection between bitset().set() and [start..end] (all bits set between start and end).
    * `end >= start`. */
   CUDA bitset(size_t start, size_t end): bitset() {
     assert(end >= start);
