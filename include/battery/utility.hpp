@@ -8,7 +8,6 @@
 #include <limits>
 #include <climits>
 #include <algorithm>
-#include <atomic>
 #include <cstring>
 #include <cmath>
 #include <cfenv>
@@ -29,8 +28,6 @@
 
   /** `CUDA` is a macro indicating that a function can be executed on a GPU. It is defined to `__device__ __host__` when the code is compiled with `nvcc`. */
   #define CUDA __device__ __host__
-
-  //#define NON_UNIFIED_MEMORY_SUPPORT
 
   namespace battery {
   namespace impl {
@@ -66,74 +63,7 @@
   #define INLINE inline
 #endif
 
-#ifdef _MSC_VER
-// The pragma for fenv_access must be declared at global scope
-#pragma fenv_access(on)
-#endif
-
 namespace battery {
-
-  /** Configuration settings for battery.
-  *
-  *  configuration::gpu.mem_abort
-  *   Print an error message and abort if the GPU runs out of memory.
-  *
-  *  configuration::gpu.no_um
-  *    Turn off the use of Unified Memory. (Not currently supported)
-  *
-  *    You can use the no_um flag to benchmark non-UM vs UM,
-  *    or to run on the NVIDIA GRID (Cloud/Enterprise vGPUs).
-  *    Unified Memory support is very limited in NVIDIA GRID.
-  *    For example, NVIDIA's GRID driver for Windows does not support it.
-  */
-  struct configuration {
-    // GPU configuration settings
-    typedef struct _gpu {
-      bool mem_abort;     // battery::configuration::gpu.mem_abort
-      bool no_um;         // battery::configuration::gpu.no_um
-      _gpu() :
-        mem_abort(false),
-        no_um(false)
-      {}
-
-      /** Query the GPU device to set the default memory allocation
-      * behavior.
-      *
-      * battery::configuration::gpu.init();
-      *
-      * This should be called once, before the first access the GPU.
-      *
-      * If skipped, the gpu flags will default to false.
-      */
-      void init() {
-#ifdef __CUDACC__
-        static std::atomic<int> once{0};
-        if (once++) {
-          return;
-        }
-        int dev = 0;
-        int supportsManagedMemory = 0;
-        CUDAEX(cudaDeviceGetAttribute(&supportsManagedMemory, cudaDevAttrManagedMemory, dev));
-        if (!supportsManagedMemory) {
-          gpu.no_um = true;
-        }
-        int supportsConcurrentManagedAccess = 0;
-        CUDAEX(cudaDeviceGetAttribute(&supportsConcurrentManagedAccess, cudaDevAttrConcurrentManagedAccess, dev))
-        if (!supportsConcurrentManagedAccess) {
-          gpu.no_um = true;
-        }
-# ifndef NON_UNIFIED_MEMORY_SUPPORT
-        if (gpu.no_um) {
-          printf("ERROR: Unified Memory is required. The GPU does not support it.\n");
-          exit(EXIT_FAILURE);
-        }
-# endif
-#endif // __CUDACC__
-      }
-
-    } gpu_t;
-    inline static gpu_t gpu;
-  };
 
 namespace impl {
   template<class T> CUDA constexpr inline void swap(T& a, T& b) {
@@ -791,10 +721,5 @@ template<> CUDA NI inline void print(const double &x) { printf("%lf", x); }
 template<> CUDA NI inline void print(char const* const &x) { printf("%s", x); }
 
 } // namespace battery
-
-#ifdef _MSC_VER
-// The pragma for fenv_access must be declared at global scope
-#pragma fenv_access(off)
-#endif
 
 #endif // UTILITY_HPP

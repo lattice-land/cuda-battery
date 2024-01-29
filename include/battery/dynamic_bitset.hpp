@@ -22,6 +22,9 @@ namespace battery {
 */
 template <class Mem, class Allocator = standard_allocator, class T = unsigned long long>
 class dynamic_bitset {
+public:
+  using memory_type = Mem;
+  using allocator_type = Allocator;
 private:
   constexpr static const size_t BITS_PER_BLOCK = sizeof(T) * CHAR_BIT;
 
@@ -30,7 +33,6 @@ private:
   #define ONES (~T{0})
 
   using block_type = typename Mem::template atomic_type<T>;
-  using allocator_type = Allocator;
   using this_type = dynamic_bitset<Mem, Allocator, T>;
 
   /** Suppose T = char, with 2 blocks. Then the bitset "0000 00100000" is represented as:
@@ -100,6 +102,8 @@ public:
   CUDA dynamic_bitset(const this_type& from)
    : this_type(from, from.get_allocator()) {}
 
+  dynamic_bitset(this_type&&) = default;
+
   CUDA this_type& operator=(this_type&& other) {
     blocks = std::move(other.blocks);
     return *this;
@@ -135,6 +139,19 @@ private:
   }
 
 public:
+  // This is not thread-safe.
+  CUDA constexpr void swap(this_type& other) {
+    if(size() != other.size()) {
+      battery::swap(*this, other);
+      return;
+    }
+    for(int i = 0; i < blocks.size(); ++i) {
+      Mem::store(blocks[i], Mem::load(blocks[i]) ^ Mem::load(other.blocks[i]));
+      Mem::store(other.blocks[i], Mem::load(blocks[i]) ^ Mem::load(other.blocks[i]));
+      Mem::store(blocks[i], Mem::load(blocks[i]) ^ Mem::load(other.blocks[i]));
+    }
+  }
+
   CUDA constexpr bool test(size_t pos) const {
     assert(pos < size());
     return load_block(pos) & bit_of(pos);
@@ -173,6 +190,9 @@ public:
 
   // Only the values of the first `at_least_num_bits` are copied in the new resized bitset.
   CUDA void resize(size_t at_least_num_bits) {
+    if(num_blocks(at_least_num_bits) == blocks.size()) {
+      return;
+    }
     // NOTE: We cannot call vector.resize because it does not support resizing non-copyable, non-movable types such as atomics.
     // Therefore, we implement our own resizing function using explicit load and store operations.
     this_type bitset2(at_least_num_bits, get_allocator());
@@ -188,6 +208,13 @@ public:
       bits_at_one += popcount(Mem::load(blocks[i]));
     }
     return bits_at_one;
+  }
+
+  CUDA constexpr dynamic_bitset& set() {
+    for(int i = 0; i < blocks.size(); ++i) {
+      store(blocks[i], ONES);
+    }
+    return *this;
   }
 
   CUDA constexpr dynamic_bitset& set(size_t pos) {

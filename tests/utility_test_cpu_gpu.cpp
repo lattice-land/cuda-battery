@@ -240,10 +240,11 @@ void test_bitwise_operations() {
 }
 
 int main() {
-  battery::configuration::gpu.init();
   test_all_casts();
   test_bitwise_operations<unsigned char>();
   test_bitwise_operations<unsigned short>();
   test_bitwise_operations<unsigned int>();
   test_bitwise_operations<unsigned long long int>();
+  printf("utility_test_cpu_gpu complete.\n");
+  return 0;
 }

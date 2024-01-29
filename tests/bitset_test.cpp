@@ -11,6 +11,7 @@ using namespace battery;
 
 using DynBitset = dynamic_bitset<local_memory>;
 using Bitset1 = bitset<1, local_memory>;
+using Bitset2 = bitset<2, local_memory>;
 using Bitset10 = bitset<10, local_memory>;
 using Bitset64 = bitset<64, local_memory>;
 using Bitset70 = bitset<70, local_memory>;
@@ -87,7 +88,8 @@ TEST(Bitset, Constructor) {
   TEST_ALL(test_string_constructor);
 }
 
-void test_range(const DynBitset& b, int s, int e) {
+template <class B>
+void test_range(const B& b, int s, int e) {
   EXPECT_EQ(b.count(), e-s+1);
   int pos = 0;
   for(; pos < s; ++pos) {
@@ -106,7 +108,7 @@ void test_range(int s, int e) {
   test_range(b, s, e);
 }
 
-TEST(Bitset, RangeConstructor) {
+TEST(DynBitset, RangeConstructor) {
   test_range(0, 10);
   test_range(0, 100);
   test_range(50, 100);
@@ -118,6 +120,36 @@ TEST(Bitset, RangeConstructor) {
   test_range(63, 128);
   test_range(0, 63);
   test_range(0, 64);
+}
+
+template<size_t N>
+void test_range(int s, int e) {
+  bitset<N, local_memory> b(s, e);
+  test_range(b, s, e);
+}
+
+TEST(Bitset, RangeConstructor) {
+  test_range<128>(0, 10);
+  test_range<128>(0, 100);
+  test_range<128>(50, 100);
+  test_range<128>(10, 10);
+  test_range<128>(0, 0);
+  test_range<128>(64, 64);
+  test_range<128>(63, 63);
+  test_range<128>(64, 127);
+  test_range<128>(0, 63);
+  test_range<128>(0, 64);
+  test_range<128>(1, 1);
+
+  // Overflow
+  bitset<128, local_memory> b1(0, 128);
+  EXPECT_TRUE(b1.all());
+  bitset<64, local_memory> b2(1, 128);
+  EXPECT_EQ(b2.count(), 63);
+  bitset<64, local_memory> b3(1280, 2560);
+  EXPECT_EQ(b3.count(), 0);
+  bitset<64, local_memory> b4(63, 2560);
+  EXPECT_EQ(b4.count(), 1);
 }
 
 TEST(DynBitset, Assignment) {
@@ -334,6 +366,11 @@ void set_operations() {
 TEST(Bitset, SetOperations) {
   set_operations<bitset<19, local_memory, unsigned char>>();
   set_operations<dynamic_bitset<local_memory, standard_allocator, unsigned char>>();
+
+  // Fix a bug in bitset interval constructor in case end is greater than b.size().
+  Bitset2 b11("11");
+  Bitset2 b01(1,2);
+  EXPECT_TRUE(b01.is_proper_subset_of(b11));
 }
 
 TEST(Bitset, BitCountingOperations) {
@@ -386,4 +423,9 @@ TEST(Bitset, BitCountingOperations) {
   EXPECT_EQ(b4.countr_zero(), 0);
   EXPECT_EQ(b4.countl_one(), 9);
   EXPECT_EQ(b4.countr_one(), 9);
+
+  // Note that bitsets are indexed from right to left.
+  bitset<128, local_memory, unsigned long long> b5(1,1);
+  EXPECT_EQ(b5.countl_zero(), 126);
+  EXPECT_EQ(b5.countr_zero(), 1);
 }

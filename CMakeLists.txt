@@ -1,9 +1,7 @@
 cmake_minimum_required(VERSION 3.24)
 cmake_policy(SET CMP0135 NEW)
 
-if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES AND "$ENV{CUDAARCHS}" STREQUAL "")
-  set(CMAKE_CUDA_ARCHITECTURES native CACHE STRING "Targeted CUDA architectures")
-endif()
+set(CMAKE_CUDA_ARCHITECTURES native CACHE STRING "Targeted CUDA architectures")
 
 if(MSVC)
   set(CMAKE_CONFIGURATION_TYPES "Debug;Release" CACHE STRING "Available configuration types to select")
@@ -32,6 +30,8 @@ target_compile_options(cuda_battery INTERFACE
     # C.f. https://gcc.gnu.org/bugzilla/show_bug.cgi?id=34678
     "$<$<AND:$<CXX_COMPILER_ID:GNU,Clang>,$<COMPILE_LANGUAGE:CUDA>,$<CUDA_COMPILER_ID:NVIDIA>>:SHELL:--compiler-options -frounding-math>"
     "$<$<CXX_COMPILER_ID:GNU,Clang>:-frounding-math>"
+    $<$<AND:$<COMPILE_LANGUAGE:CXX>,$<CXX_COMPILER_ID:MSVC>>:/fp:strict>
+    "$<$<AND:$<COMPILE_LANGUAGE:CUDA>,$<CUDA_COMPILER_ID:NVIDIA>,$<CXX_COMPILER_ID:MSVC>>:SHELL:--compiler-options /fp:strict>"
 )
 
 if(REDUCE_PTX_SIZE)

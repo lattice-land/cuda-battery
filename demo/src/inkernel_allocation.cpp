@@ -49,14 +49,14 @@ int main() {
   int supportsCoopLaunch = 0;
   cudaDeviceGetAttribute(&supportsCoopLaunch, cudaDevAttrCooperativeLaunch, dev);
   if (supportsCoopLaunch) {
-
       void *kernelArgs[] = { &ptr }; // be careful, we need to take the address of the parameter we wish to pass.
       dim3 dimBlock(256, 1, 1);
       dim3 dimGrid(256, 1, 1);
       cudaLaunchCooperativeKernel((void*)grid_vector_copy, dimGrid, dimBlock, kernelArgs);
       CUDAEX(cudaDeviceSynchronize());
+  } else {
+    std::cout << "Warning: The GPU device does not support launching a CUDA cooperative kernel." << std:endl;
   }
-
   mvector expected(100000, 42);
   if(expected != *ptr) {
     std::cout << "Error: the vector was modified by the kernel." << std::endl;

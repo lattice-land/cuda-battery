@@ -6,6 +6,7 @@
 #include <cstdio>
 #include <cassert>
 #include "utility.hpp"
+#include "memory.hpp"
 #include "string.hpp"
 
 /** \file bitset.hpp
@@ -21,8 +22,12 @@ namespace battery {
 */
 template <size_t N, class Mem, class T = unsigned long long>
 class bitset {
-  constexpr static size_t MAX_SIZE = N;
+public:
+  using this_type = bitset<N, Mem, T>;
+  using memory_type = Mem;
+
 private:
+  constexpr static size_t MAX_SIZE = N;
   constexpr static size_t BITS_PER_BLOCK = sizeof(T) * CHAR_BIT;
   constexpr static size_t BITS_LAST_BLOCK = (N % BITS_PER_BLOCK) == 0 ? BITS_PER_BLOCK : (N % BITS_PER_BLOCK);
   constexpr static size_t PADDING_LAST_BLOCK = BITS_PER_BLOCK - BITS_LAST_BLOCK;
@@ -33,28 +38,63 @@ private:
       If we have two blocks of size 8 each, but N = 10, only 2 bits are relevant in the last block.
       We have 10 % 8 = 2, then ONES << 2 gives 11111100, and ~(ONES << 2) = 00000011. */
 #ifdef _MSC_VER
-# pragma warning(disable: 4293) // The C++ standard says that the behavior of uintptr64_t << 64 is undefined (works ok though)
+#pragma warning(disable: 4293) // The C++ standard says that the behavior of uintptr64_t << 64 is undefined (works ok though)
 #endif
   constexpr static T ONES_LAST = PADDING_LAST_BLOCK == 0 ? ONES : (T)(~(ONES << BITS_LAST_BLOCK));
 
   using block_type = typename Mem::template atomic_type<T>;
 
-  /** Suppose T = char, with 2 blocks. Then the bitset "0000 00100000" is represented as:
+  /** Suppose T = char, with 2 blocks. Then the bitset "00000000 00100000" is represented as:
    *
    *    blocks index:       0       1
    *    blocks:         00100000 00000000
    *    indexes:        76543210    ...98
    *
    *    We have `bitset.test(5) == true`.
+   *    This follows the C++ standard where the least significant bit is at index 0.
    *
    *    Note that the last block is the one carrying the most significant bits, and also the one that is potentially padded with zeroes.
    *  */
   block_type blocks[BLOCKS];
 
+  template <size_t N2, class Mem2, class T2>
+  friend class bitset;
+
 public:
   static_assert(std::is_integral_v<T> && std::is_unsigned_v<T>, "Block of a bitset must be defined on an unsigned integer type.");
 
   CUDA constexpr bitset(): blocks() {}
+
+  CUDA constexpr bitset(const this_type& other) {
+    for(int i = 0; i < BLOCKS; ++i) {
+      store(blocks[i], Mem::load(other.blocks[i]));
+    }
+  }
+
+  template<class Mem2>
+  CUDA constexpr bitset(const bitset<N, Mem2, T>& other) {
+    for(int i = 0; i < BLOCKS; ++i) {
+      store(blocks[i], Mem2::load(other.blocks[i]));
+    }
+  }
+
+  /** Create a bitset which is the intersection between bitset().set() and [start..end] (all bits set between start and end).
+   * `end >= start`. */
+  CUDA bitset(size_t start, size_t end): bitset() {
+    assert(end >= start);
+    int block_start = start / BITS_PER_BLOCK;
+    // The range is completely out of the bitset.
+    if(block_start >= BLOCKS) {
+      return;
+    }
+    end = min(N-1, end);
+    int block_end = min(end / BITS_PER_BLOCK, BLOCKS - 1);
+    store(blocks[block_start], ONES << (start % BITS_PER_BLOCK));
+    for(int k = block_start + 1; k <= block_end; ++k) {
+      store(blocks[k], ONES);
+    }
+    store(blocks[block_end], Mem::load(blocks[block_end]) & (ONES >> ((BITS_PER_BLOCK-(end % BITS_PER_BLOCK)-1))));
+  }
 
   CUDA constexpr bitset(const char* bit_str): blocks() {
     size_t n = min(strlen(bit_str), MAX_SIZE);
@@ -62,13 +102,6 @@ public:
       if(bit_str[i-1] == '1') {
         set(j);
       }
-    }
-  }
-
-  template<class Mem2>
-  CUDA constexpr bitset(const bitset<N, Mem2, T>& other) {
-    for(int i = 0; i < BLOCKS; ++i) {
-      store(blocks[i], Mem2::load(other[i]));
     }
   }
 
@@ -146,7 +179,7 @@ public:
   CUDA constexpr size_t count() const {
     size_t bits_at_one = 0;
     for(int i = 0; i < BLOCKS; ++i){
-      bits_at_one += popcount(blocks[i]);
+      bits_at_one += battery::popcount(Mem::load(blocks[i]));
     }
     return bits_at_one;
   }
@@ -255,7 +288,7 @@ public:
   template<class Mem2>
   CUDA constexpr bool operator==(const bitset<N, Mem2, T>& other) const {
     for(int i = 0; i < BLOCKS; ++i) {
-      if(blocks[i] != other.blocks[i]) {
+      if(Mem::load(blocks[i]) != Mem2::load(other.blocks[i])) {
         return false;
       }
     }
@@ -269,42 +302,42 @@ public:
 
   CUDA constexpr int countl_zero() const {
     int k = BLOCKS - 1;
-    if(blocks[k] > ZERO) {
-      return ::battery::countl_zero(blocks[k]) - PADDING_LAST_BLOCK;
+    if(Mem::load(blocks[k]) > ZERO) {
+      return ::battery::countl_zero(Mem::load(blocks[k])) - PADDING_LAST_BLOCK;
     }
     --k;
     int i = 0;
-    for(; k >= 0 && blocks[k] == ZERO; --k, ++i) {}
+    for(; k >= 0 && Mem::load(blocks[k]) == ZERO; --k, ++i) {}
     return i * BITS_PER_BLOCK
          + BITS_LAST_BLOCK
-         + (k == -1 ? 0 : ::battery::countl_zero(blocks[k]));
+         + (k == -1 ? 0 : ::battery::countl_zero(Mem::load(blocks[k])));
   }
 
   CUDA constexpr int countl_one() const {
     int k = BLOCKS - 1;
-    if(blocks[k] != ONES_LAST) {
-      return battery::countl_one((T)(blocks[k] << PADDING_LAST_BLOCK));
+    if(Mem::load(blocks[k]) != ONES_LAST) {
+      return battery::countl_one((T)(Mem::load(blocks[k]) << PADDING_LAST_BLOCK));
     }
     --k;
     int i = 0;
-    for(; k >= 0 && blocks[k] == ONES; --k, ++i) {}
+    for(; k >= 0 && Mem::load(blocks[k]) == ONES; --k, ++i) {}
     return i * BITS_PER_BLOCK
          + BITS_LAST_BLOCK
-         + (k == -1 ? 0 : ::battery::countl_one(blocks[k]));
+         + (k == -1 ? 0 : ::battery::countl_one(Mem::load(blocks[k])));
   }
 
   CUDA constexpr int countr_zero() const {
     int k = 0;
-    for(; k < BLOCKS && blocks[k] == ZERO; ++k) {}
+    for(; k < BLOCKS && Mem::load(blocks[k]) == ZERO; ++k) {}
     return k * BITS_PER_BLOCK
-        + (k == BLOCKS ? -PADDING_LAST_BLOCK : ::battery::countr_zero(blocks[k]));
+        + (k == BLOCKS ? -PADDING_LAST_BLOCK : ::battery::countr_zero(Mem::load(blocks[k])));
   }
 
   CUDA constexpr int countr_one() const {
     int k = 0;
-    for(; k < BLOCKS && blocks[k] == ONES; ++k) {}
+    for(; k < BLOCKS && Mem::load(blocks[k]) == ONES; ++k) {}
     return k * BITS_PER_BLOCK
-        + (k == BLOCKS ? 0 : ::battery::countr_one(blocks[k]));
+        + (k == BLOCKS ? 0 : ::battery::countr_one(Mem::load(blocks[k])));
   }
 
   CUDA constexpr void print() const {
@@ -323,19 +356,19 @@ public:
   }
 };
 
-template<size_t N, class Mem, class T>
-CUDA constexpr bitset<N, Mem, T> operator&(const bitset<N, Mem, T>& lhs, const bitset<N, Mem, T>& rhs) {
-  return bitset<N, Mem, T>(lhs) &= rhs;
+template<size_t N, class M1, class M2, class T>
+CUDA constexpr bitset<N, local_memory, T> operator&(const bitset<N, M1, T>& lhs, const bitset<N, M2, T>& rhs) {
+  return bitset<N, local_memory, T>(lhs) &= rhs;
 }
 
-template<size_t N, class Mem, class T>
-CUDA constexpr bitset<N, Mem, T> operator|(const bitset<N, Mem, T>& lhs, const bitset<N, Mem, T>& rhs) {
-  return bitset<N, Mem, T>(lhs) |= rhs;
+template<size_t N, class M1, class M2, class T>
+CUDA constexpr bitset<N, local_memory, T> operator|(const bitset<N, M1, T>& lhs, const bitset<N, M2, T>& rhs) {
+  return bitset<N, local_memory, T>(lhs) |= rhs;
 }
 
-template<size_t N, class Mem, class T>
-CUDA constexpr bitset<N, Mem, T> operator^(const bitset<N, Mem, T>& lhs, const bitset<N, Mem, T>& rhs) {
-  return bitset<N, Mem, T>(lhs) ^= rhs;
+template<size_t N, class M1, class M2, class T>
+CUDA constexpr bitset<N, local_memory, T> operator^(const bitset<N, M1, T>& lhs, const bitset<N, M2, T>& rhs) {
+  return bitset<N, local_memory, T>(lhs) ^= rhs;
 }
 
 } // namespace battery

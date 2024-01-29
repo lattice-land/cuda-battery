@@ -311,8 +311,8 @@ public:
   }
 };
 
-template<class T, class Allocator>
-CUDA NI bool operator==(const vector<T, Allocator>& lhs, const vector<T, Allocator>& rhs) {
+template<class T1, class Alloc1, class T2, class Alloc2>
+CUDA NI bool operator==(const vector<T1, Alloc1>& lhs, const vector<T2, Alloc2>& rhs) {
   if(lhs.size() != rhs.size()) {
     return false;
   }
@@ -326,8 +326,8 @@ CUDA NI bool operator==(const vector<T, Allocator>& lhs, const vector<T, Allocat
   return true;
 }
 
-template<class T, class Allocator>
-CUDA bool operator!=(const vector<T, Allocator>& lhs, const vector<T, Allocator>& rhs) {
+template<class T1, class Alloc1, class T2, class Alloc2>
+CUDA bool operator!=(const vector<T1, Alloc1>& lhs, const vector<T2, Alloc2>& rhs) {
   return !(lhs == rhs);
 }
 
