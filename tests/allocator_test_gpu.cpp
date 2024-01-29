@@ -11,9 +11,22 @@ using namespace battery;
 template <class Alloc>
 using iptr = shared_ptr<int, Alloc>;
 
+//
+// Note: These tests do not work on a GPU that does not support concurrent
+// access to managed memory.
+//
+// The problem is that data is passed by value and not by reference, so
+// the host constructs a temporary for shared_ptr<T> in managed memory and
+// increments the reference count to 1.  Upon return, the host invokes the
+// corresponding the host-side destructor for cleanup.  The problem is that
+// the host's destructor tries to decrement the reference count in managed
+// memory before the call to cudaDeviceSynchronize(), which is forbidden
+// on a GPU that does not support concurrent managed memory access.  The
+// result is a segfault on the host.
+//
 __global__ void kernel_managed_memory(iptr<managed_allocator> data) {
   *data = 1;
-}
+} // If the GPU does not support concurrent access this will segfault due to decrementing the ref count on the host prematurely before cudaDeviceSynchronize().
 
 void managed_memory_test() {
   iptr<managed_allocator> data = make_shared<int, managed_allocator>(0);
@@ -128,11 +141,17 @@ void shared_memory_with_precomputation() {
 }
 
 int main() {
-  battery::configuration::gpu.init();
-  managed_memory_test();
-  global_memory_test_passing1();
-  global_memory_test_passing2();
-  global_memory_vector_passing();
+  int dev = 0;
+  int supportsConcurrentManagedAccess = 0;
+  CUDAEX(cudaDeviceGetAttribute(&supportsConcurrentManagedAccess, cudaDevAttrConcurrentManagedAccess, dev));
+  if (!supportsConcurrentManagedAccess) {
+    std::cout << "Cannot run tests because the GPU does not support concurrent access to managed memory." << std::endl;
+  } else {
+    managed_memory_test();
+    global_memory_test_passing1();
+    global_memory_test_passing2();
+    global_memory_vector_passing();
+  }
   shared_memory_with_precomputation();
   return 0;
 }

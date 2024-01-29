@@ -67,7 +67,6 @@ void make_unique_grid_test() {
 }
 
 int main() {
-  battery::configuration::gpu.init();
   make_unique_block_test();
   int supportsCoopLaunch = 0;
   cudaDeviceGetAttribute(&supportsCoopLaunch, cudaDevAttrCooperativeLaunch, 0);
@@ -77,5 +76,6 @@ int main() {
   else {
     printf("Note: skipping unique_ptr grid test because device does not support cooperative launch.\n");
   }
+  printf("unique_ptr_test_gpu complete.\n");
   return 0;
 }

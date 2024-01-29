@@ -14,10 +14,11 @@ To avoid these kind of mistakes, you should use `battery::shared_ptr` when passi
 
 #include <cassert>
 #include <cstddef>
+#include <atomic>
 #include <iostream>
-#include <stdexcept>
 #include <string>
 #include <type_traits>
+#include <inttypes.h>
 #include "utility.hpp"
 
 #ifdef __CUDACC__
@@ -37,20 +38,13 @@ public:
       void* data = std::malloc(bytes);
       if (data == nullptr) {
         printf("Allocation of device memory failed\n");
-        //assert(0); // Q: How to check configuration::gpu.mem_abort?
       }
       return data;
     #else
       void* data = nullptr;
       cudaError_t rc = cudaMalloc(&data, bytes);
       if (rc != cudaSuccess) {
-        std::string err = "Allocation of global memory failed (error = ";
-        err += std::to_string(rc);
-        err += ")";
-        std::cout << err << std::endl;
-        if (configuration::gpu.mem_abort) {
-          throw std::runtime_error(err.data());
-        }
+        std::cerr << "Allocation of global memory failed: " << cudaGetErrorString(rc) << std::endl;
         return nullptr;
       }
       return data;
@@ -63,13 +57,7 @@ public:
     #else
       cudaError_t rc = cudaFree(data);
       if (rc != cudaSuccess) {
-        std::string err = "Free of global memory failed (error = ";
-        err += std::to_string(rc);
-        err += ")";
-        std::cout << err << std::endl;
-        if (configuration::gpu.mem_abort) {
-          throw std::runtime_error(err.data());
-        }
+        std::cerr << "Free of global memory failed: " << cudaGetErrorString(rc) << std::endl;
       }
     #endif
   }
@@ -89,13 +77,7 @@ public:
       void* data = nullptr;
       cudaError_t rc = cudaMallocManaged(&data, bytes);
       if (rc != cudaSuccess) {
-        std::string err = "Allocation of managed memory failed (error = ";
-        err += std::to_string(rc);
-        err += ")";
-        std::cout << err << std::endl;
-        if (configuration::gpu.mem_abort) {
-          throw std::runtime_error(err.data());
-        }
+        std::cerr << "Allocation of managed memory failed: " << cudaGetErrorString(rc) << std::endl;
         return nullptr;
       }
       return data;
@@ -108,16 +90,84 @@ public:
     #else
       cudaError_t rc = cudaFree(data);
       if (rc != cudaSuccess) {
-        std::string err = "Free of managed memory failed (error = ";
-        err += std::to_string(rc);
-        err += ")";
-        std::cout << err << std::endl;
-        if (configuration::gpu.mem_abort) {
-          throw std::runtime_error(err.data());
-        }
+        std::cerr << "Free of managed memory failed: " << cudaGetErrorString(rc) << std::endl;
       }
     #endif
   }
+};
+
+/** An allocator using pinned memory for shared access between the host
+ * and the device.  This type of memory is required on Microsoft Windows,
+ * on the Windows Subsystem for Linux (WSL), and on NVIDIA GRID (virtual GPU),
+ * because these systems do not support concurrent access to managed memory
+ * while a CUDA kernel is running.
+ *
+ * This allocator requires that you first set cudaDeviceMapHost using
+ * cudaSetDeviceFlags.
+ *
+ * We delegate the allocation to `global_allocator` when the allocation is
+ * done on the device, since host memory cannot be allocated in device
+ functions. */
+class pinned_allocator {
+public:
+  CUDA NI void* allocate(size_t bytes) {
+    #ifdef __CUDA_ARCH__
+      return global_allocator{}.allocate(bytes);
+    #else
+      if(bytes == 0) {
+        return nullptr;
+      }
+      void* data = nullptr;
+      cudaError_t rc = cudaMallocHost(&data, bytes); // pinned
+      if (rc != cudaSuccess) {
+        std::cerr << "Allocation of pinned memory failed: " << cudaGetErrorString(rc) << std::endl;
+        return nullptr;
+      }
+      return data;
+    #endif
+  }
+
+  CUDA NI void deallocate(void* data) {
+    #ifdef __CUDA_ARCH__
+      return global_allocator{}.deallocate(data);
+    #else
+      cudaError_t rc = cudaFreeHost(data);
+      if (rc != cudaSuccess) {
+        std::cerr << "Free of pinned memory failed: " << cudaGetErrorString(rc) << std::endl;
+      }
+    #endif
+  }
+};
+
+/** An allocator for concurrent access to shared memory between the device
+ * and the host while a CUDA kernel is running.
+ *
+ * Set concurrent_allocator{}.noConcurrentManagedAccess to fall back to
+ * using pinned_allocator instead of managed_allocator.  This is required
+ * on Windows, WSL, and NVIDIA GRID.
+ */
+class concurrent_allocator {
+public:
+  CUDA NI void* allocate(size_t bytes) {
+    #ifdef __CUDA_ARCH__
+      return global_allocator{}.allocate(bytes);
+    #else
+      return noConcurrentManagedAccess ? pinned_allocator{}.allocate(bytes) : managed_allocator{}.allocate(bytes);
+    #endif
+  }
+
+  CUDA NI void deallocate(void* data) {
+    #ifdef __CUDA_ARCH__
+      return global_allocator{}.deallocate(data);
+    #else
+      if (noConcurrentManagedAccess) {
+        pinned_allocator{}.deallocate(data);
+      } else {
+        managed_allocator{}.deallocate(data);
+      }
+    #endif
+  }
+  inline static bool noConcurrentManagedAccess;
 };
 
 } // namespace battery
@@ -235,15 +285,16 @@ public:
   }
 
   CUDA NI void print() const {
-    printf("%% %zu / %zu used [%zu/%zu]KB [%zu/%zu]MB\n",
+    // CUDA printf does not support "%zu" -- use PRIu64 macro (Windows / Linux)
+    printf("%% %" PRIu64 " / %" PRIu64 " used [%" PRIu64 "/%" PRIu64 "]KB [%" PRIu64 "/%" PRIu64 "]MB\n",
       block->offset, block->capacity,
       block->offset/1000, block->capacity/1000,
       block->offset/1000/1000, block->capacity/1000/1000);
-    printf("%% %zu / %zu wasted for alignment [%zu/%zu]KB [%zu/%zu]MB\n",
+    printf("%% %" PRIu64 " / %" PRIu64 " wasted for alignment [%" PRIu64 "/%" PRIu64 "]KB [%" PRIu64 "/%" PRIu64 "]MB\n",
       block->unaligned_wasted_bytes, block->offset,
       block->unaligned_wasted_bytes/1000, block->offset/1000,
       block->unaligned_wasted_bytes/1000/1000, block->offset/1000/1000);
-    printf("%% %zu allocations and %zu deallocations\n", block->num_allocations, block->num_deallocations);
+    printf("%% %" PRIu64 " allocations and %" PRIu64 " deallocations\n", block->num_allocations, block->num_deallocations);
   }
 
   CUDA size_t used() const {
