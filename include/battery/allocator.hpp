@@ -14,9 +14,7 @@ To avoid these kind of mistakes, you should use `battery::shared_ptr` when passi
 
 #include <cassert>
 #include <cstddef>
-#include <atomic>
 #include <iostream>
-#include <string>
 #include <type_traits>
 #include <inttypes.h>
 #include "utility.hpp"
@@ -96,18 +94,15 @@ public:
   }
 };
 
-/** An allocator using pinned memory for shared access between the host
- * and the device.  This type of memory is required on Microsoft Windows,
- * on the Windows Subsystem for Linux (WSL), and on NVIDIA GRID (virtual GPU),
- * because these systems do not support concurrent access to managed memory
- * while a CUDA kernel is running.
+/** An allocator using pinned memory for shared access between the host and the device.
+ * This type of memory is required on Microsoft Windows, on the Windows Subsystem for Linux (WSL), and on NVIDIA GRID (virtual GPU), because these systems do not support concurrent access to managed memory while a CUDA kernel is running.
  *
- * This allocator requires that you first set cudaDeviceMapHost using
- * cudaSetDeviceFlags.
+ * This allocator requires that you first set cudaDeviceMapHost using  cudaSetDeviceFlags.
  *
- * We delegate the allocation to `global_allocator` when the allocation is
- * done on the device, since host memory cannot be allocated in device
- functions. */
+ * We suppose unified virtual addressing (UVA) is enabled (the property `unifiedAddressing` is true).
+ *
+ * We delegate the allocation to `global_allocator` when the allocation is done on the device, since host memory cannot be allocated in device functions.
+ * */
 class pinned_allocator {
 public:
   CUDA NI void* allocate(size_t bytes) {
@@ -139,37 +134,6 @@ public:
   }
 };
 
-/** An allocator for concurrent access to shared memory between the device
- * and the host while a CUDA kernel is running.
- *
- * Set concurrent_allocator{}.noConcurrentManagedAccess to fall back to
- * using pinned_allocator instead of managed_allocator.  This is required
- * on Windows, WSL, and NVIDIA GRID.
- */
-class concurrent_allocator {
-public:
-  CUDA NI void* allocate(size_t bytes) {
-    #ifdef __CUDA_ARCH__
-      return global_allocator{}.allocate(bytes);
-    #else
-      return noConcurrentManagedAccess ? pinned_allocator{}.allocate(bytes) : managed_allocator{}.allocate(bytes);
-    #endif
-  }
-
-  CUDA NI void deallocate(void* data) {
-    #ifdef __CUDA_ARCH__
-      return global_allocator{}.deallocate(data);
-    #else
-      if (noConcurrentManagedAccess) {
-        pinned_allocator{}.deallocate(data);
-      } else {
-        managed_allocator{}.deallocate(data);
-      }
-    #endif
-  }
-  inline static bool noConcurrentManagedAccess;
-};
-
 } // namespace battery
 
 CUDA inline void* operator new(size_t bytes, battery::managed_allocator& p) {
@@ -185,6 +149,14 @@ CUDA inline void* operator new(size_t bytes, battery::global_allocator& p) {
 }
 
 CUDA inline void operator delete(void* ptr, battery::global_allocator& p) {
+  p.deallocate(ptr);
+}
+
+CUDA inline void* operator new(size_t bytes, battery::pinned_allocator& p) {
+  return p.allocate(bytes);
+}
+
+CUDA inline void operator delete(void* ptr, battery::pinned_allocator& p) {
   p.deallocate(ptr);
 }
 
