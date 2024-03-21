@@ -755,7 +755,7 @@ CUDA void quickSort(Seq& seq, int low, int high, Compare comp) {
 template <class Seq, class Compare>
 CUDA NI void sort(Seq& seq, Compare comp) {
   assert(seq.size() < limits<int>::top());
-  impl::quickSort(seq, 0, seq.size() - 1, comp);
+  impl::quickSort(seq, 0, static_cast<int>(seq.size()) - 1, comp);
 }
 
 } // namespace battery
