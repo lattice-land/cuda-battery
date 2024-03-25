@@ -720,44 +720,6 @@ template<> CUDA NI inline void print(const float &x) { printf("%f", x); }
 template<> CUDA NI inline void print(const double &x) { printf("%lf", x); }
 template<> CUDA NI inline void print(char const* const &x) { printf("%s", x); }
 
-namespace impl {
-
-template <class Seq, class Compare>
-CUDA int partition(Seq& seq, int low, int high, Compare comp) {
-  int i = low - 1; // Index of smaller element
-
-  for (int j = low; j <= high - 1; j++) {
-    // If current element is smaller than the pivot
-    if (comp(seq[j], seq[high])) {
-      i++; // Increment index of smaller element
-      ::battery::swap(seq[i], seq[j]);
-    }
-  }
-  ::battery::swap(seq[i + 1], seq[high]);
-  return i + 1;
-}
-
-template <class Seq, class Compare>
-CUDA void quickSort(Seq& seq, int low, int high, Compare comp) {
-  if (low < high) {
-    // pi is partitioning index, seq[p] is now at right place
-    int pi = partition(seq, low, high, comp);
-    // Separately sort elements before partition and after partition
-    quickSort(seq, low, pi - 1, comp);
-    quickSort(seq, pi + 1, high, comp);
-  }
-}
-}// namespace impl
-
-/** Sort the sequence `seq` in-place.
- * The underlying algorithm is quicksort.
- * * `comp(a, b)` returns `true` whenever a < b, and false otherwise. */
-template <class Seq, class Compare>
-CUDA NI void sort(Seq& seq, Compare comp) {
-  assert(seq.size() < limits<int>::top());
-  impl::quickSort(seq, 0, static_cast<int>(seq.size()) - 1, comp);
-}
-
 } // namespace battery
 
 #endif // UTILITY_HPP

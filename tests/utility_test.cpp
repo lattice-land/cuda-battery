@@ -36,19 +36,3 @@ TEST(Utility, Strlen) {
   EXPECT_EQ(battery::strlen(""), 0);
   EXPECT_EQ(battery::strlen("1"), 1);
 }
-
-TEST(Utility, Quicksort) {
-  battery::vector<int> v = {3, 2, 1, 4, 5};
-  battery::sort(v, [](int x, int y) { return x < y; });
-  for(int i = 1; i <= 5; ++i) {
-    EXPECT_EQ(v[i - 1], i);
-  }
-  battery::sort(v, [](int x, int y) { return x > y; });
-  for(int i = 0; i < 5; ++i) {
-    EXPECT_EQ(v[i], 5-i);
-  }
-  battery::sort(v, [](int x, int y) { return x > y; });
-  for(int i = 0; i < 5; ++i) {
-    EXPECT_EQ(v[i], 5-i);
-  }
-}
