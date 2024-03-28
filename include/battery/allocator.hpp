@@ -59,6 +59,8 @@ public:
       }
     #endif
   }
+
+  CUDA bool operator==(const global_allocator&) const { return true; }
 };
 
 /** An allocator using the managed memory of CUDA when the memory is allocated on the host.
@@ -92,6 +94,8 @@ public:
       }
     #endif
   }
+
+  CUDA bool operator==(const managed_allocator&) const { return true; }
 };
 
 /** An allocator using pinned memory for shared access between the host and the device.
@@ -132,6 +136,8 @@ public:
       }
     #endif
   }
+
+  CUDA bool operator==(const pinned_allocator&) const { return true; }
 };
 
 } // namespace battery
@@ -288,6 +294,10 @@ public:
   CUDA size_t unaligned_wasted_bytes() const {
     return block->unaligned_wasted_bytes;
   }
+
+  CUDA bool operator==(const pool_allocator& rhs) const {
+    return block == rhs.block;
+  }
 };
 }
 
@@ -314,8 +324,10 @@ public:
   CUDA NI void deallocate(void* data) {
     std::free(data);
   }
+
+  CUDA bool operator==(const standard_allocator&) const { return true; }
 };
-}
+} // namespace battery
 
 CUDA inline void* operator new(size_t bytes, battery::standard_allocator& p) {
   return p.allocate(bytes);
@@ -324,6 +336,7 @@ CUDA inline void* operator new(size_t bytes, battery::standard_allocator& p) {
 CUDA inline void operator delete(void* ptr, battery::standard_allocator& p) {
   return p.deallocate(ptr);
 }
+
 
 namespace battery {
   template <class Allocator, class InternalAllocator = Allocator>
@@ -357,6 +370,8 @@ namespace battery {
     control_block* block;
 
   public:
+    using this_type = statistics_allocator<Allocator, InternalAllocator>;
+
     CUDA NI statistics_allocator(const statistics_allocator& other)
       : internal_allocator(other.internal_allocator), block(other.block)
     {
@@ -395,6 +410,10 @@ namespace battery {
 
     CUDA size_t total_bytes_allocated() const {
       return block->total_bytes_allocated;
+    }
+
+    CUDA inline bool operator==(const this_type& rhs) const {
+      return block == rhs.block;
     }
   };
 }
