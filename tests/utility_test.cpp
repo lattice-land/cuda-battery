@@ -25,10 +25,10 @@ TEST(Utility, Swap) {
 }
 
 TEST(Utility, Limits) {
-  EXPECT_EQ(limits<int>::bot(), -INT_MAX - 1);
-  EXPECT_EQ(limits<int>::top(), INT_MAX);
-  EXPECT_EQ(limits<float>::bot(), -INFINITY);
-  EXPECT_EQ(limits<float>::top(), INFINITY);
+  EXPECT_EQ(limits<int>::neg_inf(), -INT_MAX - 1);
+  EXPECT_EQ(limits<int>::inf(), INT_MAX);
+  EXPECT_EQ(limits<float>::neg_inf(), -INFINITY);
+  EXPECT_EQ(limits<float>::inf(), INFINITY);
 }
 
 TEST(Utility, Strlen) {

@@ -98,14 +98,14 @@ void analyse_test_result(T input, R expect, R cpu_result, R gpu_result, UtilityO
 template<class T, class R>
 void test_utility_ops(std::vector<T> inputs, std::vector<R> outputs, UtilityOperation op) {
   assert(inputs.size() == outputs.size());
-  // Add testing for bottom and top elements for the casting operations.
+  // Add testing for infinities for the casting operations.
   if(op == RU_CAST || op == RD_CAST) {
     if constexpr(std::is_signed_v<T>) {
-      inputs.push_back(battery::limits<T>::bot());
-      outputs.push_back(battery::limits<R>::bot());
+      inputs.push_back(battery::limits<T>::neg_inf());
+      outputs.push_back(battery::limits<R>::neg_inf());
     }
-    inputs.push_back(battery::limits<T>::top());
-    outputs.push_back(battery::limits<R>::top());
+    inputs.push_back(battery::limits<T>::inf());
+    outputs.push_back(battery::limits<R>::inf());
   }
   battery::managed_allocator managed_allocator;
   for(int i = 0; i < inputs.size(); ++i) {
@@ -218,23 +218,23 @@ template<class I>
 void test_bitwise_operations() {
   constexpr I bits = sizeof(I) * CHAR_BIT;
   test_utility_ops<I, int>(
-    {0, 1, ((I)1) << (bits-1), (I)1 | ((I)1 << (bits-1)),  battery::limits<I>::top()},
+    {0, 1, ((I)1) << (bits-1), (I)1 | ((I)1 << (bits-1)),  battery::limits<I>::inf()},
     {0, 1, 1,             2,                    bits},
     POPCOUNT);
   test_utility_ops<I, int>(
-    {0,    1,      (I)1 << 2, (I)1 << (bits-1), (I)1 | ((I)1 << (bits-1)), battery::limits<I>::top()},
+    {0,    1,      (I)1 << 2, (I)1 << (bits-1), (I)1 | ((I)1 << (bits-1)), battery::limits<I>::inf()},
     {bits, bits-1, bits-3, 0,             0,                   0},
     COUNTL_ZERO);
   test_utility_ops<I, int>(
-    {0,    1, (I)1 << 2, (I)1 << (bits-1), (I)1 | ((I)1 << (bits-1)), battery::limits<I>::top()},
+    {0,    1, (I)1 << 2, (I)1 << (bits-1), (I)1 | ((I)1 << (bits-1)), battery::limits<I>::inf()},
     {bits, 0, 2,      bits-1,        0,                   0},
     COUNTR_ZERO);
   test_utility_ops<I, int>(
-    {0, 1, (I)1 << 2, (I)1 << (bits-1), (I)1 | ((I)1 << (bits-1)), battery::limits<I>::top(), (I)1 << (bits-1) | (I)1 << (bits-2)},
+    {0, 1, (I)1 << 2, (I)1 << (bits-1), (I)1 | ((I)1 << (bits-1)), battery::limits<I>::inf(), (I)1 << (bits-1) | (I)1 << (bits-2)},
     {0, 0, 0,      1,             1,                   bits,                      2},
     COUNTL_ONE);
   test_utility_ops<I, int>(
-    {0, 1, (I)1 << 2, (I)1 << (bits-1), (I)1 | ((I)1 << (bits-1)), battery::limits<I>::top(), 1 | 2},
+    {0, 1, (I)1 << 2, (I)1 << (bits-1), (I)1 | ((I)1 << (bits-1)), battery::limits<I>::inf(), 1 | 2},
     {0, 1, 0,      0,             1,                   bits,                      2},
     COUNTR_ONE);
 }
