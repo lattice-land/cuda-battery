@@ -58,7 +58,7 @@ CUDA void quickSort(Seq& seq, Compare comp) {
  * * `comp(a, b)` returns `true` whenever a < b, and false otherwise. */
 template <class Seq, class Compare>
 CUDA NI void sort(Seq& seq, Compare comp) {
-  assert(seq.size() < limits<int>::top());
+  assert(seq.size() < limits<int>::inf());
   impl::quickSort(seq, [&](int i, int j) { return comp(seq[i], seq[j]); });
 }
 
@@ -66,7 +66,7 @@ CUDA NI void sort(Seq& seq, Compare comp) {
  * * `comp(i, j)` returns `true` whenever seq[i] < seq[j], and false otherwise. */
 template <class Seq, class Compare>
 CUDA NI void sorti(Seq& seq, Compare comp) {
-  assert(seq.size() < limits<int>::top());
+  assert(seq.size() < limits<int>::inf());
   impl::quickSort(seq, comp);
 }
 
