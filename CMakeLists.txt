@@ -1,18 +1,23 @@
 cmake_minimum_required(VERSION 3.24)
 cmake_policy(SET CMP0135 NEW)
 
-if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
-  set(CMAKE_CUDA_ARCHITECTURES native CACHE STRING "Targeted CUDA architectures")
-endif()
-
 if(MSVC)
   set(CMAKE_CONFIGURATION_TYPES "Debug;Release" CACHE STRING "Available configuration types to select")
 endif()
 
-project(cuda-battery
-  HOMEPAGE_URL "https://github.com/lattice-land/cuda-battery"
-  LANGUAGES CUDA CXX)
 option(GPU "GPU" ON)
+if(GPU)
+  if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
+    set(CMAKE_CUDA_ARCHITECTURES native CACHE STRING "Targeted CUDA architectures")
+  endif()
+  project(cuda-battery
+    HOMEPAGE_URL "https://github.com/lattice-land/cuda-battery"
+    LANGUAGES CUDA CXX)
+else()
+  project(cuda-battery
+    HOMEPAGE_URL "https://github.com/lattice-land/cuda-battery"
+    LANGUAGES CXX)
+endif()
 option(REDUCE_PTX_SIZE "REDUCE_PTX_SIZE" OFF)
 option(CUDA_BATTERY_BUILD_TESTS "CUDA_BATTERY_BUILD_TESTS" OFF)
 
@@ -20,7 +25,9 @@ option(CUDA_BATTERY_BUILD_TESTS "CUDA_BATTERY_BUILD_TESTS" OFF)
 
 add_library(cuda_battery INTERFACE)
 target_compile_features(cuda_battery INTERFACE cxx_std_20)
-target_compile_features(cuda_battery INTERFACE cuda_std_20)
+if(GPU)
+  target_compile_features(cuda_battery INTERFACE cuda_std_20)
+endif()
 target_include_directories(cuda_battery INTERFACE include)
 
 target_compile_options(cuda_battery INTERFACE
