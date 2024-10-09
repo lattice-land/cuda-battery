@@ -227,6 +227,8 @@ class pool_allocator {
   control_block* block;
 
 public:
+  CUDA NI pool_allocator() = default;
+
   CUDA NI pool_allocator(const pool_allocator& other):
     block(other.block)
   {
@@ -235,17 +237,38 @@ public:
     }
   }
 
+  CUDA NI pool_allocator(pool_allocator&& other):
+    block(other.block)
+  {
+    other.block = nullptr;
+  }
+
   CUDA NI pool_allocator(unsigned char* mem, size_t capacity, size_t alignment = alignof(std::max_align_t))
    : block(::new control_block(mem, capacity, alignment))
   {}
 
+private:
+  CUDA void destroy() {
+    block->counter--;
+    if(block->counter == 0) {
+      ::delete block;
+    }
+  }
+
+public:
   CUDA NI ~pool_allocator() {
     if(block != nullptr) {
-      block->counter--;
-      if(block->counter == 0) {
-        ::delete block;
-      }
+      destroy();
     }
+  }
+
+  CUDA NI pool_allocator& operator=(pool_allocator&& other) {
+    if(block != nullptr) {
+      destroy();
+    }
+    block = other.block;
+    other.block = nullptr;
+    return *this;
   }
 
   CUDA size_t align_at(size_t alignment) {

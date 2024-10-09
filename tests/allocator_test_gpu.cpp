@@ -123,6 +123,13 @@ __global__ void kernel_compute(int measured_mem_usage, int mem_usage) {
   assert(measured_mem_usage == pool_mem.used());
 }
 
+__global__ void test_empty_pool() {
+  shared_ptr<int, pool_allocator> x(pool_allocator(nullptr, 0));
+  void* mem_pool = global_allocator{}.allocate(10);
+  pool_allocator pool(static_cast<unsigned char*>(mem_pool), 10);
+  x = allocate_shared<int, pool_allocator>(pool);
+}
+
 void shared_memory_max_usage(int shared_memory_size) {
   const int mem_usage = shared_memory_size / 4 - 2;
   shared_ptr<int, managed_allocator> measured_mem_usage = make_shared<int, managed_allocator>(0);
@@ -153,5 +160,7 @@ int main() {
     global_memory_vector_passing();
   }
   shared_memory_with_precomputation();
+  test_empty_pool<<<1, 1>>>();
+  CUDAEX(cudaDeviceSynchronize());
   return 0;
 }
