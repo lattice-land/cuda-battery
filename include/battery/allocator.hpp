@@ -19,6 +19,34 @@ To avoid these kind of mistakes, you should use `battery::shared_ptr` when passi
 #include <inttypes.h>
 #include "utility.hpp"
 
+namespace battery {
+
+/** This allocator call the standard `malloc` and `free` functions. */
+class standard_allocator {
+public:
+  CUDA NI void* allocate(size_t bytes) {
+    if(bytes == 0) {
+      return nullptr;
+    }
+    return std::malloc(bytes);
+  }
+
+  CUDA NI void deallocate(void* data) {
+    std::free(data);
+  }
+
+  CUDA bool operator==(const standard_allocator&) const { return true; }
+};
+} // namespace battery
+
+CUDA inline void* operator new(size_t bytes, battery::standard_allocator& p) {
+  return p.allocate(bytes);
+}
+
+CUDA inline void operator delete(void* ptr, battery::standard_allocator& p) {
+  return p.deallocate(ptr);
+}
+
 #ifdef __CUDACC__
 
 namespace battery {
@@ -63,13 +91,14 @@ public:
   CUDA bool operator==(const global_allocator&) const { return true; }
 };
 
-/** An allocator using the managed memory of CUDA when the memory is allocated on the host.
- * We delegate the allocation to `global_allocator` when the allocation is done on the device (since managed memory cannot be allocated in device functions). */
+/** An allocator using the managed memory of CUDA when the memory is allocated on the host. */
 class managed_allocator {
 public:
   CUDA NI void* allocate(size_t bytes) {
     #ifdef __CUDA_ARCH__
-      return global_allocator{}.allocate(bytes);
+      printf("Managed memory cannot be allocated in device functions.\n");
+      assert(false);
+      return nullptr;
     #else
       if(bytes == 0) {
         return nullptr;
@@ -86,7 +115,8 @@ public:
 
   CUDA NI void deallocate(void* data) {
     #ifdef __CUDA_ARCH__
-      return global_allocator{}.deallocate(data);
+      printf("Managed memory cannot be freed in device functions.\n");
+      assert(false);
     #else
       cudaError_t rc = cudaFree(data);
       if (rc != cudaSuccess) {
@@ -244,14 +274,19 @@ public:
   }
 
   CUDA NI pool_allocator(unsigned char* mem, size_t capacity, size_t alignment = alignof(std::max_align_t))
-   : block(::new control_block(mem, capacity, alignment))
+   : block(new control_block(mem, capacity, alignment))
   {}
 
 private:
   CUDA void destroy() {
     block->counter--;
     if(block->counter == 0) {
-      ::delete block;
+      // This is a temporary hack to disable deleting the block when using Turbo...
+      // Unfortunately, there is a bug with -arch gpu and it seems the block is deleted from host while allocating on device (or vice-versa).
+      #ifdef CUDA_THREADS_PER_BLOCK
+      #else
+        delete block;
+      #endif
     }
   }
 
@@ -331,35 +366,6 @@ CUDA inline void* operator new(size_t bytes, battery::pool_allocator& p) {
 CUDA inline void operator delete(void* ptr, battery::pool_allocator& p) {
   return p.deallocate(ptr);
 }
-
-namespace battery {
-
-/** This allocator call the standard `malloc` and `free` functions. */
-class standard_allocator {
-public:
-  CUDA NI void* allocate(size_t bytes) {
-    if(bytes == 0) {
-      return nullptr;
-    }
-    return std::malloc(bytes);
-  }
-
-  CUDA NI void deallocate(void* data) {
-    std::free(data);
-  }
-
-  CUDA bool operator==(const standard_allocator&) const { return true; }
-};
-} // namespace battery
-
-CUDA inline void* operator new(size_t bytes, battery::standard_allocator& p) {
-  return p.allocate(bytes);
-}
-
-CUDA inline void operator delete(void* ptr, battery::standard_allocator& p) {
-  return p.deallocate(ptr);
-}
-
 
 namespace battery {
   template <class Allocator, class InternalAllocator = Allocator>
