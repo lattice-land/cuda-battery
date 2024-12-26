@@ -257,7 +257,7 @@ class pool_allocator {
   control_block* block;
 
 public:
-  CUDA NI pool_allocator() = default;
+  NI pool_allocator() = default;
 
   CUDA NI pool_allocator(const pool_allocator& other):
     block(other.block)

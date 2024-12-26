@@ -40,6 +40,17 @@
       }
     },
     {
+      "name": "doc",
+      "hidden": true,
+      "inherits": "default",
+      "cacheVariables": {
+        "CUDA_BATTERY_BUILD_DOC": {
+          "type": "BOOL",
+          "value": "ON"
+        }
+      }
+    },
+    {
       "name": "debug",
       "hidden": true,
       "cacheVariables": {
@@ -74,6 +85,16 @@
       "displayName": "GPU Release configuration",
       "description": "Build the project with CUDA NVCC compiler.",
       "inherits": ["default-gpu","release"]
+    },
+    {
+      "name": "gpu-doc",
+      "displayName": "GPU Release configuration",
+      "description": "Build the project and documentation with CUDA NVCC compiler.",
+      "inherits": [
+        "default-gpu",
+        "release",
+        "doc"
+      ]
     },
     {
       "name": "cpu-debug",

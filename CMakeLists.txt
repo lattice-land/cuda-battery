@@ -56,7 +56,7 @@ include(FetchContent)
 FetchContent_Declare(
   googletest
   GIT_REPOSITORY "https://github.com/google/googletest"
-  GIT_TAG v1.14.0
+  GIT_TAG v1.15.2
   GIT_SHALLOW 1
 )
 # For Windows: Prevent overriding the parent project's compiler/linker settings
@@ -92,6 +92,9 @@ endif()
 
 # Documentation
 
+option(CUDA_BATTERY_BUILD_DOC "Build documentation" OFF)
+if(CUDA_BATTERY_BUILD_DOC)
+
 find_package(Doxygen REQUIRED doxygen)
 
 set(DOXYGEN_PROJECT_NAME "Cuda battery library")
@@ -122,3 +125,5 @@ doxygen_add_docs(doc_cuda_battery
                  "include/"
                  ALL
                  COMMENT "Generate HTML documentation")
+
+endif()
