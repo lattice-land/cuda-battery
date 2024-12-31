@@ -22,6 +22,23 @@
 
 namespace battery {
 
+template <class A>
+class copyable_atomic: public A {
+public:
+  copyable_atomic() = default;
+  CUDA copyable_atomic(typename A::value_type x): A(x) {}
+  copyable_atomic(const copyable_atomic& other): A(other.load()) {}
+  copyable_atomic(copyable_atomic&& other): A(other.load()) {}
+  copyable_atomic& operator=(const copyable_atomic& other) {
+    this->store(other.load());
+    return *this;
+  }
+  copyable_atomic& operator=(copyable_atomic&& other) {
+    this->store(other.load());
+    return *this;
+  }
+};
+
 /** Represent the memory of a variable that cannot be accessed by multiple threads. */
 template <bool read_only>
 class memory {
@@ -57,7 +74,7 @@ using read_only_memory = memory<true>;
 template <cuda::thread_scope scope, cuda::memory_order mem_order = cuda::memory_order_relaxed>
 class atomic_memory_scoped {
 public:
-  template <class T> using atomic_type = cuda::atomic<T, scope>;
+  template <class T> using atomic_type = copyable_atomic<cuda::atomic<T, scope>>;
   constexpr static const bool sequential = false;
 
   template <class T>
@@ -112,7 +129,7 @@ using atomic_memory_multi_grid = atomic_memory_scoped<cuda::thread_scope_system>
 template <memory_order mem_order = memory_order_relaxed>
 class atomic_memory {
 public:
-  template <class T> using atomic_type = impl::atomic_t<T>;
+  template <class T> using atomic_type = copyable_atomic<impl::atomic_t<T>>;
   constexpr static const bool sequential = false;
 
   template <class T>

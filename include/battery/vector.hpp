@@ -58,9 +58,11 @@ private:
         new(&data_[i]) value_type(data2[i]);
       }
     }
-    // Free the old data array that has been reallocated.
-    for(size_t i = 0; i < n2; ++i) {
-      data2[i].~T();
+    if constexpr(!std::is_trivially_destructible_v<value_type>) {
+      // Free the old data array that has been reallocated.
+      for(size_t i = 0; i < n2; ++i) {
+        data2[i].~T();
+      }
     }
     allocator.deallocate(data2);
   }
@@ -99,9 +101,9 @@ public:
   CUDA NI vector(size_t n, const allocator_type& alloc = allocator_type()):
     n(n), cap(n), allocator(alloc), data_(allocate())
   {
-      for(size_t i = 0; i < n; ++i) {
-        inplace_new(i);
-      }
+    for(size_t i = 0; i < n; ++i) {
+      inplace_new(i);
+    }
   }
 
   /** Default constructor.*/
@@ -169,8 +171,10 @@ public:
   }
 
   CUDA NI ~vector() {
-    for(size_t i = 0; i < n; ++i) {
-      data_[i].~T();
+    if constexpr(!std::is_trivially_destructible_v<value_type>) {
+      for(size_t i = 0; i < n; ++i) {
+        data_[i].~T();
+      }
     }
     allocator.deallocate(data_);
     data_ = nullptr;
@@ -187,17 +191,47 @@ private:
   template <class U, class Allocator2>
   CUDA this_type& assignment(const vector<U, Allocator2>& other) {
     reserve(other.size());
-    for(size_t i = 0; i < other.n; ++i) {
-      if(i < n) {
-        data_[i].~value_type();
+    constexpr bool fast_copy =
+      #ifdef __CUDA_ARCH__
+        std::is_same_v<value_type, U>
+        && std::is_same_v<Allocator2, allocator_type>
+        && std::is_trivially_copyable_v<value_type>;
+      #else
+        std::is_same_v<value_type, U>
+        && std::is_trivially_copyable_v<value_type>;
+      #endif
+
+    if constexpr(fast_copy) {
+      #ifdef __CUDA_ARCH__
+        cudaMemcpyAsync(data_, other.data_, other.n * sizeof(value_type), cudaMemcpyDeviceToDevice);
+      #else
+        memcpy(data_, other.data_, other.n * sizeof(value_type));
+      #endif
+      if constexpr(!std::is_trivially_destructible_v<value_type>) {
+        for(size_t i = other.n; i < n; ++i) {
+          data_[i].~value_type();
+        }
       }
-      inplace_new(i, other.data_[i]);
+      n = other.n;
+      return *this;
     }
-    for(size_t i = other.n; i < n; ++i) {
-      data_[i].~value_type();
+    else {
+      for(size_t i = 0; i < other.n; ++i) {
+        if constexpr(!std::is_trivially_destructible_v<value_type>) {
+          if(i < n) {
+            data_[i].~value_type();
+          }
+        }
+        inplace_new(i, other.data_[i]);
+      }
+      if constexpr(!std::is_trivially_destructible_v<value_type>) {
+        for(size_t i = other.n; i < n; ++i) {
+          data_[i].~value_type();
+        }
+      }
+      n = other.n;
+      return *this;
     }
-    n = other.n;
-    return *this;
   }
 
 public:
@@ -278,8 +312,10 @@ public:
 
   CUDA NI void resize(size_t count) {
     if(count < n) {
-      for(size_t i = count; i < n; ++i) {
-        data_[i].~T();
+      if constexpr(!std::is_trivially_destructible_v<value_type>) {
+        for(size_t i = count; i < n; ++i) {
+          data_[i].~T();
+        }
       }
       n = count;
     }
