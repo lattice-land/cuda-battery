@@ -199,7 +199,7 @@ public:
     return *this;
   }
 
-  CUDA constexpr bitset& set(size_t pos, bool value) {
+  CUDA INLINE constexpr bitset& set(size_t pos, bool value) {
     assert(pos < MAX_SIZE);
     return value ? set(pos) : reset(pos);
   }

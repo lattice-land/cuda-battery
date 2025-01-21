@@ -22,11 +22,27 @@
 
 namespace battery {
 
+/** This is to be deleted in the future, just there because atomic in CUDA 12.4 does not support ::value_type. */
+namespace impl {
+  template <class T>
+  struct value_type_of {
+    using type = typename T::value_type;
+  };
+#ifdef __CUDACC__
+  template <class V, cuda::thread_scope Scope>
+  struct value_type_of<cuda::atomic<V, Scope>> {
+    using type = V;
+  };
+#endif
+}
+
+
 template <class A>
 class copyable_atomic: public A {
 public:
+  using value_type = typename impl::value_type_of<A>::type;
   copyable_atomic() = default;
-  CUDA copyable_atomic(typename A::value_type x): A(x) {}
+  CUDA copyable_atomic(value_type x): A(x) {}
   copyable_atomic(const copyable_atomic& other): A(other.load()) {}
   copyable_atomic(copyable_atomic&& other): A(other.load()) {}
   copyable_atomic& operator=(const copyable_atomic& other) {
