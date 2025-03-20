@@ -202,18 +202,7 @@ private:
       #endif
 
     if constexpr(fast_copy) {
-      #ifdef __CUDA_ARCH__
-        cudaMemcpyAsync(data_, other.data_, other.n * sizeof(value_type), cudaMemcpyDeviceToDevice);
-      #else
-        memcpy(data_, other.data_, other.n * sizeof(value_type));
-      #endif
-      if constexpr(!std::is_trivially_destructible_v<value_type>) {
-        for(size_t i = other.n; i < n; ++i) {
-          data_[i].~value_type();
-        }
-      }
-      n = other.n;
-      return *this;
+      memcpy(data_, other.data_, other.n * sizeof(value_type));
     }
     else {
       for(size_t i = 0; i < other.n; ++i) {
@@ -224,14 +213,14 @@ private:
         }
         inplace_new(i, other.data_[i]);
       }
-      if constexpr(!std::is_trivially_destructible_v<value_type>) {
-        for(size_t i = other.n; i < n; ++i) {
-          data_[i].~value_type();
-        }
-      }
-      n = other.n;
-      return *this;
     }
+    if constexpr(!std::is_trivially_destructible_v<value_type>) {
+      for(size_t i = other.n; i < n; ++i) {
+        data_[i].~value_type();
+      }
+    }
+    n = other.n;
+    return *this;
   }
 
 public:

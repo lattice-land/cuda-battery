@@ -145,6 +145,14 @@ template<class T> CUDA constexpr T isnan(T a) {
   #endif
 }
 
+CUDA constexpr double pow(double a, double b) {
+  #ifdef __CUDA_ARCH__
+    return ::pow(a, b);
+  #else
+    return std::pow(a, b);
+  #endif
+}
+
 #ifdef _MSC_VER
 // MSVC omits constexpr for nextafter (officially not available until C++23)
 # define CONSTEXPR_NEXTAFTER
@@ -537,6 +545,23 @@ CUDA NI constexpr T ipow(T a, T b) {
     }
   } while (b > 0);
   return p;
+}
+
+template <class T>
+CUDA T iroots_down(T x, int r) {
+  static_assert(std::is_integral_v<T>, "iroots_down is only working on integer value.");
+  T l = static_cast<T>(pow(x, 1.0 / r)); // Initial estimate
+  while ((l + 1) * l * l <= x) l++;  // Adjust upwards if needed
+  while (l * l * l > x) l--;  // Adjust downwards if overestimated
+  return l;
+}
+
+template <class T>
+CUDA T iroots_up(T x, int r) {
+    static_assert(std::is_integral_v<T>, "iroots_down is only working on integer value.");
+    T u = static_cast<T>(pow(x, 1.0 / r)); // Initial estimate
+    while (u * u * u < x) u++;  // Adjust upwards if underestimated
+    return u;
 }
 
 #define FLOAT_ARITHMETIC_CUDA_IMPL(name, cudaname)   \
