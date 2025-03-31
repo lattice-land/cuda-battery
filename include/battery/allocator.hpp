@@ -79,7 +79,10 @@ public:
 
   CUDA NI void deallocate(void* data) {
     #ifdef __CUDA_ARCH__
-      std::free(data);
+      // Bug in Turbo when deleting with free. Couldn't find the reason yet.
+      #ifndef CUDA_THREADS_PER_BLOCK
+        std::free(data);
+      #endif
     #else
       cudaError_t rc = cudaFree(data);
       if (rc != cudaSuccess) {
