@@ -26,7 +26,14 @@ public:
   CUDA string(size_t n, const allocator_type& alloc = allocator_type()):
     data_(n+1, alloc) /* +1 for null-termination */
   {
-    data_[n] = '\0'; // In case the user modifies the string.
+    // GCC/Clang may emit -Wstringop-overflow when accessing data_[n]
+    // even though data_ has size n+1. The conditional access ensures
+    // that the compiler can verify the write is safe.
+    if(n != 0)
+        // In case the user modifies the string.
+        data_[n] = '\0';
+    else
+        data_[0] = '\0';
   }
 
   CUDA string(const allocator_type& alloc = allocator_type()): string((size_t)0, alloc) {}
