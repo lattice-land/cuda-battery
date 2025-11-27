@@ -12,3 +12,5 @@ tests/build
 /hip/**
 !/hip/include/
 !/hip/include/**
+!/hip/tests/
+!/hip/tests/**
