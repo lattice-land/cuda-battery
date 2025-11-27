@@ -81,6 +81,9 @@ if(GPU)
       target_link_libraries(${hip_test_name} CUDA::cuda_driver)
     endif()
     target_link_options(${hip_test_name} PRIVATE $<$<CXX_COMPILER_ID:MSVC>:/NODEFAULTLIB:LIBCMT>)
-    gtest_discover_tests(${hip_test_name})
+    
+    # Skip test discovery for CPU+GPU tests to avoid timeout during GPU initialization
+    # Add tests manually instead
+    add_test(NAME ${hip_test_name} COMMAND ${hip_test_name})
   endforeach()
 endif()

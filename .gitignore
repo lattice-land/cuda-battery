@@ -14,3 +14,5 @@ tests/build
 !/hip/include/**
 !/hip/tests/
 !/hip/tests/**
+!/hip/CMakeLists.txt
+!/hip/CMakePresets.json
