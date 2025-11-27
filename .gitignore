@@ -8,3 +8,7 @@
 build
 tests/build
 /hip
+!/hip/
+/hip/**
+!/hip/include/
+!/hip/include/**
