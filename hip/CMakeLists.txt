@@ -35,28 +35,10 @@ if(GPU)
     set(ENV{HIPCC_VERBOSE} "1")
     message(STATUS "HIPCC_VERBOSE enabled for debug builds")
   endif()
-  # Set HIP compiler based on platform
-  if(NOT DEFINED CMAKE_HIP_COMPILER)
-    if(HIP_PLATFORM STREQUAL "nvidia")
-      # For NVIDIA platform, use nvcc
-      find_program(NVCC_EXECUTABLE NAMES nvcc PATHS /usr/local/cuda*/bin /usr/local/cuda/bin ENV CUDA_PATH)
-      if(NVCC_EXECUTABLE)
-        set(CMAKE_HIP_COMPILER ${NVCC_EXECUTABLE})
-        message(STATUS "Using CUDA/nvcc for HIP compilation: ${CMAKE_HIP_COMPILER}")
-      else()
-        message(FATAL_ERROR "CUDA nvcc not found. Please install CUDA toolkit or check CUDA_PATH")
-      endif()
-    elseif(HIP_PLATFORM STREQUAL "amd")
-      # For AMD platform, try to find ROCm clang
-      find_program(ROCM_CLANG_EXECUTABLE NAMES clang++ PATHS /opt/rocm*/llvm/bin /opt/rocm/llvm/bin ENV ROCM_PATH)
-      if(ROCM_CLANG_EXECUTABLE)
-        set(CMAKE_HIP_COMPILER ${ROCM_CLANG_EXECUTABLE})
-        message(STATUS "Using ROCm clang for HIP compilation: ${CMAKE_HIP_COMPILER}")
-      else()
-        message(FATAL_ERROR "ROCm clang++ not found. Please install ROCm toolkit or check ROCM_PATH")
-      endif()
-    endif()
-  endif()
+  # Let CMake automatically detect the HIP compiler
+  # For NVIDIA: it will use nvcc or clang with CUDA support
+  # For AMD: it will use ROCm clang
+  message(STATUS "Letting CMake automatically detect HIP compiler for platform: ${HIP_PLATFORM}")
   
   # Set appropriate GPU architectures based on platform
   if(NOT DEFINED CMAKE_HIP_ARCHITECTURES)
@@ -80,6 +62,28 @@ if(GPU)
   
   # Find HIP - this works for both NVIDIA and AMD backends
   find_package(hip REQUIRED)
+  
+  # Add HIP include directories (same as what hipcc adds automatically)
+  if(HIP_PLATFORM STREQUAL "nvidia")
+    # Add both CUDA and ROCm include paths for NVIDIA HIP backend
+    find_path(CUDA_INCLUDE_DIR cuda_runtime.h PATHS /usr/local/cuda*/include /usr/local/cuda/include ENV CUDA_PATH)
+    find_path(ROCM_INCLUDE_DIR hip/hip_runtime.h PATHS /opt/rocm*/include /opt/rocm/include ENV ROCM_PATH)
+    if(CUDA_INCLUDE_DIR)
+      include_directories(SYSTEM ${CUDA_INCLUDE_DIR})
+      message(STATUS "Added CUDA include directory: ${CUDA_INCLUDE_DIR}")
+    endif()
+    if(ROCM_INCLUDE_DIR)
+      include_directories(SYSTEM ${ROCM_INCLUDE_DIR})
+      message(STATUS "Added ROCm include directory: ${ROCM_INCLUDE_DIR}")
+    endif()
+  elseif(HIP_PLATFORM STREQUAL "amd")
+    # Add ROCm include paths for AMD HIP backend
+    find_path(ROCM_INCLUDE_DIR hip/hip_runtime.h PATHS /opt/rocm*/include /opt/rocm/include ENV ROCM_PATH)
+    if(ROCM_INCLUDE_DIR)
+      include_directories(SYSTEM ${ROCM_INCLUDE_DIR})
+      message(STATUS "Added ROCm include directory: ${ROCM_INCLUDE_DIR}")
+    endif()
+  endif()
   
   # Configure platform-specific dependencies
   if(HIP_PLATFORM STREQUAL "nvidia")

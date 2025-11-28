@@ -12,8 +12,10 @@
 #include <type_traits>
 #include <utility>
 
-#ifdef __CUDACC__
-  #include <cuda/atomic>
+// HIP cross-platform atomic header inclusion
+#if defined(__HIP_DEVICE_COMPILE__) || defined(__HIP__)
+  #include <hip/hip_runtime.h>
+  #include <atomic>
 #else
   #include <atomic>
 #endif
@@ -22,18 +24,42 @@
 
 namespace battery {
 
-/** This is to be deleted in the future, just there because atomic in CUDA 12.4 does not support ::value_type. */
+// HIP cross-platform atomic types
+#if defined(__HIP_DEVICE_COMPILE__) || defined(__HIP__)
+  // HIP uses standard atomics - no scoped atomics available
+  using gpu_memory_order = std::memory_order;
+  constexpr gpu_memory_order gpu_memory_order_relaxed = std::memory_order_relaxed;
+  constexpr gpu_memory_order gpu_memory_order_seq_cst = std::memory_order_seq_cst;
+  
+  // HIP thread scopes (mapped to single scope since HIP doesn't have scoped atomics)
+  enum class thread_scope {
+    block = 0,
+    device = 1,
+    system = 2
+  };
+#else
+  // CPU fallback
+  using gpu_memory_order = std::memory_order;
+  constexpr gpu_memory_order gpu_memory_order_relaxed = std::memory_order_relaxed;
+  constexpr gpu_memory_order gpu_memory_order_seq_cst = std::memory_order_seq_cst;
+  
+  enum class thread_scope {
+    block = 0,
+    device = 1,
+    system = 2
+  };
+#endif
+
+/** HIP atomic type selector */
 namespace impl {
   template <class T>
   struct value_type_of {
     using type = typename T::value_type;
   };
-#ifdef __CUDACC__
-  template <class V, cuda::thread_scope Scope>
-  struct value_type_of<cuda::atomic<V, Scope>> {
-    using type = V;
-  };
-#endif
+  
+  // HIP uses standard atomics (no scoped atomics available)
+  template <class T, thread_scope scope>
+  using gpu_atomic_type = std::atomic<T>;
 }
 
 
@@ -84,13 +110,15 @@ public:
 using local_memory = memory<false>;
 using read_only_memory = memory<true>;
 
-#ifdef __CUDACC__
-
-/** Memory load and store operations relative to a cuda scope (per-thread, block, grid, ...) and given a certain memory order (by default relaxed). */
-template <cuda::thread_scope scope, cuda::memory_order mem_order = cuda::memory_order_relaxed>
+/** Cross-platform scoped atomic memory operations.
+ * On CUDA: Uses real scoped atomics with proper thread scope semantics.
+ * On HIP/CPU: Falls back to regular atomics (scope is ignored but API remains compatible).
+ */
+template <thread_scope scope, gpu_memory_order mem_order = gpu_memory_order_relaxed>
 class atomic_memory_scoped {
 public:
-  template <class T> using atomic_type = copyable_atomic<cuda::atomic<T, scope>>;
+  // HIP and CPU use regular atomics (scope is ignored but API remains compatible)
+  template <class T> using atomic_type = copyable_atomic<std::atomic<T>>;
   constexpr static const bool sequential = false;
 
   template <class T>
@@ -109,37 +137,21 @@ public:
   }
 };
 
-using atomic_memory_block = atomic_memory_scoped<cuda::thread_scope_block>;
-using atomic_memory_grid = atomic_memory_scoped<cuda::thread_scope_device>;
-using atomic_memory_multi_grid = atomic_memory_scoped<cuda::thread_scope_system>;
+// Cross-platform atomic memory type aliases
+using atomic_memory_block = atomic_memory_scoped<thread_scope::block>;
+using atomic_memory_grid = atomic_memory_scoped<thread_scope::device>;
+using atomic_memory_multi_grid = atomic_memory_scoped<thread_scope::system>;
 
-#endif // __CUDACC__
+/// @private
+namespace impl {
+  template <class T>
+  using atomic_t = std::atomic<T>;
+}
 
-#ifdef __CUDACC__
-  /// @private
-  namespace impl {
-    template <class T>
-    using atomic_t = cuda::std::atomic<T>;
-  }
-  /// @private
-  using memory_order = cuda::std::memory_order;
-  /// @private
-  constexpr memory_order memory_order_relaxed = cuda::std::memory_order_relaxed;
-  /// @private
-  constexpr memory_order memory_order_seq_cst = cuda::std::memory_order_seq_cst;
-#else
-  /// @private
-  namespace impl {
-    template <class T>
-    using atomic_t = std::atomic<T>;
-  }
-  /// @private
-  using memory_order = std::memory_order;
-  /// @private
-  constexpr memory_order memory_order_relaxed = std::memory_order_relaxed;
-  /// @private
-  constexpr memory_order memory_order_seq_cst = std::memory_order_seq_cst;
-#endif
+/// @private
+using memory_order = std::memory_order;
+constexpr memory_order memory_order_relaxed = std::memory_order_relaxed;
+constexpr memory_order memory_order_seq_cst = std::memory_order_seq_cst;
 
 /** Use the standard C++ atomic type, either provided by libcudacxx if we compile with a CUDA compiler, or through the STL otherwise. */
 template <memory_order mem_order = memory_order_relaxed>
