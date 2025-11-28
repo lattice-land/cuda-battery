@@ -13,7 +13,7 @@
 #include <utility>
 
 // HIP cross-platform atomic header inclusion
-#if defined(__HIP_DEVICE_COMPILE__) || defined(__HIP__)
+#ifdef __CUDACC__
   #include <hip/hip_runtime.h>
   #include <atomic>
 #else
@@ -25,7 +25,7 @@
 namespace battery {
 
 // HIP cross-platform atomic types
-#if defined(__HIP_DEVICE_COMPILE__) || defined(__HIP__)
+#ifdef __CUDACC__
   // HIP uses standard atomics - no scoped atomics available
   using gpu_memory_order = std::memory_order;
   constexpr gpu_memory_order gpu_memory_order_relaxed = std::memory_order_relaxed;

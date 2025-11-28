@@ -85,16 +85,20 @@ if(GPU)
     endif()
   endif()
   
-  # Configure platform-specific dependencies
+  # Configure platform-specific dependencies and backend macros
   if(HIP_PLATFORM STREQUAL "nvidia")
     message(STATUS "HIP: Using NVIDIA CUDA backend")
+    # Define backend-specific macro for conditional compilation
+    add_compile_definitions(__HIP_BACKEND_NVIDIA__)
     # For NVIDIA, find CUDA toolkit for additional libraries
     find_package(CUDAToolkit QUIET)
     if(CUDAToolkit_FOUND)
       message(STATUS "CUDA Toolkit found: ${CUDAToolkit_VERSION}")
     endif()
   elseif(HIP_PLATFORM STREQUAL "amd")
-    message(STATUS "HIP: Using AMD ROCm backend") 
+    message(STATUS "HIP: Using AMD ROCm backend")
+    # Define backend-specific macro for conditional compilation
+    add_compile_definitions(__HIP_BACKEND_AMD__)
     # For AMD, find rocPRIM and other ROCm libraries
     find_package(rocprim QUIET)
     if(rocprim_FOUND)

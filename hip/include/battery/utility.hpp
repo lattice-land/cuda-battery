@@ -14,12 +14,7 @@
 #include <bit>
 
 #ifdef __CUDACC__
-  // HIP includes for GPU functionality
-  #ifdef __HIP_PLATFORM_NVIDIA__
   #include <hip/hip_runtime.h>
-  #elif defined(__HIP_PLATFORM_AMD__)
-  #include <hip/hip_runtime.h>
-  #endif
   
   #define CUDA_GLOBAL __global__
 
