@@ -3,6 +3,7 @@
 #ifndef CUDA_BATTERY_TUPLE_HPP
 #define CUDA_BATTERY_TUPLE_HPP
 
+// __HIP_BACKEND_NVIDIA__ replaces __NVCC__ for HIP compilation with NVIDIA backend
 #ifdef __HIP_BACKEND_NVIDIA__
   // NVIDIA backend: Use CUDA-optimized tuple for better GPU performance
   #include <cuda/std/tuple>

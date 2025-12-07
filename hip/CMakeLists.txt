@@ -120,7 +120,11 @@ option(HIP_BATTERY_BUILD_DOC "Build documentation" OFF)
 # Preparing the library
 add_library(hip_battery INTERFACE)
 target_compile_features(hip_battery INTERFACE cxx_std_20)
-target_include_directories(hip_battery INTERFACE include)
+# Ensure HIP headers are found first and exclusively
+target_include_directories(hip_battery INTERFACE 
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>
+)
 
 # Link libraries based on GPU support
 if(GPU)
@@ -150,7 +154,7 @@ target_compile_options(hip_battery INTERFACE
     "$<$<AND:$<BOOL:${GPU}>,$<STREQUAL:${HIP_PLATFORM},nvidia>,$<COMPILE_LANGUAGE:HIP>>:--expt-relaxed-constexpr>"
     # CPU compiler options for floating point
     "$<$<CXX_COMPILER_ID:GNU,Clang>:-frounding-math>"
-    "$<$<AND:$<COMPILE_LANGUAGE:CXX>,$<CXX_COMPILER_ID:MSVC>>:/fp:strict>"
+    "$<$AND:$<COMPILE_LANGUAGE:CXX>,$<CXX_COMPILER_ID:MSVC>>:/fp:strict>"
 )
 
 # Conditional definitions

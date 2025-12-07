@@ -150,7 +150,7 @@ public:
         return nullptr;
       }
       void* data = nullptr;
-      hipError_t rc = hipMallocHost(&data, bytes); // pinned
+      hipError_t rc = hipHostMalloc(&data, bytes); // pinned
       if (rc != hipSuccess) {
         std::cerr << "Allocation of pinned memory failed: " << hipGetErrorString(rc) << std::endl;
         return nullptr;
@@ -163,7 +163,7 @@ public:
     #ifdef __CUDA_ARCH__
       return global_allocator{}.deallocate(data);
     #else
-      hipError_t rc = hipFreeHost(data);
+      hipError_t rc = hipHostFree(data);
       if (rc != hipSuccess) {
         std::cerr << "Free of pinned memory failed: " << hipGetErrorString(rc) << std::endl;
       }
