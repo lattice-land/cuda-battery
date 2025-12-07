@@ -14,6 +14,8 @@
 #include <bit>
 
 #ifdef __CUDACC__
+  #include <hip/hip_runtime.h>
+  
   #define CUDA_GLOBAL __global__
 
   #ifdef REDUCE_PTX_SIZE
@@ -31,9 +33,9 @@
 
   namespace battery {
   namespace impl {
-    CUDA NI inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=true) {
-      if (code != cudaSuccess) {
-        printf("%s:%d CUDA runtime error %s\n", file, line, cudaGetErrorString(code));
+    CUDA NI inline void gpuAssert(hipError_t code, const char *file, int line, bool abort=true) {
+      if (code != hipSuccess) {
+        printf("%s:%d HIP runtime error %s\n", file, line, hipGetErrorString(code));
         if (abort) {
           #ifdef __CUDA_ARCH__
             assert(0);

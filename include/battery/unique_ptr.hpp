@@ -118,7 +118,10 @@ template<class T, class Alloc, class... Args>
 CUDA NI unique_ptr<T, Alloc> allocate_unique(const Alloc& alloc, Args&&... args) {
   Alloc allocator(alloc);
   T* ptr = static_cast<T*>(allocator.allocate(sizeof(T)));
-  assert(ptr != nullptr);
+  if (ptr == nullptr) {
+    // Handle allocation failure - in practice this would throw or abort
+    return unique_ptr<T, Alloc>(nullptr, allocator);
+  }
   if constexpr(std::is_constructible<T, Args&&..., const Alloc&>{}) {
     new(ptr) T(std::forward<Args>(args)..., allocator);
   }

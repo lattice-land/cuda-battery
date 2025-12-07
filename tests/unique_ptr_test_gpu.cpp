@@ -11,13 +11,13 @@ __global__ void block_kernel(vector<vector<int, managed_allocator>, managed_allo
 {
   unique_ptr<int, global_allocator> block_data;
   int& data = make_unique_block(block_data, 100);
-  (*v_ptr)[blockIdx.x][threadIdx.x] = data;
+  (*v_ptr)[hipBlockIdx_x][hipThreadIdx_x] = data;
   __syncthreads();
-  if(threadIdx.x == 0) {
+  if(hipThreadIdx_x == 0) {
     data = 1000;
   }
   __syncthreads();
-  (*v_ptr)[blockIdx.x][threadIdx.x] += data;
+  (*v_ptr)[hipBlockIdx_x][hipThreadIdx_x] += data;
   // This last `__syncthreads()` is needed to avoid destructing `unique_ptr` before all threads finished using `data`.
   __syncthreads();
 }
@@ -25,7 +25,7 @@ __global__ void block_kernel(vector<vector<int, managed_allocator>, managed_allo
 void make_unique_block_test() {
   auto vptr = make_unique<vector<vector<int, managed_allocator>, managed_allocator>, managed_allocator>(10, vector<int, managed_allocator>(10));
   block_kernel<<<10, 10>>>(vptr.get());
-  CUDAEX(cudaDeviceSynchronize());
+  CUDAEX(hipDeviceSynchronize());
   for(int i = 0; i < 10; ++i) {
     for(int j = 0; j < 10; ++j) {
       if((*vptr)[i][j] != 1100) {
@@ -40,13 +40,13 @@ __global__ void grid_kernel(vector<int, managed_allocator>* v_ptr) {
   auto grid = cooperative_groups::this_grid();
   unique_ptr<int, global_allocator> grid_data;
   int& data = make_unique_grid(grid_data, 100);
-  (*v_ptr)[blockIdx.x] = data;
+  (*v_ptr)[hipBlockIdx_x] = data;
   grid.sync();
-  if(blockIdx.x == 0) {
+  if(hipBlockIdx_x == 0) {
     data = 1000;
   }
   grid.sync();
-  (*v_ptr)[blockIdx.x] += data;
+  (*v_ptr)[hipBlockIdx_x] += data;
   grid.sync();
 }
 
@@ -57,7 +57,7 @@ void make_unique_grid_test() {
   dim3 dimBlock(1, 1, 1);
   dim3 dimGrid(10, 1, 1);
   cudaLaunchCooperativeKernel((void*)grid_kernel, dimGrid, dimBlock, kernelArgs);
-  CUDAEX(cudaDeviceSynchronize());
+  CUDAEX(hipDeviceSynchronize());
   for(int i = 0; i < 10; ++i) {
     if((*vptr)[i] != 1100) {
       printf("(*vptr)[%d] (= %d) != 1100 \n", i, (*vptr)[i]);

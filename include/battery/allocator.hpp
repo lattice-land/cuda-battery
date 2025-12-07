@@ -68,9 +68,9 @@ public:
       return data;
     #else
       void* data = nullptr;
-      cudaError_t rc = cudaMalloc(&data, bytes);
-      if (rc != cudaSuccess) {
-        std::cerr << "Allocation of global memory failed: " << cudaGetErrorString(rc) << std::endl;
+      hipError_t rc = hipMalloc(&data, bytes);
+      if (rc != hipSuccess) {
+        std::cerr << "Allocation of global memory failed: " << hipGetErrorString(rc) << std::endl;
         return nullptr;
       }
       return data;
@@ -84,9 +84,9 @@ public:
         std::free(data);
       #endif
     #else
-      cudaError_t rc = cudaFree(data);
-      if (rc != cudaSuccess) {
-        std::cerr << "Free of global memory failed: " << cudaGetErrorString(rc) << std::endl;
+      hipError_t rc = hipFree(data);
+      if (rc != hipSuccess) {
+        std::cerr << "Free of global memory failed: " << hipGetErrorString(rc) << std::endl;
       }
     #endif
   }
@@ -107,9 +107,9 @@ public:
         return nullptr;
       }
       void* data = nullptr;
-      cudaError_t rc = cudaMallocManaged(&data, bytes);
-      if (rc != cudaSuccess) {
-        std::cerr << "Allocation of managed memory failed: " << cudaGetErrorString(rc) << std::endl;
+      hipError_t rc = hipMallocManaged(&data, bytes);
+      if (rc != hipSuccess) {
+        std::cerr << "Allocation of managed memory failed: " << hipGetErrorString(rc) << std::endl;
         return nullptr;
       }
       return data;
@@ -121,9 +121,9 @@ public:
       printf("Managed memory cannot be freed in device functions.\n");
       assert(false);
     #else
-      cudaError_t rc = cudaFree(data);
-      if (rc != cudaSuccess) {
-        std::cerr << "Free of managed memory failed: " << cudaGetErrorString(rc) << std::endl;
+      hipError_t rc = hipFree(data);
+      if (rc != hipSuccess) {
+        std::cerr << "Free of managed memory failed: " << hipGetErrorString(rc) << std::endl;
       }
     #endif
   }
@@ -150,9 +150,9 @@ public:
         return nullptr;
       }
       void* data = nullptr;
-      cudaError_t rc = cudaMallocHost(&data, bytes); // pinned
-      if (rc != cudaSuccess) {
-        std::cerr << "Allocation of pinned memory failed: " << cudaGetErrorString(rc) << std::endl;
+      hipError_t rc = hipMallocHost(&data, bytes); // pinned
+      if (rc != hipSuccess) {
+        std::cerr << "Allocation of pinned memory failed: " << hipGetErrorString(rc) << std::endl;
         return nullptr;
       }
       return data;
@@ -163,9 +163,9 @@ public:
     #ifdef __CUDA_ARCH__
       return global_allocator{}.deallocate(data);
     #else
-      cudaError_t rc = cudaFreeHost(data);
-      if (rc != cudaSuccess) {
-        std::cerr << "Free of pinned memory failed: " << cudaGetErrorString(rc) << std::endl;
+      hipError_t rc = hipFreeHost(data);
+      if (rc != hipSuccess) {
+        std::cerr << "Free of pinned memory failed: " << hipGetErrorString(rc) << std::endl;
       }
     #endif
   }

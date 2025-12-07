@@ -20,18 +20,18 @@ using iptr = shared_ptr<int, Alloc>;
 // increments the reference count to 1.  Upon return, the host invokes the
 // corresponding the host-side destructor for cleanup.  The problem is that
 // the host's destructor tries to decrement the reference count in managed
-// memory before the call to cudaDeviceSynchronize(), which is forbidden
+// memory before the call to hipDeviceSynchronize(), which is forbidden
 // on a GPU that does not support concurrent managed memory access.  The
 // result is a segfault on the host.
 //
 __global__ void kernel_managed_memory(iptr<managed_allocator> data) {
   *data = 1;
-} // If the GPU does not support concurrent access this will segfault due to decrementing the ref count on the host prematurely before cudaDeviceSynchronize().
+} // If the GPU does not support concurrent access this will segfault due to decrementing the ref count on the host prematurely before hipDeviceSynchronize().
 
 void managed_memory_test() {
   iptr<managed_allocator> data = make_shared<int, managed_allocator>(0);
   kernel_managed_memory<<<1, 1>>>(data);
-  CUDAEX(cudaDeviceSynchronize());
+  CUDAEX(hipDeviceSynchronize());
   std::cout << *data << std::endl;
   assert(*data == 1);
 }
@@ -57,21 +57,21 @@ __global__ void kernel_test_global_memory2(iptr<global_allocator>& data) {
 void global_memory_test_passing1() {
   shared_ptr<iptr<global_allocator>, managed_allocator> data = make_shared<iptr<global_allocator>, managed_allocator>(nullptr);
   kernel_allocate_global_memory<<<1, 1>>>(data);
-  CUDAEX(cudaDeviceSynchronize());
+  CUDAEX(hipDeviceSynchronize());
   kernel_test_global_memory<<<1, 1>>>(data);
-  CUDAEX(cudaDeviceSynchronize());
+  CUDAEX(hipDeviceSynchronize());
   kernel_free_global_memory<<<1, 1>>>(data);
-  CUDAEX(cudaDeviceSynchronize());
+  CUDAEX(hipDeviceSynchronize());
 }
 
 void global_memory_test_passing2() {
   shared_ptr<iptr<global_allocator>, managed_allocator> data = make_shared<iptr<global_allocator>, managed_allocator>(nullptr);
   kernel_allocate_global_memory<<<1, 1>>>(data);
-  CUDAEX(cudaDeviceSynchronize());
+  CUDAEX(hipDeviceSynchronize());
   kernel_test_global_memory2<<<1, 1>>>(*data);
-  CUDAEX(cudaDeviceSynchronize());
+  CUDAEX(hipDeviceSynchronize());
   kernel_free_global_memory<<<1, 1>>>(data);
-  CUDAEX(cudaDeviceSynchronize());
+  CUDAEX(hipDeviceSynchronize());
 }
 
 __global__ void kernel_allocate_global_vector(shared_ptr<vector<int, global_allocator>, managed_allocator> data) {
@@ -87,11 +87,11 @@ void global_memory_vector_passing() {
   shared_ptr<vector<int, global_allocator>, managed_allocator> data =
     make_shared<vector<int, global_allocator>, managed_allocator>(vector<int, global_allocator>{});
   kernel_allocate_global_vector<<<1, 1>>>(data);
-  CUDAEX(cudaDeviceSynchronize());
+  CUDAEX(hipDeviceSynchronize());
   kernel_test_global_vector<<<1, 1>>>(*data);
-  CUDAEX(cudaDeviceSynchronize());
+  CUDAEX(hipDeviceSynchronize());
   kernel_free_global_memory<<<1, 1>>>(data);
-  CUDAEX(cudaDeviceSynchronize());
+  CUDAEX(hipDeviceSynchronize());
 }
 
 // Use size * 4 + 8 bytes of memory + some possible alignment overhead for the two integers of the shared_ptr allocated independently.
@@ -134,10 +134,10 @@ void shared_memory_max_usage(int shared_memory_size) {
   const int mem_usage = shared_memory_size / 4 - 2;
   shared_ptr<int, managed_allocator> measured_mem_usage = make_shared<int, managed_allocator>(0);
   kernel_measure_memory<<<1, 1>>>(*measured_mem_usage, mem_usage);
-  CUDAEX(cudaDeviceSynchronize());
+  CUDAEX(hipDeviceSynchronize());
   printf("measured mem usage: %d bytes\n", *measured_mem_usage);
   kernel_compute<<<1, 1, *measured_mem_usage>>>(*measured_mem_usage, mem_usage);
-  CUDAEX(cudaDeviceSynchronize());
+  CUDAEX(hipDeviceSynchronize());
 }
 
 void shared_memory_with_precomputation() {
@@ -150,7 +150,7 @@ void shared_memory_with_precomputation() {
 int main() {
   int dev = 0;
   int supportsConcurrentManagedAccess = 0;
-  CUDAEX(cudaDeviceGetAttribute(&supportsConcurrentManagedAccess, cudaDevAttrConcurrentManagedAccess, dev));
+  CUDAEX(hipDeviceGetAttribute(&supportsConcurrentManagedAccess, hipDeviceAttributeConcurrentManagedAccess, dev));
   if (!supportsConcurrentManagedAccess) {
     std::cout << "Cannot run tests because the GPU does not support concurrent access to managed memory." << std::endl;
   } else {
@@ -161,6 +161,6 @@ int main() {
   }
   shared_memory_with_precomputation();
   test_empty_pool<<<1, 1>>>();
-  CUDAEX(cudaDeviceSynchronize());
+  CUDAEX(hipDeviceSynchronize());
   return 0;
 }
