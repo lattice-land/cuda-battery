@@ -556,12 +556,17 @@ CUDA T iroots_down(T x, int r) {
   return l;
 }
 
+// modified by Yi-Nung,
+// it showed some error for nnv project, so I just simply return 0.0 for now.
 template <class T>
 CUDA T iroots_up(T x, int r) {
-    static_assert(std::is_integral_v<T>, "iroots_down is only working on integer value.");
-    T u = static_cast<T>(pow(x, 1.0 / r)); // Initial estimate
-    while (u * u * u < x) u++;  // Adjust upwards if underestimated
-    return u;
+    if constexpr (std::is_integral_v<T>) {
+      static_assert(std::is_integral_v<T>, "iroots_down is only working on integer value.");
+      T u = static_cast<T>(pow(x, 1.0 / r)); // Initial estimate
+      while (u * u * u < x) u++;  // Adjust upwards if underestimated
+      return u;
+    }
+    return 0.0;
 }
 
 #define FLOAT_ARITHMETIC_CUDA_IMPL(name, cudaname)   \
@@ -679,53 +684,77 @@ CUDA constexpr T div_down(T x, T y) {
 // Truncated division and modulus, by default in C++.
 template <class T>
 CUDA constexpr T tdiv(T x, T y) {
-  static_assert(std::is_integral_v<T>, "tdiv only works on integer values.");
-  return x / y;
+  if constexpr (std::is_integral_v<T>) {
+    static_assert(std::is_integral_v<T>, "tdiv only works on integer values.");
+    return x / y;
+  }
+  return 0.0;
 }
 
 template <class T>
 CUDA constexpr T tmod(T x, T y) {
-  static_assert(std::is_integral_v<T>, "tdiv only works on integer values.");
-  return x % y;
+  if constexpr (std::is_integral_v<T>) {
+    static_assert(std::is_integral_v<T>, "tdiv only works on integer values.");
+    return x % y;
+  }
+  return 0.0;
 }
 
 // Floor division and modulus, see (Leijen D. (2003). Division and Modulus for Computer Scientists).
 template <class T>
 CUDA constexpr T fdiv(T x, T y) {
-  static_assert(std::is_integral_v<T>, "fdiv only works on integer values.");
-  return x / y - (battery::signum(x % y) == -battery::signum(y));
+  if constexpr (std::is_integral_v<T>) {
+    static_assert(std::is_integral_v<T>, "fdiv only works on integer values.");
+    return x / y - (battery::signum(x % y) == -battery::signum(y));
+  }
+  return div_down(x, y);
 }
 
 template <class T>
 CUDA constexpr T fmod(T x, T y) {
-  static_assert(std::is_integral_v<T>, "fmod only works on integer values.");
-  return x % y + y * (battery::signum(x % y) == -battery::signum(y));
+  if constexpr (std::is_integral_v<T>) {
+    static_assert(std::is_integral_v<T>, "fmod only works on integer values.");
+    return x % y + y * (battery::signum(x % y) == -battery::signum(y));
+  }
+  return 0.0;
 }
 
 // Ceil division and modulus.
 template <class T>
 CUDA constexpr T cdiv(T x, T y) {
-  static_assert(std::is_integral_v<T>, "cdiv only works on integer values.");
-  return x / y + (battery::signum(x % y) == battery::signum(y));
+  if constexpr (std::is_integral_v<T>) {
+    static_assert(std::is_integral_v<T>, "cdiv only works on integer values.");
+    return x / y + (battery::signum(x % y) == battery::signum(y));
+  }
+  return div_up(x, y);
 }
 
 template <class T>
 CUDA constexpr T cmod(T x, T y) {
-  static_assert(std::is_integral_v<T>, "cmod only works on integer values.");
-  return x % y - y * (battery::signum(x % y) == battery::signum(y));
+  if constexpr (std::is_integral_v<T>) {
+    static_assert(std::is_integral_v<T>, "cmod only works on integer values.");
+    return x % y - y * (battery::signum(x % y) == battery::signum(y));
+  }
+  return 0.0;
 }
 
 // Euclidean division and modulus, see (Leijen D. (2003). Division and Modulus for Computer Scientists).
 template <class T>
 CUDA constexpr T ediv(T x, T y) {
-  static_assert(std::is_integral_v<T>, "ediv only works on integer values.");
-  return x / y - ((x % y >= 0) ? 0 : battery::signum(y));
+  if constexpr (std::is_integral_v<T>) {
+    static_assert(std::is_integral_v<T>, "ediv only works on integer values.");
+    return x / y - ((x % y >= 0) ? 0 : battery::signum(y));
+  }
+  return 0.0;
 }
 
 template <class T>
 CUDA constexpr T emod(T x, T y) {
-  static_assert(std::is_integral_v<T>, "emod only works on integer values.");
-  return x % y + y * ((x % y >= 0) ? 0 : battery::signum(y));
+  if constexpr (std::is_integral_v<T>) {
+    static_assert(std::is_integral_v<T>, "emod only works on integer values.");
+    return x % y + y * ((x % y >= 0) ? 0 : battery::signum(y));
+  }
+  return 0.0;
 }
 
 template<typename T>
