@@ -114,27 +114,45 @@ CUDA inline int strcmp(const char* s1, const char* s2) {
 }
 
 template<class T> CUDA INLINE constexpr T min(T a, T b) {
-  #ifdef __CUDA_ARCH__
-    // When C++23 is available
-    // if !consteval { return ::min(a, b); }
-    // else { return std::min(a, b); }
-    // return  a < b ? a : b;
-    return ::min(a, b);
-  #else
-    return std::min(a, b);
-  #endif
+  if constexpr(std::is_integral_v<T>) {
+    #ifdef __CUDA_ARCH__
+      // When C++23 is available
+      // if !consteval { return ::min(a, b); }
+      // else { return std::min(a, b); }
+      // return  a < b ? a : b;
+      return ::min(a, b);
+    #else
+      return std::min(a, b);
+    #endif
+  }
+  else {
+    #ifdef __CUDA_ARCH__
+      return ::fmin(a, b);
+    #else 
+      return std::fmin(a, b);
+    #endif
+  }
 }
 
 template<class T> CUDA INLINE constexpr T max(T a, T b) {
-  #ifdef __CUDA_ARCH__
-    // When C++23 is available
-    // if !consteval { return ::max(a, b); }
-    // else { return std::max(a, b); }
-    // return a > b ? a : b;
-    return ::max(a, b); // a > b ? a : b;
-  #else
-    return std::max(a, b);
-  #endif
+  if constexpr(std::is_integral_v<T>) {
+    #ifdef __CUDA_ARCH__
+      // When C++23 is available
+      // if !consteval { return ::max(a, b); }
+      // else { return std::max(a, b); }
+      // return a > b ? a : b;
+      return ::max(a, b); // a > b ? a : b;
+    #else
+      return std::max(a, b);
+    #endif
+  }
+  else {
+    #ifdef __CUDA_ARCH__
+      return ::fmax(a, b);
+    #else 
+      return std::fmax(a, b);
+    #endif
+  }
 }
 
 template<class T> CUDA constexpr T isnan(T a) {
@@ -681,6 +699,15 @@ CUDA constexpr T div_down(T x, T y) {
   #endif
 }
 
+template <class T>
+CUDA constexpr bool isinf(T x) {
+  #ifdef __CUDA_ARCH__
+    return ::isinf(x);
+  #else 
+    return std::isinf(x);
+  #endif
+}
+
 // Truncated division and modulus, by default in C++.
 template <class T>
 CUDA constexpr T tdiv(T x, T y) {
@@ -707,7 +734,7 @@ CUDA constexpr T fdiv(T x, T y) {
     static_assert(std::is_integral_v<T>, "fdiv only works on integer values.");
     return x / y - (battery::signum(x % y) == -battery::signum(y));
   }
-  return div_down(x, y);
+  return 0.0;
 }
 
 template <class T>
@@ -726,7 +753,7 @@ CUDA constexpr T cdiv(T x, T y) {
     static_assert(std::is_integral_v<T>, "cdiv only works on integer values.");
     return x / y + (battery::signum(x % y) == battery::signum(y));
   }
-  return div_up(x, y);
+  return 0.0;
 }
 
 template <class T>
