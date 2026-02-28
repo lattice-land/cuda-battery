@@ -77,13 +77,23 @@
     /** Similar to CUDAE but abort the computation in addition, either with `assert` (GPU) or `exit` (CPU).
     */
     #define CUDAEX(result) { ::battery::impl::cudaAssert((result), __FILE__, __LINE__, true); }
+  #endif // BATTERY_CUDA_BACKEND
 
   // ── HIP error-check macros ───────────────────────────────────────────────
-  #elif defined(BATTERY_HIP_BACKEND)
+  // Available when: (a) compiled with hipcc (AMD native), or
+  //                 (b) compiled with nvcc under a HIP=ON CMake build
+  //                     (hip-nvidia-* presets: ROCm headers are in scope,
+  //                      hip/hip_runtime.h maps all hip* calls to cuda* calls).
+  // BATTERY_HIP_BUILD is set for all HIP builds (AMD and hip-nvidia).
+  // <hip/hip_runtime.h> is safe here because unique_ptr.hpp uses
+  // <hip/hip_cooperative_groups.h> (not CUDA's <cooperative_groups.h>) when
+  // BATTERY_HIP_BUILD is set — the ROCm CG header is designed to coexist with
+  // <hip/hip_runtime.h>, avoiding the __nv_bool redefinition conflict.
+  #if defined(BATTERY_HIP_BACKEND) || defined(BATTERY_HIP_BUILD)
     #include <hip/hip_runtime.h>
     namespace battery {
     namespace impl {
-      CUDA NI inline void hipAssert(hipError_t code, const char *file, int line, bool abort=true) {
+      NI inline void hipAssert(hipError_t code, const char *file, int line, bool abort=true) {
         if (code != hipSuccess) {
           printf("%s:%d HIP runtime error %s\n", file, line, hipGetErrorString(code));
           if (abort) {
@@ -105,14 +115,15 @@
     /** Similar to HIPE but abort the computation in addition, either with `assert` (GPU) or `exit` (CPU).
     */
     #define HIPEX(result) { ::battery::impl::hipAssert((result), __FILE__, __LINE__, true); }
-
-  #endif // BATTERY_CUDA_BACKEND / BATTERY_HIP_BACKEND
+  #endif // BATTERY_HIP_BACKEND || BATTERY_HIP_BUILD
 
 #else // !BATTERY_GPU_ENABLED (CPU only)
   #define CUDA_GLOBAL
   #define CUDA
   #define CUDAE(S) S
   #define CUDAEX(S) S
+  #define HIPE(S) S
+  #define HIPEX(S) S
   #define NI
   #define INLINE inline
 #endif // BATTERY_GPU_ENABLED

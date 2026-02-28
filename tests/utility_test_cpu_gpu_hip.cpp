@@ -1,11 +1,7 @@
 // HIP version of utility_test_cpu_gpu.cpp.
-// Compiled as HIP language by CMake (files matching *_hip.cpp in HIP=ON builds).
-//
-// On AMD hardware (hip-debug):            hipcc → BATTERY_HIP_BACKEND active.
-// On NVIDIA hardware (hip-nvidia-debug):  CMake's HIP language uses nvcc →
-//   BATTERY_CUDA_BACKEND active, CUDA runtime API is used transparently.
-//
-// The GPU_SYNC() alias below picks the right synchronisation call at compile time.
+// Compiled as LANGUAGE HIP by CMake (files matching *_hip.cpp in HIP=ON builds).
+// Uses the HIP API unconditionally.  On NVIDIA (hip-nvidia-*) BATTERY_HIP_BUILD is set
+// by CMake so hip/hip_runtime.h is in scope; hip* calls map to cuda* via HIP headers.
 
 // Copyright 2022 Pierre Talbot
 
@@ -15,16 +11,7 @@
 #include "battery/allocator.hpp"
 #include "battery/utility.hpp"
 
-// TODO: Remove this alias block once AMD verification is complete.
-// On AMD hardware BATTERY_HIP_BACKEND is always active, so the #ifdef dispatch
-// is dead code. Replace every GPU_* call site with the direct HIP call.
-// ── Backend-transparent aliases ───────────────────────────────────────────
-#ifdef BATTERY_CUDA_BACKEND
-  #define GPU_SYNC() CUDAEX(cudaDeviceSynchronize())
-#elif defined(BATTERY_HIP_BACKEND)
-  #define GPU_SYNC() HIPEX(hipDeviceSynchronize())
-#endif
-// ─────────────────────────────────────────────────────────────────────────
+#define GPU_SYNC() HIPEX(hipDeviceSynchronize())
 
 template<class T>
 CUDA const char* name_of_type() {
@@ -132,7 +119,7 @@ void test_utility_ops(std::vector<T> inputs, std::vector<R> outputs, UtilityOper
     R cpu_result = run_utility_op<R>(inputs[i], op);
     R* gpu_result = new(managed_allocator) R();
     run_utility_op_gpu<R><<<1, 1>>>(gpu_result, inputs[i], op);
-    GPU_SYNC();
+    HIPEX(hipDeviceSynchronize());
     analyse_test_result(inputs[i], outputs[i], cpu_result, *gpu_result, op);
   }
 }

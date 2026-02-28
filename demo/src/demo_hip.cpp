@@ -10,25 +10,14 @@
 
 #include "par_map.hpp"
 
-// TODO: Remove this alias block once AMD verification is complete.
-// On AMD hardware BATTERY_HIP_BACKEND is always active; inline the HIP calls directly.
-#ifdef BATTERY_CUDA_BACKEND
-  #define GPU_SYNC() CUDAEX(cudaDeviceSynchronize())
+// Uses the HIP API unconditionally.  On NVIDIA (hip-nvidia-*) BATTERY_HIP_BUILD is set
+// by CMake so hip/hip_runtime.h is in scope; hip* calls map to cuda* via HIP headers.
 
-  static size_t max_shared_mem() {
-    cudaDeviceProp deviceProp;
-    cudaGetDeviceProperties(&deviceProp, 0);
-    return deviceProp.sharedMemPerBlock;
-  }
-#elif defined(BATTERY_HIP_BACKEND)
-  #define GPU_SYNC() HIPEX(hipDeviceSynchronize())
-
-  static size_t max_shared_mem() {
-    hipDeviceProp_t deviceProp;
-    HIPEX(hipGetDeviceProperties(&deviceProp, 0));
-    return deviceProp.sharedMemPerBlock;
-  }
-#endif
+static size_t max_shared_mem() {
+  hipDeviceProp_t deviceProp;
+  HIPEX(hipGetDeviceProperties(&deviceProp, 0));
+  return deviceProp.sharedMemPerBlock;
+}
 
 /** Different aliases to `vector` with different allocators. */
 using mvector = battery::vector<int, battery::managed_allocator>;
@@ -77,7 +66,7 @@ void map_gpu(std::vector<int>& v, size_t num_blocks) {
     printf("GPU execution with global memory with %zu blocks.\n", num_blocks);
     map_kernel<<<num_blocks, 256>>>(gpu_v.get());
   }
-  GPU_SYNC();
+  HIPEX(hipDeviceSynchronize());
   // Transferring the new data to the initial vector.
   for(int i = 0; i < (int)v.size(); ++i) {
     v[i] = (*gpu_v)[i];

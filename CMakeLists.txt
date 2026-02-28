@@ -19,6 +19,11 @@ if(HIP)
   project(cuda-battery
     HOMEPAGE_URL "https://github.com/lattice-land/cuda-battery"
     LANGUAGES HIP CXX)
+  # find_package(hip) provides hip::host which handles HIP runtime linking on both
+  # AMD (amdhip64) and NVIDIA (wraps cudart).  CUDA::cuda_driver is needed on NVIDIA
+  # because hipDeviceGetAttribute routes through the CUDA driver API (libcuda.so).
+  find_package(hip REQUIRED)
+  find_package(CUDAToolkit QUIET)
 elseif(GPU)
   if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
     set(CMAKE_CUDA_ARCHITECTURES native CACHE STRING "Targeted CUDA architectures")
@@ -61,6 +66,19 @@ target_compile_options(cuda_battery INTERFACE
 
 if(REDUCE_PTX_SIZE)
   target_compile_definitions(cuda_battery INTERFACE "$<$<COMPILE_LANGUAGE:CUDA>:REDUCE_PTX_SIZE>")
+endif()
+
+# When building with HIP=ON, link hip::host so both AMD and NVIDIA HIP builds get
+# the correct HIP runtime libraries through a single CMake target.
+if(HIP)
+  target_link_libraries(cuda_battery INTERFACE hip::host)
+endif()
+
+# When building with HIP=ON (either AMD or NVIDIA via HIP), expose BATTERY_HIP_BUILD
+# so that utility.hpp makes HIPE/HIPEX available even when nvcc is the compiler
+# (hip-nvidia-* presets: __CUDACC__ is defined but HIP headers are in scope).
+if(HIP)
+  target_compile_definitions(cuda_battery INTERFACE BATTERY_HIP_BUILD)
 endif()
 
 if(CUDA_BATTERY_BUILD_TESTS)
@@ -106,12 +124,20 @@ endif()
 
 # III. HIP GPU Tests (ending with "_hip.cpp")
 if(HIP)
+  # HIP runtime on NVIDIA routes device-attribute queries through the CUDA Driver
+  # API (cuDeviceGetAttribute in libcuda.so). CMake's implicit HIP link only adds
+  # libcudart_static; link CUDA::cuda_driver explicitly so hipDeviceGetAttribute works.
+  find_package(CUDAToolkit REQUIRED)
+
   file(GLOB hip_test_files tests/*_hip.cpp)
   foreach(file ${hip_test_files})
     cmake_path(GET file STEM test_name)
     set_source_files_properties(${file} PROPERTIES LANGUAGE HIP)
     add_executable(${test_name} ${file})
     target_link_libraries(${test_name} cuda_battery)
+    if(CUDAToolkit_FOUND)
+      target_link_libraries(${test_name} CUDA::cuda_driver)
+    endif()
     add_test(NAME ${test_name} COMMAND $<TARGET_FILE:${test_name}>)
   endforeach()
 endif()

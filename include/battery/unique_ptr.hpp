@@ -118,7 +118,7 @@ template<class T, class Alloc, class... Args>
 CUDA NI unique_ptr<T, Alloc> allocate_unique(const Alloc& alloc, Args&&... args) {
   Alloc allocator(alloc);
   T* ptr = static_cast<T*>(allocator.allocate(sizeof(T)));
-  assert(ptr != nullptr);
+  assert(ptr); // avoid __nv_bool/nullptr_t clash when HIP headers are included with nvcc
   if constexpr(std::is_constructible<T, Args&&..., const Alloc&>{}) {
     new(ptr) T(std::forward<Args>(args)..., allocator);
   }
@@ -138,15 +138,18 @@ CUDA unique_ptr<T, Alloc> make_unique(Args&&... args) {
 
 }
 
-#ifdef BATTERY_CUDA_BACKEND
-  #include <cooperative_groups.h>
-#elif defined(BATTERY_HIP_BACKEND)
+// On hip-nvidia (BATTERY_HIP_BUILD, nvcc compiler): use <hip/hip_cooperative_groups.h> so
+// that cooperative_groups::this_grid() is the HIP variant.  On BATTERY_CUDA_BACKEND without
+// HIP build: use the standard CUDA CG header.  On BATTERY_HIP_BACKEND (AMD hipcc): HIP CG.
+#if defined(BATTERY_HIP_BACKEND) || defined(BATTERY_HIP_BUILD)
   #include <hip/hip_cooperative_groups.h>
+#else
+  #include <cooperative_groups.h>
 #endif
 
 namespace battery {
 
-#ifdef BATTERY_HIP_BACKEND
+#if defined(BATTERY_HIP_BACKEND) || defined(BATTERY_HIP_BUILD)
   /** HIP's cooperative_groups does not ship `invoke_one`.
    *  This shim executes the callable on exactly one thread (rank 0) of the group,
    *  mirroring the semantics of `cooperative_groups::invoke_one` from CUDA.

@@ -7,14 +7,8 @@
 #include "battery/unique_ptr.hpp"
 #include "battery/allocator.hpp"
 
-// TODO: Remove this alias block once AMD verification is complete.
-// On AMD hardware BATTERY_HIP_BACKEND is always active; replace GPU_SYNC()
-// with HIPEX(hipDeviceSynchronize()) directly.
-#ifdef BATTERY_CUDA_BACKEND
-  #define GPU_SYNC() CUDAEX(cudaDeviceSynchronize())
-#elif defined(BATTERY_HIP_BACKEND)
-  #define GPU_SYNC() HIPEX(hipDeviceSynchronize())
-#endif
+// Uses the HIP API unconditionally.  On NVIDIA (hip-nvidia-*) BATTERY_HIP_BUILD is set
+// by CMake so hip/hip_runtime.h is in scope; hip* calls map to cuda* via HIP headers.
 
 using mvector = battery::vector<int, battery::managed_allocator>;
 
@@ -25,7 +19,7 @@ __global__ void map_kernel_test(mvector* v_ptr) {
 void test_with(size_t num_blocks, size_t num_threads) {
   auto gpu_v = battery::make_unique<mvector, battery::managed_allocator>(10000, 50);
   map_kernel_test<<<num_blocks, num_threads>>>(gpu_v.get());
-  GPU_SYNC();
+  HIPEX(hipDeviceSynchronize());
   for(int i = 0; i < (int)gpu_v->size(); ++i) {
     if((*gpu_v)[i] != 100) {
       printf("Error at index %d: %d != 100\n", i, (*gpu_v)[i]);

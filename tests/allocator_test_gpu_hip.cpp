@@ -1,12 +1,10 @@
 // HIP version of allocator_test_gpu.cpp.
-// Compiled as HIP language by CMake (files matching *_hip.cpp in HIP=ON builds).
+// Compiled as LANGUAGE HIP by CMake (files matching *_hip.cpp in HIP=ON builds).
 //
-// On AMD hardware (hip-debug):     hipcc is the compiler → BATTERY_HIP_BACKEND active.
-// On NVIDIA hardware (hip-nvidia-debug): CMake's HIP language uses nvcc →
-//   BATTERY_CUDA_BACKEND active, CUDA runtime API is used transparently.
-//
-// The GPU_* aliases below pick the right API at compile time so the test body
-// is written once.
+// Uses the HIP API unconditionally.  On NVIDIA (hip-nvidia-*) the BATTERY_HIP_BUILD
+// define is set by CMake so hip/hip_runtime.h is in scope and every hip* call maps
+// transparently to the corresponding cuda* call via the HIP portability headers.
+// On AMD (hip-debug) these are native HIP calls.
 
 #include <iostream>
 #include <cassert>
@@ -15,31 +13,6 @@
 #include "battery/shared_ptr.hpp"
 #include "battery/utility.hpp"
 #include "battery/vector.hpp"
-
-// TODO: Remove this alias block once AMD verification is complete.
-// On AMD hardware BATTERY_HIP_BACKEND is always active, so the #ifdef dispatch
-// is dead code. Replace every GPU_* call site with the direct HIP call.
-// --- Backend-transparent aliases ------------------------------------------------
-#ifdef BATTERY_CUDA_BACKEND
-  #define GPU_SYNC() CUDAEX(cudaDeviceSynchronize())
-  #define GPU_DEV_ATTR(out, attr, dev) CUDAEX(cudaDeviceGetAttribute(&(out), attr, dev))
-  #define GPU_CONC_MANAGED_ATTR  cudaDevAttrConcurrentManagedAccess
-  using GpuFuncAttributes = cudaFuncAttributes;
-  template<class Fn>
-  inline void gpu_func_get_attributes(GpuFuncAttributes& a, Fn* f) {
-    CUDAEX(cudaFuncGetAttributes(&a, f));
-  }
-#elif defined(BATTERY_HIP_BACKEND)
-  #define GPU_SYNC() HIPEX(hipDeviceSynchronize())
-  #define GPU_DEV_ATTR(out, attr, dev) HIPEX(hipDeviceGetAttribute(&(out), attr, dev))
-  #define GPU_CONC_MANAGED_ATTR  hipDevAttrConcurrentManagedAccess
-  using GpuFuncAttributes = hipFuncAttributes;
-  template<class Fn>
-  inline void gpu_func_get_attributes(GpuFuncAttributes& a, Fn* f) {
-    HIPEX(hipFuncGetAttributes(&a, f));
-  }
-#endif
-// ----------------------------------------------------------------------------------
 
 using namespace battery;
 
@@ -57,7 +30,7 @@ __global__ void kernel_managed_memory(iptr<managed_allocator> data) {
 void managed_memory_test() {
   iptr<managed_allocator> data = make_shared<int, managed_allocator>(0);
   kernel_managed_memory<<<1, 1>>>(data);
-  GPU_SYNC();
+  HIPEX(hipDeviceSynchronize());
   std::cout << *data << std::endl;
   assert(*data == 1);
 }
@@ -82,21 +55,21 @@ __global__ void kernel_test_global_memory2(iptr<global_allocator>& data) {
 void global_memory_test_passing1() {
   auto data = make_shared<iptr<global_allocator>, managed_allocator>(nullptr);
   kernel_allocate_global_memory<<<1, 1>>>(data);
-  GPU_SYNC();
+  HIPEX(hipDeviceSynchronize());
   kernel_test_global_memory<<<1, 1>>>(data);
-  GPU_SYNC();
+  HIPEX(hipDeviceSynchronize());
   kernel_free_global_memory<<<1, 1>>>(data);
-  GPU_SYNC();
+  HIPEX(hipDeviceSynchronize());
 }
 
 void global_memory_test_passing2() {
   auto data = make_shared<iptr<global_allocator>, managed_allocator>(nullptr);
   kernel_allocate_global_memory<<<1, 1>>>(data);
-  GPU_SYNC();
+  HIPEX(hipDeviceSynchronize());
   kernel_test_global_memory2<<<1, 1>>>(*data);
-  GPU_SYNC();
+  HIPEX(hipDeviceSynchronize());
   kernel_free_global_memory<<<1, 1>>>(data);
-  GPU_SYNC();
+  HIPEX(hipDeviceSynchronize());
 }
 
 __global__ void kernel_allocate_global_vector(shared_ptr<vector<int, global_allocator>, managed_allocator> data) {
@@ -111,11 +84,11 @@ __global__ void kernel_test_global_vector(vector<int, global_allocator>& data) {
 void global_memory_vector_passing() {
   auto data = make_shared<vector<int, global_allocator>, managed_allocator>(vector<int, global_allocator>{});
   kernel_allocate_global_vector<<<1, 1>>>(data);
-  GPU_SYNC();
+  HIPEX(hipDeviceSynchronize());
   kernel_test_global_vector<<<1, 1>>>(*data);
-  GPU_SYNC();
+  HIPEX(hipDeviceSynchronize());
   kernel_free_global_memory<<<1, 1>>>(data);
-  GPU_SYNC();
+  HIPEX(hipDeviceSynchronize());
 }
 
 CUDA void use_memory(const pool_allocator& pool_mem, int size) {
@@ -156,15 +129,15 @@ void shared_memory_max_usage(int shared_memory_size) {
   const int mem_usage = shared_memory_size / 4 - 2;
   auto measured_mem_usage = make_shared<int, managed_allocator>(0);
   kernel_measure_memory<<<1, 1>>>(*measured_mem_usage, mem_usage);
-  GPU_SYNC();
+  HIPEX(hipDeviceSynchronize());
   printf("measured mem usage: %d bytes\n", *measured_mem_usage);
   kernel_compute<<<1, 1, *measured_mem_usage>>>(*measured_mem_usage, mem_usage);
-  GPU_SYNC();
+  HIPEX(hipDeviceSynchronize());
 }
 
 void shared_memory_with_precomputation() {
-  GpuFuncAttributes attr{};
-  gpu_func_get_attributes(attr, kernel_compute);
+  hipFuncAttributes attr{};
+  HIPEX(hipFuncGetAttributes(&attr, (const void*)kernel_compute));
   printf("max dynamic shared memory size: %d bytes\n", attr.maxDynamicSharedSizeBytes);
   shared_memory_max_usage(attr.maxDynamicSharedSizeBytes);
 }
@@ -172,7 +145,7 @@ void shared_memory_with_precomputation() {
 int main() {
   int dev = 0;
   int supportsConcurrentManagedAccess = 0;
-  GPU_DEV_ATTR(supportsConcurrentManagedAccess, GPU_CONC_MANAGED_ATTR, dev);
+  HIPEX(hipDeviceGetAttribute(&supportsConcurrentManagedAccess, hipDeviceAttributeConcurrentManagedAccess, dev));
   if (!supportsConcurrentManagedAccess) {
     std::cout << "Cannot run tests because the GPU does not support concurrent access to managed memory." << std::endl;
   } else {
@@ -183,6 +156,6 @@ int main() {
   }
   shared_memory_with_precomputation();
   test_empty_pool<<<1, 1>>>();
-  GPU_SYNC();
+  HIPEX(hipDeviceSynchronize());
   return 0;
 }

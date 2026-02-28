@@ -57,42 +57,48 @@ namespace battery { namespace impl {
   NI inline void* gpu_malloc(size_t bytes) {
     if(bytes == 0) return nullptr;
     void* p = nullptr;
-    #ifdef BATTERY_CUDA_BACKEND
+    #if defined(BATTERY_CUDA_BACKEND) && !defined(BATTERY_HIP_BUILD)
       cudaError_t rc = cudaMalloc(&p, bytes);
       if(rc != cudaSuccess)
         std::cerr << "gpu_malloc failed: " << cudaGetErrorString(rc) << std::endl;
-    #else
+    #elif defined(BATTERY_HIP_BACKEND) || defined(BATTERY_HIP_BUILD)
       hipError_t rc = hipMalloc(&p, bytes);
       if(rc != hipSuccess)
         std::cerr << "gpu_malloc failed: " << hipGetErrorString(rc) << std::endl;
+    #else
+      #error "gpu_malloc: no GPU backend defined (expected BATTERY_CUDA_BACKEND or BATTERY_HIP_BUILD)"
     #endif
     return p;
   }
 
   NI inline void gpu_free(void* p) {
     if(p == nullptr) return;
-    #ifdef BATTERY_CUDA_BACKEND
+    #if defined(BATTERY_CUDA_BACKEND) && !defined(BATTERY_HIP_BUILD)
       cudaError_t rc = cudaFree(p);
       if(rc != cudaSuccess)
         std::cerr << "gpu_free failed: " << cudaGetErrorString(rc) << std::endl;
-    #else
+    #elif defined(BATTERY_HIP_BACKEND) || defined(BATTERY_HIP_BUILD)
       hipError_t rc = hipFree(p);
       if(rc != hipSuccess)
         std::cerr << "gpu_free failed: " << hipGetErrorString(rc) << std::endl;
+    #else
+      #error "gpu_free: no GPU backend defined (expected BATTERY_CUDA_BACKEND or BATTERY_HIP_BUILD)"
     #endif
   }
 
   NI inline void* gpu_malloc_managed(size_t bytes) {
     if(bytes == 0) return nullptr;
     void* p = nullptr;
-    #ifdef BATTERY_CUDA_BACKEND
+    #if defined(BATTERY_CUDA_BACKEND) && !defined(BATTERY_HIP_BUILD)
       cudaError_t rc = cudaMallocManaged(&p, bytes);
       if(rc != cudaSuccess)
         std::cerr << "gpu_malloc_managed failed: " << cudaGetErrorString(rc) << std::endl;
-    #else
+    #elif defined(BATTERY_HIP_BACKEND) || defined(BATTERY_HIP_BUILD)
       hipError_t rc = hipMallocManaged(&p, bytes);
       if(rc != hipSuccess)
         std::cerr << "gpu_malloc_managed failed: " << hipGetErrorString(rc) << std::endl;
+    #else
+      #error "gpu_malloc_managed: no GPU backend defined (expected BATTERY_CUDA_BACKEND or BATTERY_HIP_BUILD)"
     #endif
     return p;
   }
@@ -100,28 +106,32 @@ namespace battery { namespace impl {
   NI inline void* gpu_malloc_host(size_t bytes) {
     if(bytes == 0) return nullptr;
     void* p = nullptr;
-    #ifdef BATTERY_CUDA_BACKEND
+    #if defined(BATTERY_CUDA_BACKEND) && !defined(BATTERY_HIP_BUILD)
       cudaError_t rc = cudaMallocHost(&p, bytes);
       if(rc != cudaSuccess)
         std::cerr << "gpu_malloc_host failed: " << cudaGetErrorString(rc) << std::endl;
-    #else
-      hipError_t rc = hipMallocHost(&p, bytes);
+    #elif defined(BATTERY_HIP_BACKEND) || defined(BATTERY_HIP_BUILD)
+      hipError_t rc = hipHostMalloc(&p, bytes);
       if(rc != hipSuccess)
         std::cerr << "gpu_malloc_host failed: " << hipGetErrorString(rc) << std::endl;
+    #else
+      #error "gpu_malloc_host: no GPU backend defined (expected BATTERY_CUDA_BACKEND or BATTERY_HIP_BUILD)"
     #endif
     return p;
   }
 
   NI inline void gpu_free_host(void* p) {
     if(p == nullptr) return;
-    #ifdef BATTERY_CUDA_BACKEND
+    #if defined(BATTERY_CUDA_BACKEND) && !defined(BATTERY_HIP_BUILD)
       cudaError_t rc = cudaFreeHost(p);
       if(rc != cudaSuccess)
         std::cerr << "gpu_free_host failed: " << cudaGetErrorString(rc) << std::endl;
-    #else
-      hipError_t rc = hipFreeHost(p);
+    #elif defined(BATTERY_HIP_BACKEND) || defined(BATTERY_HIP_BUILD)
+      hipError_t rc = hipHostFree(p);
       if(rc != hipSuccess)
         std::cerr << "gpu_free_host failed: " << hipGetErrorString(rc) << std::endl;
+    #else
+      #error "gpu_free_host: no GPU backend defined (expected BATTERY_CUDA_BACKEND or BATTERY_HIP_BUILD)"
     #endif
   }
 

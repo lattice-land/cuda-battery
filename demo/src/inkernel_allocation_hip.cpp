@@ -8,34 +8,6 @@
 #include "battery/unique_ptr.hpp"
 #include "battery/allocator.hpp"
 
-// TODO: Remove this alias block once AMD verification is complete.
-// On AMD hardware BATTERY_HIP_BACKEND is always active; inline the HIP calls directly.
-#ifdef BATTERY_CUDA_BACKEND
-  #define GPU_SYNC() CUDAEX(cudaDeviceSynchronize())
-  #define GPU_DEV_ATTR(out, attr, dev) CUDAEX(cudaDeviceGetAttribute(&(out), attr, dev))
-  #define GPU_ATTR_COOP_LAUNCH  cudaDevAttrCooperativeLaunch
-  #define GPU_DEV_GET_LIMIT(val, lim) CUDAE(cudaDeviceGetLimit(val, lim))
-  #define GPU_DEV_SET_LIMIT(lim, val) CUDAE(cudaDeviceSetLimit(lim, val))
-  #define GPU_LIMIT_HEAP  cudaLimitMallocHeapSize
-
-  template<class Fn>
-  void gpu_launch_cooperative(Fn* fn, dim3 grid, dim3 block, void** args) {
-    CUDAEX(cudaLaunchCooperativeKernel((void*)fn, grid, block, args));
-  }
-#elif defined(BATTERY_HIP_BACKEND)
-  #define GPU_SYNC() HIPEX(hipDeviceSynchronize())
-  #define GPU_DEV_ATTR(out, attr, dev) HIPEX(hipDeviceGetAttribute(&(out), attr, dev))
-  #define GPU_ATTR_COOP_LAUNCH  hipDevAttrCooperativeLaunch
-  #define GPU_DEV_GET_LIMIT(val, lim) HIPE(hipDeviceGetLimit(val, lim))
-  #define GPU_DEV_SET_LIMIT(lim, val) HIPE(hipDeviceSetLimit(lim, val))
-  #define GPU_LIMIT_HEAP  hipLimitMallocHeapSize
-
-  template<class Fn>
-  void gpu_launch_cooperative(Fn* fn, dim3 grid, dim3 block, void** args) {
-    HIPEX(hipLaunchCooperativeKernel((void*)fn, grid, block, args, 0, nullptr));
-  }
-#endif
-
 /** Different aliases to `vector` with different allocators. */
 using mvector = battery::vector<int, battery::managed_allocator>;
 using gvector = battery::vector<int, battery::global_allocator>;
@@ -60,9 +32,9 @@ __global__ void grid_vector_copy(mvector* v_ptr) {
 
 void increase_heap_size() {
   size_t max_heap_size;
-  GPU_DEV_GET_LIMIT(&max_heap_size, GPU_LIMIT_HEAP);
-  GPU_DEV_SET_LIMIT(GPU_LIMIT_HEAP, max_heap_size * 10);
-  GPU_DEV_GET_LIMIT(&max_heap_size, GPU_LIMIT_HEAP);
+  HIPE(hipDeviceGetLimit(&max_heap_size, hipLimitMallocHeapSize));
+  HIPE(hipDeviceSetLimit(hipLimitMallocHeapSize, max_heap_size * 10));
+  HIPE(hipDeviceGetLimit(&max_heap_size, hipLimitMallocHeapSize));
   printf("%%GPU_max_heap_size=%zu (%zuMB)\n", max_heap_size, max_heap_size / 1000 / 1000);
 }
 
@@ -72,17 +44,17 @@ int main() {
   auto ptr = vptr.get();
 
   block_vector_copy<<<256, 256>>>(ptr);
-  GPU_SYNC();
+  HIPEX(hipDeviceSynchronize());
 
   int dev = 0;
   int supportsCoopLaunch = 0;
-  GPU_DEV_ATTR(supportsCoopLaunch, GPU_ATTR_COOP_LAUNCH, dev);
+  HIPEX(hipDeviceGetAttribute(&supportsCoopLaunch, hipDeviceAttributeCooperativeLaunch, dev));
   if(supportsCoopLaunch) {
     void *kernelArgs[] = { &ptr };
     dim3 dimBlock(256, 1, 1);
     dim3 dimGrid(256, 1, 1);
-    gpu_launch_cooperative(grid_vector_copy, dimGrid, dimBlock, kernelArgs);
-    GPU_SYNC();
+    HIPEX(hipLaunchCooperativeKernel((void*)grid_vector_copy, dimGrid, dimBlock, kernelArgs, 0, nullptr));
+    HIPEX(hipDeviceSynchronize());
   } else {
     std::cout << "Warning: The GPU device does not support launching a cooperative kernel." << std::endl;
   }

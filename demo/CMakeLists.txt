@@ -27,6 +27,8 @@ if(HIP)
   project(cuda-battery-demo
     HOMEPAGE_URL "https://github.com/lattice-land/cuda-battery"
     LANGUAGES HIP CXX)
+  find_package(hip REQUIRED)
+  find_package(CUDAToolkit QUIET)
 else()
   project(cuda-battery-demo
     HOMEPAGE_URL "https://github.com/lattice-land/cuda-battery"
@@ -63,9 +65,15 @@ if(HIP)
   add_executable(demo_hip src/demo_hip.cpp)
   target_include_directories(demo_hip PRIVATE include)
   target_link_libraries(demo_hip cuda_battery)
+  if(CUDAToolkit_FOUND)
+    target_link_libraries(demo_hip CUDA::cuda_driver)
+  endif()
 
   add_executable(inkernel_allocation_hip src/inkernel_allocation_hip.cpp)
   target_link_libraries(inkernel_allocation_hip cuda_battery)
+  if(CUDAToolkit_FOUND)
+    target_link_libraries(inkernel_allocation_hip CUDA::cuda_driver)
+  endif()
 
   add_executable(simple_hip src/simple_hip.cpp)
   target_link_libraries(simple_hip cuda_battery)
@@ -140,6 +148,9 @@ if(HIP)
     add_executable(${test_name} ${file})
     target_include_directories(${test_name} PRIVATE include)
     target_link_libraries(${test_name} cuda_battery)
+    if(CUDAToolkit_FOUND)
+      target_link_libraries(${test_name} CUDA::cuda_driver)
+    endif()
     add_test(NAME ${test_name} COMMAND $<TARGET_FILE:${test_name}>)
   endforeach()
 
