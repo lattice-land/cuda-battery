@@ -14,6 +14,9 @@
 
 #ifdef BATTERY_CUDA_BACKEND
   #include <cuda/atomic>
+#elif defined(BATTERY_HIP_BACKEND)
+  #include <hip/hip_runtime.h>
+  #include <atomic>
 #else
   #include <atomic>
 #endif
@@ -34,6 +37,37 @@ namespace impl {
     using type = V;
   };
 #endif
+
+#ifdef BATTERY_HIP_BACKEND
+  /** HIP scope constants mapping to __HIP_MEMORY_SCOPE_* values. */
+  constexpr int hip_scope_block      = __HIP_MEMORY_SCOPE_WORKGROUP;
+  constexpr int hip_scope_device     = __HIP_MEMORY_SCOPE_AGENT;
+  constexpr int hip_scope_system     = __HIP_MEMORY_SCOPE_SYSTEM;
+
+  /**
+   * Thin wrapper around __hip_atomic_* intrinsics that mirrors the
+   * cuda::atomic<V, Scope> interface expected by copyable_atomic.
+   * Works in both host and device code under hipcc.
+   */
+  template <class T, int Scope>
+  class hip_atomic_wrapper {
+    T value_;
+  public:
+    using value_type = T;
+    CUDA hip_atomic_wrapper() = default;
+    CUDA hip_atomic_wrapper(T v) : value_(v) {}
+
+    CUDA T load(int order = __ATOMIC_RELAXED) const {
+      return __hip_atomic_load(&value_, order, Scope);
+    }
+    CUDA void store(T v, int order = __ATOMIC_RELAXED) {
+      __hip_atomic_store(&value_, v, order, Scope);
+    }
+    CUDA T exchange(T v, int order = __ATOMIC_RELAXED) {
+      return __hip_atomic_exchange(&value_, v, order, Scope);
+    }
+  };
+#endif // BATTERY_HIP_BACKEND
 }
 
 
@@ -114,6 +148,41 @@ using atomic_memory_grid = atomic_memory_scoped<cuda::thread_scope_device>;
 using atomic_memory_multi_grid = atomic_memory_scoped<cuda::thread_scope_system>;
 
 #endif // BATTERY_CUDA_BACKEND
+
+#ifdef BATTERY_HIP_BACKEND
+
+/** Memory load and store operations with an explicit HIP memory scope and
+ *  a given memory order (relaxed by default).
+ *  The Scope template parameter uses the __HIP_MEMORY_SCOPE_* integer constants,
+ *  exposed through battery::impl::hip_scope_{block,device,system}.
+ */
+template <int Scope, int mem_order = __ATOMIC_RELAXED>
+class atomic_memory_scoped {
+public:
+  template <class T> using atomic_type = copyable_atomic<impl::hip_atomic_wrapper<T, Scope>>;
+  constexpr static const bool sequential = false;
+
+  template <class T>
+  CUDA INLINE static T load(const atomic_type<T>& a) {
+    return a.load(mem_order);
+  }
+
+  template <class T>
+  CUDA INLINE static void store(atomic_type<T>& a, T v) {
+    a.store(v, mem_order);
+  }
+
+  template <class T>
+  CUDA INLINE static T exchange(atomic_type<T>& a, T v) {
+    return a.exchange(v, mem_order);
+  }
+};
+
+using atomic_memory_block      = atomic_memory_scoped<impl::hip_scope_block>;
+using atomic_memory_grid       = atomic_memory_scoped<impl::hip_scope_device>;
+using atomic_memory_multi_grid = atomic_memory_scoped<impl::hip_scope_system>;
+
+#endif // BATTERY_HIP_BACKEND
 
 #ifdef BATTERY_CUDA_BACKEND
   /// @private
