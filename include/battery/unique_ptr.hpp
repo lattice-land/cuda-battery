@@ -134,13 +134,28 @@ CUDA unique_ptr<T, Alloc> make_unique(Args&&... args) {
   return allocate_unique<T>(Alloc(), std::forward<Args>(args)...);
 }
 
-#ifdef BATTERY_CUDA_BACKEND
+#ifdef BATTERY_GPU_ENABLED
 
 }
 
-#include <cooperative_groups.h>
+#ifdef BATTERY_CUDA_BACKEND
+  #include <cooperative_groups.h>
+#elif defined(BATTERY_HIP_BACKEND)
+  #include <hip/hip_cooperative_groups.h>
+#endif
 
 namespace battery {
+
+#ifdef BATTERY_HIP_BACKEND
+  /** HIP's cooperative_groups does not ship `invoke_one`.
+   *  This shim executes the callable on exactly one thread (rank 0) of the group,
+   *  mirroring the semantics of `cooperative_groups::invoke_one` from CUDA.
+   */
+  template<class Group, class Callable>
+  __device__ INLINE void invoke_one(Group& g, Callable&& f) {
+    if(g.thread_rank() == 0) std::forward<Callable>(f)();
+  }
+#endif
 
 /** We construct a `unique_ptr` in the style of `allocate_unique` but the function is allowed to be entered by all threads of a block.
  * Only one thread of the block will call the function `allocate_unique`.
@@ -157,7 +172,7 @@ namespace battery {
  * block.sync(); // or __syncthreads();
  * ```
  *
- * NOTE: this function use the cooperative groups library.
+ * NOTE: this function uses the cooperative groups library.
  */
 template<class T, class Alloc, class... Args>
 __device__ NI T& make_unique_block(unique_ptr<T, Alloc>& ptr, Args&&... args) {
@@ -180,7 +195,9 @@ namespace impl {
 }
 
 /** Same as `make_unique_block` but for the grid (all blocks).
- * NOTE: a kernel using this function must be launched using `cudaLaunchCooperativeKernel` instead of the `<<<...>>>` syntax.
+ * NOTE: a kernel using this function must be launched using the cooperative launch API
+ *       (`cudaLaunchCooperativeKernel` on CUDA, `hipLaunchCooperativeKernel` on HIP)
+ *       instead of the `<<<...>>>` syntax.
  */
 template<class T, class Alloc, class... Args>
 __device__ NI T& make_unique_grid(unique_ptr<T, Alloc>& ptr, Args&&... args) {
@@ -196,7 +213,7 @@ __device__ NI T& make_unique_grid(unique_ptr<T, Alloc>& ptr, Args&&... args) {
   return *data_ptr;
 }
 
-#endif
+#endif // BATTERY_GPU_ENABLED
 
 } // namespace battery
 

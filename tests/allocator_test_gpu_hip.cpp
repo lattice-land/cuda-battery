@@ -16,7 +16,10 @@
 #include "battery/utility.hpp"
 #include "battery/vector.hpp"
 
-// ── Backend-transparent aliases ───────────────────────────────────────────
+// TODO: Remove this alias block once AMD verification is complete.
+// On AMD hardware BATTERY_HIP_BACKEND is always active, so the #ifdef dispatch
+// is dead code. Replace every GPU_* call site with the direct HIP call.
+// --- Backend-transparent aliases ------------------------------------------------
 #ifdef BATTERY_CUDA_BACKEND
   #define GPU_SYNC() CUDAEX(cudaDeviceSynchronize())
   #define GPU_DEV_ATTR(out, attr, dev) CUDAEX(cudaDeviceGetAttribute(&(out), attr, dev))
@@ -36,7 +39,7 @@
     HIPEX(hipFuncGetAttributes(&a, f));
   }
 #endif
-// ─────────────────────────────────────────────────────────────────────────
+// ----------------------------------------------------------------------------------
 
 using namespace battery;
 

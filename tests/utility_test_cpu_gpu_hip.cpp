@@ -15,6 +15,9 @@
 #include "battery/allocator.hpp"
 #include "battery/utility.hpp"
 
+// TODO: Remove this alias block once AMD verification is complete.
+// On AMD hardware BATTERY_HIP_BACKEND is always active, so the #ifdef dispatch
+// is dead code. Replace every GPU_* call site with the direct HIP call.
 // ── Backend-transparent aliases ───────────────────────────────────────────
 #ifdef BATTERY_CUDA_BACKEND
   #define GPU_SYNC() CUDAEX(cudaDeviceSynchronize())
