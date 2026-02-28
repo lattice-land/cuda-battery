@@ -1,11 +1,24 @@
-# Standard Library for CUDA Programming
+# Standard Library for CUDA/HIP Programming
 
 [![Build Status](https://travis-ci.com/lattice-land/cuda-battery.svg?branch=main)](https://travis-ci.com/lattice-land/cuda-battery)
 
-This library provides data structures to ease programming in CUDA (version 12 or higher).
+This library provides data structures to ease GPU programming in CUDA (version 12 or higher) and HIP (ROCm 6+).
 For a tutorial and further information, please read [this manual](https://lattice-land.github.io/1-cuda-battery.html).
 
+## Supported Backends
+
+| Backend | Compiler | CMake option | Active macro |
+|---|---|---|---|
+| CPU only | GCC / Clang / MSVC | _(default)_ | — |
+| CUDA (NVIDIA) | nvcc 12+ | `GPU=ON` | `BATTERY_CUDA_BACKEND` |
+| HIP (AMD ROCm) | amdclang++ / hipcc, ROCm 6+ | `HIP=ON GPU=OFF` | `BATTERY_HIP_BACKEND` |
+
+The three backends are mutually exclusive at compile time.
+
 ## Example
+
+The example below works unchanged on both CUDA and HIP — just compile with the appropriate backend option.
+For HIP, replace `CUDAEX` with `HIPEX` and `cudaDeviceSynchronize` with `hipDeviceSynchronize`.
 
 Quick example on how to transfer a `std::vector` on CPU to a `battery::vector` on GPU (notice you don't need to do any manual memory allocation or deallocation):
 
@@ -60,6 +73,7 @@ int main(int argc, char** argv) {
 | Containers | [`vector`](https://lattice-land.github.io/cuda-battery/vector_8hpp.html) ([`std`](https://en.cppreference.com/w/cpp/container/vector)) | [`string`](https://lattice-land.github.io/cuda-battery/string_8hpp.html) ([`std`](https://en.cppreference.com/w/cpp/string/basic_string)) | [`dynamic_bitset`](https://lattice-land.github.io/cuda-battery/dynamic__bitset_8hpp.html) | |
 | | [`tuple`](https://en.cppreference.com/w/cpp/utility/tuple) | [`variant`](https://lattice-land.github.io/cuda-battery/variant_8hpp.html) ([`std`](https://en.cppreference.com/w/cpp/utility/variant)) | [`bitset`](https://lattice-land.github.io/cuda-battery/bitset_8hpp.html) ([`std`](https://en.cppreference.com/w/cpp/utility/bitset)) | |
 | Utility | [`CUDA`](https://lattice-land.github.io/cuda-battery/utility_8hpp.html#a7b01e29f669d6beed251f1b2a547ca93) | [`INLINE`](https://lattice-land.github.io/cuda-battery/utility_8hpp.html#a2eb6f9e0395b47b8d5e3eeae4fe0c116) | [`CUDAE`](https://lattice-land.github.io/cuda-battery/utility_8hpp.html#a289596c1db721f82251de6902f9699db) | [`CUDAEX`](https://lattice-land.github.io/cuda-battery/utility_8hpp.html#af35c92d967acfadd086658422f631100) |
+| | | | [`HIPE`](https://lattice-land.github.io/cuda-battery/utility_8hpp.html) _(HIP)_ | [`HIPEX`](https://lattice-land.github.io/cuda-battery/utility_8hpp.html) _(HIP)_ |
 | | [`limits`](https://lattice-land.github.io/cuda-battery/structbattery_1_1limits.html) | [`ru_cast`](https://lattice-land.github.io/cuda-battery/namespacebattery.html#a7fdea425c76eab201a009ea09b8cbac0) | [`rd_cast`](https://lattice-land.github.io/cuda-battery/namespacebattery.html#aa2296c962277e71780bccf1ba9708f59) | |
 | | [`popcount`](https://lattice-land.github.io/cuda-battery/namespacebattery.html#a2821ae67e8ea81b375f3fd6d70909fef) ([`std`](https://en.cppreference.com/w/cpp/numeric/popcount)) | [`countl_zero`](https://lattice-land.github.io/cuda-battery/namespacebattery.html#aa18a34122dc3e8b7e96c4a54eeffa9aa) ([`std`](https://en.cppreference.com/w/cpp/numeric/countl_zero)) | [`countl_one`](https://lattice-land.github.io/cuda-battery/namespacebattery.html#ae252a50e577d7b092eb368b7e0289772) ([`std`](https://en.cppreference.com/w/cpp/numeric/countl_one)) | [`countr_zero`](https://lattice-land.github.io/cuda-battery/namespacebattery.html#a7338f90fab224e49c3716c5eace58bee) ([`std`](https://en.cppreference.com/w/cpp/numeric/countr_zero)) |
 | | [`countr_one`](https://lattice-land.github.io/cuda-battery/namespacebattery.html#a974d0a682d546e1185ae7dca29c272d6) ([`std`](https://en.cppreference.com/w/cpp/numeric/countr_one)) | [`signum`](https://lattice-land.github.io/cuda-battery/namespacebattery.html#a31b3f5ee3799a73d29c153ebd222cdea) | [`ipow`](https://lattice-land.github.io/cuda-battery/namespacebattery.html#a93472d80842253624e2436eef7b900b6) | |
