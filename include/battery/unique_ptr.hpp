@@ -134,7 +134,7 @@ CUDA unique_ptr<T, Alloc> make_unique(Args&&... args) {
   return allocate_unique<T>(Alloc(), std::forward<Args>(args)...);
 }
 
-#ifdef __CUDACC__
+#ifdef BATTERY_CUDA_BACKEND
 
 }
 

@@ -13,11 +13,33 @@
 #include <cfenv>
 #include <bit>
 
-#ifdef __CUDACC__
+// ── Backend detection ─────────────────────────────────────────────────────
+/** Defined when compiling with any GPU compiler (nvcc or hipcc). */
+#if defined(__CUDACC__) || defined(__HIPCC__)
+  #define BATTERY_GPU_ENABLED
+#endif
+
+/** Defined when compiling device function bodies. */
+#if defined(__CUDA_ARCH__) || defined(__HIP_DEVICE_COMPILE__)
+  #define BATTERY_DEVICE_CODE
+#endif
+
+/** Defined when compiling with nvcc (pure CUDA backend, not via HIP). */
+#if defined(__CUDACC__) && !defined(__HIPCC__)
+  #define BATTERY_CUDA_BACKEND
+#endif
+
+/** Defined when compiling with hipcc (AMD ROCm or NVIDIA via HIP). */
+#ifdef __HIPCC__
+  #define BATTERY_HIP_BACKEND
+#endif
+
+// ── GPU qualifiers (identical in CUDA and HIP) ────────────────────────────
+#ifdef BATTERY_GPU_ENABLED
   #define CUDA_GLOBAL __global__
 
   #ifdef REDUCE_PTX_SIZE
-    /** `NI` stands for noinline, to hint `nvcc` the function should not be inlined. */
+    /** `NI` stands for noinline, to hint the GPU compiler the function should not be inlined. */
     #define NI __noinline__
   #else
     #define NI
@@ -26,42 +48,74 @@
   /** Request a function to be inlined. */
   #define INLINE __forceinline__
 
-  /** `CUDA` is a macro indicating that a function can be executed on a GPU. It is defined to `__device__ __host__` when the code is compiled with `nvcc`. */
+  /** `CUDA` is a macro indicating that a function can be executed on a GPU. It is defined to `__device__ __host__` when the code is compiled with a GPU compiler. */
   #define CUDA __device__ __host__
 
-  namespace battery {
-  namespace impl {
-    CUDA NI inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=true) {
-      if (code != cudaSuccess) {
-        printf("%s:%d CUDA runtime error %s\n", file, line, cudaGetErrorString(code));
-        if (abort) {
-          #ifdef __CUDA_ARCH__
-            assert(0);
-          #else
-            exit(code);
-          #endif
+  // ── CUDA error-check macros ──────────────────────────────────────────────
+  #ifdef BATTERY_CUDA_BACKEND
+    namespace battery {
+    namespace impl {
+      CUDA NI inline void cudaAssert(cudaError_t code, const char *file, int line, bool abort=true) {
+        if (code != cudaSuccess) {
+          printf("%s:%d CUDA runtime error %s\n", file, line, cudaGetErrorString(code));
+          if (abort) {
+            #ifdef BATTERY_DEVICE_CODE
+              assert(0);
+            #else
+              exit(code);
+            #endif
+          }
         }
       }
-    }
-  }}
+    }}
 
-  /** A macro checking the result of a CUDA API call.
-   * It prints an error message if an error occured.
-  */
-  #define CUDAE(result) { ::battery::impl::gpuAssert((result), __FILE__, __LINE__, false); }
+    /** A macro checking the result of a CUDA API call.
+     * It prints an error message if an error occured.
+    */
+    #define CUDAE(result) { ::battery::impl::cudaAssert((result), __FILE__, __LINE__, false); }
 
-  /** Similar to CUDAE but abort the computation in addition, either with `assert` (GPU) or `exit` (CPU).
-  */
-  #define CUDAEX(result) { ::battery::impl::gpuAssert((result), __FILE__, __LINE__, true); }
+    /** Similar to CUDAE but abort the computation in addition, either with `assert` (GPU) or `exit` (CPU).
+    */
+    #define CUDAEX(result) { ::battery::impl::cudaAssert((result), __FILE__, __LINE__, true); }
 
-#else
+  // ── HIP error-check macros ───────────────────────────────────────────────
+  #elif defined(BATTERY_HIP_BACKEND)
+    #include <hip/hip_runtime.h>
+    namespace battery {
+    namespace impl {
+      CUDA NI inline void hipAssert(hipError_t code, const char *file, int line, bool abort=true) {
+        if (code != hipSuccess) {
+          printf("%s:%d HIP runtime error %s\n", file, line, hipGetErrorString(code));
+          if (abort) {
+            #ifdef BATTERY_DEVICE_CODE
+              assert(0);
+            #else
+              exit(code);
+            #endif
+          }
+        }
+      }
+    }}
+
+    /** A macro checking the result of a HIP API call.
+     * It prints an error message if an error occured.
+    */
+    #define HIPE(result) { ::battery::impl::hipAssert((result), __FILE__, __LINE__, false); }
+
+    /** Similar to HIPE but abort the computation in addition, either with `assert` (GPU) or `exit` (CPU).
+    */
+    #define HIPEX(result) { ::battery::impl::hipAssert((result), __FILE__, __LINE__, true); }
+
+  #endif // BATTERY_CUDA_BACKEND / BATTERY_HIP_BACKEND
+
+#else // !BATTERY_GPU_ENABLED (CPU only)
   #define CUDA_GLOBAL
   #define CUDA
   #define CUDAE(S) S
   #define CUDAEX(S) S
   #define NI
   #define INLINE inline
-#endif
+#endif // BATTERY_GPU_ENABLED
 
 namespace battery {
 
@@ -89,7 +143,7 @@ namespace impl {
 }
 
 template<class T> CUDA constexpr inline void swap(T& a, T& b) {
-  #ifdef __CUDA_ARCH__
+  #ifdef BATTERY_DEVICE_CODE
     impl::swap(a, b);
   #else
     std::swap(a, b);
@@ -97,7 +151,7 @@ template<class T> CUDA constexpr inline void swap(T& a, T& b) {
 }
 
 CUDA inline size_t strlen(const char* str) {
-  #ifdef __CUDA_ARCH__
+  #ifdef BATTERY_DEVICE_CODE
     return impl::strlen(str);
   #else
     return std::strlen(str);
@@ -106,7 +160,7 @@ CUDA inline size_t strlen(const char* str) {
 
 /** See https://stackoverflow.com/a/34873406/2231159 */
 CUDA inline int strcmp(const char* s1, const char* s2) {
-  #ifdef __CUDA_ARCH__
+  #ifdef BATTERY_DEVICE_CODE
     return impl::strcmp(s1, s2);
   #else
     return std::strcmp(s1, s2);
@@ -114,7 +168,7 @@ CUDA inline int strcmp(const char* s1, const char* s2) {
 }
 
 template<class T> CUDA INLINE constexpr T min(T a, T b) {
-  #ifdef __CUDA_ARCH__
+  #ifdef BATTERY_DEVICE_CODE
     // When C++23 is available
     // if !consteval { return ::min(a, b); }
     // else { return std::min(a, b); }
@@ -126,7 +180,7 @@ template<class T> CUDA INLINE constexpr T min(T a, T b) {
 }
 
 template<class T> CUDA INLINE constexpr T max(T a, T b) {
-  #ifdef __CUDA_ARCH__
+  #ifdef BATTERY_DEVICE_CODE
     // When C++23 is available
     // if !consteval { return ::max(a, b); }
     // else { return std::max(a, b); }
@@ -138,7 +192,7 @@ template<class T> CUDA INLINE constexpr T max(T a, T b) {
 }
 
 template<class T> CUDA constexpr T isnan(T a) {
-  #ifdef __CUDA_ARCH__
+  #ifdef BATTERY_DEVICE_CODE
     return ::isnan(a);
   #else
     return std::isnan(a);
@@ -146,7 +200,7 @@ template<class T> CUDA constexpr T isnan(T a) {
 }
 
 CUDA constexpr double pow(double a, double b) {
-  #ifdef __CUDA_ARCH__
+  #ifdef BATTERY_DEVICE_CODE
     return ::pow(a, b);
   #else
     return std::pow(a, b);
@@ -161,7 +215,7 @@ CUDA constexpr double pow(double a, double b) {
 #endif
 
 CUDA CONSTEXPR_NEXTAFTER inline float nextafter(float f, float dir) {
-  #ifdef __CUDA_ARCH__
+  #ifdef BATTERY_DEVICE_CODE
     return ::nextafterf(f, dir);
   #else
     return std::nextafterf(f, dir);
@@ -169,7 +223,7 @@ CUDA CONSTEXPR_NEXTAFTER inline float nextafter(float f, float dir) {
 }
 
 CUDA CONSTEXPR_NEXTAFTER inline double nextafter(double f, double dir) {
-  #ifdef __CUDA_ARCH__
+  #ifdef BATTERY_DEVICE_CODE
     return ::nextafter(f, dir);
   #else
     return std::nextafter(f, dir);
@@ -221,7 +275,7 @@ CUDA NI constexpr To ru_cast(From x) {
   if constexpr(map_limits) {
     MAP_LIMITS(x, From, To)
   }
-  #ifdef __CUDA_ARCH__
+  #ifdef BATTERY_DEVICE_CODE
     // Integer to floating-point number cast.
     if constexpr(std::is_integral_v<From> && std::is_floating_point_v<To>) {
       if constexpr(std::is_same_v<From, unsigned long long>) {
@@ -317,7 +371,7 @@ CUDA NI constexpr To rd_cast(From x) {
   if constexpr(map_limits) {
     MAP_LIMITS(x, From, To)
   }
-  #ifdef __CUDA_ARCH__
+  #ifdef BATTERY_DEVICE_CODE
     // Integer to floating-point number cast.
     if constexpr(std::is_integral_v<From> && std::is_floating_point_v<To>) {
       if constexpr(std::is_same_v<From, unsigned long long>) {
@@ -401,7 +455,7 @@ CUDA NI constexpr To rd_cast(From x) {
 template<class T>
 CUDA NI constexpr int popcount(T x) {
   static_assert(std::is_integral_v<T> && std::is_unsigned_v<T>, "popcount only works on unsigned integers");
-  #ifdef __CUDA_ARCH__
+  #ifdef BATTERY_DEVICE_CODE
     if constexpr(std::is_same_v<T, unsigned int>) {
       return __popc(x);
     }
@@ -426,7 +480,7 @@ CUDA NI constexpr int popcount(T x) {
 template<class T>
 CUDA NI constexpr int countl_zero(T x) {
   static_assert(std::is_integral_v<T> && std::is_unsigned_v<T>, "countl_zero only works on unsigned integers");
-  #ifdef __CUDA_ARCH__
+  #ifdef BATTERY_DEVICE_CODE
     // If the size of `T` is smaller than `int` or `long long int` we must remove the extra zeroes that are added after conversion.
     if constexpr(sizeof(T) <= sizeof(int)) {
       return __clz(x) - ((sizeof(int) - sizeof(T)) * CHAR_BIT);
@@ -454,7 +508,7 @@ CUDA NI constexpr int countl_zero(T x) {
 template<class T>
 CUDA NI constexpr int countl_one(T x) {
   static_assert(std::is_integral_v<T> && std::is_unsigned_v<T>, "countl_one only works on unsigned integers");
-  #ifdef __CUDA_ARCH__
+  #ifdef BATTERY_DEVICE_CODE
     return countl_zero((T)~x);
   #elif __cpp_lib_bitops
     return std::countl_one(x);
@@ -473,7 +527,7 @@ CUDA NI constexpr int countl_one(T x) {
 template<class T>
 CUDA NI constexpr int countr_zero(T x) {
   static_assert(std::is_integral_v<T> && std::is_unsigned_v<T>, "countl_zero only works on unsigned integers");
-  #ifdef __CUDA_ARCH__
+  #ifdef BATTERY_DEVICE_CODE
     if(x == 0) {
       return sizeof(T) * CHAR_BIT;
     }
@@ -503,7 +557,7 @@ CUDA NI constexpr int countr_zero(T x) {
 template<class T>
 CUDA NI constexpr int countr_one(T x) {
   static_assert(std::is_integral_v<T> && std::is_unsigned_v<T>, "countr_one only works on unsigned integers");
-  #ifdef __CUDA_ARCH__
+  #ifdef BATTERY_DEVICE_CODE
     return countr_zero((T)~x);
   #elif __cpp_lib_bitops
     return std::countr_one(x);
@@ -582,7 +636,7 @@ CUDA T iroots_up(T x, int r) {
 
 template <class T>
 CUDA constexpr T add_up(T x, T y) {
-  #ifdef __CUDA_ARCH__
+  #ifdef BATTERY_DEVICE_CODE
     FLOAT_ARITHMETIC_CUDA_IMPL(add_up, add_ru)
   #else
     #if !defined(__GNUC__) && !defined(_MSC_VER)
@@ -594,7 +648,7 @@ CUDA constexpr T add_up(T x, T y) {
 
 template <class T>
 CUDA constexpr T add_down(T x, T y) {
-  #ifdef __CUDA_ARCH__
+  #ifdef BATTERY_DEVICE_CODE
     FLOAT_ARITHMETIC_CUDA_IMPL(add_down, add_rd)
   #else
     #if !defined(__GNUC__) && !defined(_MSC_VER)
@@ -606,7 +660,7 @@ CUDA constexpr T add_down(T x, T y) {
 
 template <class T>
 CUDA constexpr T sub_up(T x, T y) {
-  #ifdef __CUDA_ARCH__
+  #ifdef BATTERY_DEVICE_CODE
     FLOAT_ARITHMETIC_CUDA_IMPL(sub_up, sub_ru)
   #else
     #if !defined(__GNUC__) && !defined(_MSC_VER)
@@ -618,7 +672,7 @@ CUDA constexpr T sub_up(T x, T y) {
 
 template <class T>
 CUDA constexpr T sub_down(T x, T y) {
-  #ifdef __CUDA_ARCH__
+  #ifdef BATTERY_DEVICE_CODE
     FLOAT_ARITHMETIC_CUDA_IMPL(sub_down, sub_rd)
   #else
     #if !defined(__GNUC__) && !defined(_MSC_VER)
@@ -630,7 +684,7 @@ CUDA constexpr T sub_down(T x, T y) {
 
 template <class T>
 CUDA constexpr T mul_up(T x, T y) {
-  #ifdef __CUDA_ARCH__
+  #ifdef BATTERY_DEVICE_CODE
     FLOAT_ARITHMETIC_CUDA_IMPL(mul_up, mul_ru)
   #else
     #if !defined(__GNUC__) && !defined(_MSC_VER)
@@ -642,7 +696,7 @@ CUDA constexpr T mul_up(T x, T y) {
 
 template <class T>
 CUDA constexpr T mul_down(T x, T y) {
-  #ifdef __CUDA_ARCH__
+  #ifdef BATTERY_DEVICE_CODE
     FLOAT_ARITHMETIC_CUDA_IMPL(mul_down, mul_rd)
   #else
     #if !defined(__GNUC__) && !defined(_MSC_VER)
@@ -654,7 +708,7 @@ CUDA constexpr T mul_down(T x, T y) {
 
 template <class T>
 CUDA constexpr T div_up(T x, T y) {
-  #ifdef __CUDA_ARCH__
+  #ifdef BATTERY_DEVICE_CODE
     FLOAT_ARITHMETIC_CUDA_IMPL(div_up, div_ru)
   #else
     #if !defined(__GNUC__) && !defined(_MSC_VER)
@@ -666,7 +720,7 @@ CUDA constexpr T div_up(T x, T y) {
 
 template <class T>
 CUDA constexpr T div_down(T x, T y) {
-  #ifdef __CUDA_ARCH__
+  #ifdef BATTERY_DEVICE_CODE
     FLOAT_ARITHMETIC_CUDA_IMPL(div_down, div_rd)
   #else
     #if !defined(__GNUC__) && !defined(_MSC_VER)

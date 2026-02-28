@@ -12,7 +12,7 @@
 #include <type_traits>
 #include <utility>
 
-#ifdef __CUDACC__
+#ifdef BATTERY_CUDA_BACKEND
   #include <cuda/atomic>
 #else
   #include <atomic>
@@ -28,7 +28,7 @@ namespace impl {
   struct value_type_of {
     using type = typename T::value_type;
   };
-#ifdef __CUDACC__
+#ifdef BATTERY_CUDA_BACKEND
   template <class V, cuda::thread_scope Scope>
   struct value_type_of<cuda::atomic<V, Scope>> {
     using type = V;
@@ -84,7 +84,7 @@ public:
 using local_memory = memory<false>;
 using read_only_memory = memory<true>;
 
-#ifdef __CUDACC__
+#ifdef BATTERY_CUDA_BACKEND
 
 /** Memory load and store operations relative to a cuda scope (per-thread, block, grid, ...) and given a certain memory order (by default relaxed). */
 template <cuda::thread_scope scope, cuda::memory_order mem_order = cuda::memory_order_relaxed>
@@ -113,9 +113,9 @@ using atomic_memory_block = atomic_memory_scoped<cuda::thread_scope_block>;
 using atomic_memory_grid = atomic_memory_scoped<cuda::thread_scope_device>;
 using atomic_memory_multi_grid = atomic_memory_scoped<cuda::thread_scope_system>;
 
-#endif // __CUDACC__
+#endif // BATTERY_CUDA_BACKEND
 
-#ifdef __CUDACC__
+#ifdef BATTERY_CUDA_BACKEND
   /// @private
   namespace impl {
     template <class T>

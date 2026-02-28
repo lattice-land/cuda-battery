@@ -47,7 +47,7 @@ CUDA inline void operator delete(void* ptr, battery::standard_allocator& p) {
   return p.deallocate(ptr);
 }
 
-#ifdef __CUDACC__
+#ifdef BATTERY_CUDA_BACKEND
 
 namespace battery {
 
@@ -60,7 +60,7 @@ public:
     if(bytes == 0) {
       return nullptr;
     }
-    #ifdef __CUDA_ARCH__
+    #ifdef BATTERY_DEVICE_CODE
       void* data = std::malloc(bytes);
       if (data == nullptr) {
         printf("Allocation of device memory failed\n");
@@ -78,7 +78,7 @@ public:
   }
 
   CUDA NI void deallocate(void* data) {
-    #ifdef __CUDA_ARCH__
+    #ifdef BATTERY_DEVICE_CODE
       // Bug in Turbo when deleting with free. Couldn't find the reason yet.
       #ifndef CUDA_THREADS_PER_BLOCK
         std::free(data);
@@ -98,7 +98,7 @@ public:
 class managed_allocator {
 public:
   CUDA NI void* allocate(size_t bytes) {
-    #ifdef __CUDA_ARCH__
+    #ifdef BATTERY_DEVICE_CODE
       printf("Managed memory cannot be allocated in device functions.\n");
       assert(false);
       return nullptr;
@@ -117,7 +117,7 @@ public:
   }
 
   CUDA NI void deallocate(void* data) {
-    #ifdef __CUDA_ARCH__
+    #ifdef BATTERY_DEVICE_CODE
       printf("Managed memory cannot be freed in device functions.\n");
       assert(false);
     #else
@@ -143,7 +143,7 @@ public:
 class pinned_allocator {
 public:
   CUDA NI void* allocate(size_t bytes) {
-    #ifdef __CUDA_ARCH__
+    #ifdef BATTERY_DEVICE_CODE
       return global_allocator{}.allocate(bytes);
     #else
       if(bytes == 0) {
@@ -160,7 +160,7 @@ public:
   }
 
   CUDA NI void deallocate(void* data) {
-    #ifdef __CUDA_ARCH__
+    #ifdef BATTERY_DEVICE_CODE
       return global_allocator{}.deallocate(data);
     #else
       cudaError_t rc = cudaFreeHost(data);
@@ -199,12 +199,12 @@ CUDA inline void operator delete(void* ptr, battery::pinned_allocator& p) {
   p.deallocate(ptr);
 }
 
-#endif // __CUDACC__
+#endif // BATTERY_CUDA_BACKEND
 
 namespace battery {
 
 namespace impl {
-#ifdef __CUDA_ARCH__
+#ifdef BATTERY_DEVICE_CODE
   __constant__
 #endif
 static const int power2[17] = {0, 1, 2, 2, 4, 4, 4, 4, 8, 8, 8, 8, 8, 8, 8, 8, 16};
