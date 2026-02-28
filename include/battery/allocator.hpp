@@ -49,7 +49,7 @@ CUDA inline void operator delete(void* ptr, battery::standard_allocator& p) {
 
 #ifdef BATTERY_GPU_ENABLED
 
-// ── Internal GPU API wrappers (host-side only) ────────────────────────────
+// -- Internal GPU API wrappers (host-side only) ----------------------------
 // These dispatch to the CUDA or HIP runtime API at compile time so that the
 // allocator classes above need no backend-specific knowledge.
 namespace battery { namespace impl {

@@ -1,4 +1,4 @@
-// Copyright 2021 Pierre Talbot, Frédéric Pinel
+// Copyright 2021 Pierre Talbot, Frédéric Pinel, Ludovic Temgoua Abanda
 
 #ifndef CUDA_BATTERY_UTILITY_HPP
 #define CUDA_BATTERY_UTILITY_HPP
@@ -13,7 +13,7 @@
 #include <cfenv>
 #include <bit>
 
-// ── Backend detection ─────────────────────────────────────────────────────
+// -- Backend detection -----------------------------------------------------
 /** Defined when compiling with any GPU compiler (nvcc or hipcc). */
 #if defined(__CUDACC__) || defined(__HIPCC__)
   #define BATTERY_GPU_ENABLED
@@ -34,7 +34,7 @@
   #define BATTERY_HIP_BACKEND
 #endif
 
-// ── GPU qualifiers (identical in CUDA and HIP) ────────────────────────────
+// -- GPU qualifiers (identical in CUDA and HIP) ----------------------------
 #ifdef BATTERY_GPU_ENABLED
   #define CUDA_GLOBAL __global__
 
@@ -51,7 +51,7 @@
   /** `CUDA` is a macro indicating that a function can be executed on a GPU. It is defined to `__device__ __host__` when the code is compiled with a GPU compiler. */
   #define CUDA __device__ __host__
 
-  // ── CUDA error-check macros ──────────────────────────────────────────────
+  // -- CUDA error-check macros ----------------------------------------------
   #ifdef BATTERY_CUDA_BACKEND
     namespace battery {
     namespace impl {
@@ -79,7 +79,7 @@
     #define CUDAEX(result) { ::battery::impl::cudaAssert((result), __FILE__, __LINE__, true); }
   #endif // BATTERY_CUDA_BACKEND
 
-  // ── HIP error-check macros ───────────────────────────────────────────────
+  // -- HIP error-check macros -----------------------------------------------
   // Available when: (a) compiled with hipcc (AMD native), or
   //                 (b) compiled with nvcc under a HIP=ON CMake build
   //                     (hip-nvidia-* presets: ROCm headers are in scope,

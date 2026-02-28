@@ -11,6 +11,7 @@
 #include <cassert>
 #include <type_traits>
 #include <utility>
+#include "utility.hpp"
 
 #ifdef BATTERY_CUDA_BACKEND
   #include <cuda/atomic>
@@ -20,8 +21,6 @@
 #else
   #include <atomic>
 #endif
-
-#include "utility.hpp"
 
 namespace battery {
 
