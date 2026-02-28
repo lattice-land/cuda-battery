@@ -8,16 +8,32 @@ endif()
 
 # I. Project main description and options.
 
+option(HIP "Build with HIP GPU support (AMD ROCm or NVIDIA via HIP)" OFF)
+
 # We compile the project for the native architecture, unless the user has specified a different architecture.
-# An architecture specification can be given at configuration time using `-DCMAKE_CUDA_ARCHITECTURES=75`.
-if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
-  set(CMAKE_CUDA_ARCHITECTURES native CACHE STRING "Targeted CUDA architectures")
+if(HIP)
+  if(NOT DEFINED CMAKE_HIP_ARCHITECTURES)
+    set(CMAKE_HIP_ARCHITECTURES native CACHE STRING "Targeted HIP architectures")
+  endif()
+else()
+  # An architecture specification can be given at configuration time using `-DCMAKE_CUDA_ARCHITECTURES=75`.
+  if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
+    set(CMAKE_CUDA_ARCHITECTURES native CACHE STRING "Targeted CUDA architectures")
+  endif()
 endif()
 
 # Name and information about this project.
-project(cuda-battery-demo
-  HOMEPAGE_URL "https://github.com/lattice-land/cuda-battery"
-  LANGUAGES CUDA CXX)
+if(HIP)
+  project(cuda-battery-demo
+    HOMEPAGE_URL "https://github.com/lattice-land/cuda-battery"
+    LANGUAGES HIP CXX)
+  find_package(hip REQUIRED)
+  find_package(CUDAToolkit QUIET)
+else()
+  project(cuda-battery-demo
+    HOMEPAGE_URL "https://github.com/lattice-land/cuda-battery"
+    LANGUAGES CUDA CXX)
+endif()
 
 # An option to build the project with the tests activated or not (tests are built by default here).
 option(CUDA_BATTERY_DEMO_BUILD_TESTS "CUDA_BATTERY_DEMO_BUILD_TESTS" ON)
@@ -35,43 +51,72 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(cuda_battery)
 
-# III. Build the main executable.
+# III. Build the main executables.
 
-# Add any `.cpp` files that contains CUDA code here.
-# If you want to keep `.cu` files, simply delete this command.
-set_source_files_properties(
-  src/demo.cpp
-  src/inkernel_allocation.cpp
-  src/simple.cpp
-  PROPERTIES LANGUAGE CUDA)
+if(HIP)
 
-# Multiple CUDA files?
-# If you have several `.cpp` files with CUDA code, you must activate separable compilation:
-# set_property(TARGET demo APPEND PROPERTY CUDA_SEPARABLE_COMPILATION ON)
+  # HIP variants of the three demo executables.
+  set_source_files_properties(
+    src/demo_hip.cpp
+    src/inkernel_allocation_hip.cpp
+    src/simple_hip.cpp
+    PROPERTIES LANGUAGE HIP)
 
-# This is the main executable, add any additional `.cpp` files required to compile the project here, for instance:
-# add_executable(demo src/demo.cpp src/config.cpp)
-add_executable(demo src/demo.cpp)
+  add_executable(demo_hip src/demo_hip.cpp)
+  target_include_directories(demo_hip PRIVATE include)
+  target_link_libraries(demo_hip cuda_battery)
+  if(CUDAToolkit_FOUND)
+    target_link_libraries(demo_hip CUDA::cuda_driver)
+  endif()
 
-# Add the include directory.
-target_include_directories(demo PRIVATE include)
+  add_executable(inkernel_allocation_hip src/inkernel_allocation_hip.cpp)
+  target_link_libraries(inkernel_allocation_hip cuda_battery)
+  if(CUDAToolkit_FOUND)
+    target_link_libraries(inkernel_allocation_hip CUDA::cuda_driver)
+  endif()
 
-# We include the library `cuda_battery` (it is not really linked since it is just a header-only library, that's just the CMake terminology), note that all the compile options of cuda_battery are inherited by the executable.
-target_link_libraries(demo cuda_battery)
+  add_executable(simple_hip src/simple_hip.cpp)
+  target_link_libraries(simple_hip cuda_battery)
 
-# The executable inherits the compiler options of cuda_battery.
-# We also delete warnings telling us that calling __host__ from __host__ __device__ is forbidden (they are generated due to templated functions working on both CPU/GPU).
-target_compile_options(demo PRIVATE
-  "$<$<COMPILE_LANGUAGE:CUDA>:SHELL:-diag-suppress 20011,20014>"
-)
+else()
 
-# Describe the second executable.
-add_executable(inkernel_allocation src/inkernel_allocation.cpp)
-target_link_libraries(inkernel_allocation cuda_battery)
+  # Add any `.cpp` files that contain CUDA code here.
+  # If you want to keep `.cu` files, simply delete this command.
+  set_source_files_properties(
+    src/demo.cpp
+    src/inkernel_allocation.cpp
+    src/simple.cpp
+    PROPERTIES LANGUAGE CUDA)
 
-# Describe the third executable.
-add_executable(simple src/simple.cpp)
-target_link_libraries(simple cuda_battery)
+  # Multiple CUDA files?
+  # If you have several `.cpp` files with CUDA code, you must activate separable compilation:
+  # set_property(TARGET demo APPEND PROPERTY CUDA_SEPARABLE_COMPILATION ON)
+
+  # This is the main executable, add any additional `.cpp` files required to compile the project here, for instance:
+  # add_executable(demo src/demo.cpp src/config.cpp)
+  add_executable(demo src/demo.cpp)
+
+  # Add the include directory.
+  target_include_directories(demo PRIVATE include)
+
+  # We include the library `cuda_battery` (it is not really linked since it is just a header-only library, that's just the CMake terminology), note that all the compile options of cuda_battery are inherited by the executable.
+  target_link_libraries(demo cuda_battery)
+
+  # The executable inherits the compiler options of cuda_battery.
+  # We also delete warnings telling us that calling __host__ from __host__ __device__ is forbidden (they are generated due to templated functions working on both CPU/GPU).
+  target_compile_options(demo PRIVATE
+    "$<$<COMPILE_LANGUAGE:CUDA>:SHELL:-diag-suppress 20011,20014>"
+  )
+
+  # Describe the second executable.
+  add_executable(inkernel_allocation src/inkernel_allocation.cpp)
+  target_link_libraries(inkernel_allocation cuda_battery)
+
+  # Describe the third executable.
+  add_executable(simple src/simple.cpp)
+  target_link_libraries(simple cuda_battery)
+
+endif()
 
 # IV. Build and execute the CPU and GPU tests.
 # You can simply add new CPU tests by adding a new file in `tests/`, and GPU tests by terminating the filename with "gpu".
@@ -93,24 +138,46 @@ FetchContent_MakeAvailable(googletest)
 enable_testing()
 include(GoogleTest)
 
-file(GLOB test_files tests/*.cpp)
-foreach(file ${test_files})
-  cmake_path(GET file STEM test_name)
-  set_source_files_properties(${file} PROPERTIES LANGUAGE CUDA)
-  add_executable(${test_name} ${file})
-  target_include_directories(${test_name} PRIVATE include)
-  target_compile_options(${test_name} PRIVATE
-    "$<$<COMPILE_LANGUAGE:CUDA>:SHELL:-diag-suppress 20011,20014>"
-  )
-  if(${test_name} MATCHES ".*gpu$")
+if(HIP)
+
+  # HIP GPU tests (files ending with _hip.cpp).
+  file(GLOB hip_test_files tests/*_hip.cpp)
+  foreach(file ${hip_test_files})
+    cmake_path(GET file STEM test_name)
+    set_source_files_properties(${file} PROPERTIES LANGUAGE HIP)
+    add_executable(${test_name} ${file})
+    target_include_directories(${test_name} PRIVATE include)
     target_link_libraries(${test_name} cuda_battery)
-    # We run the tests using compute-sanitizer to check for memory leaks.
-    add_test(NAME ${test_name} COMMAND compute-sanitizer --error-exitcode 1 $<TARGET_FILE:${test_name}>)
-  else()
-    target_link_libraries(${test_name} cuda_battery gtest_main)
-    gtest_discover_tests(${test_name})
-  endif()
-endforeach()
+    if(CUDAToolkit_FOUND)
+      target_link_libraries(${test_name} CUDA::cuda_driver)
+    endif()
+    add_test(NAME ${test_name} COMMAND $<TARGET_FILE:${test_name}>)
+  endforeach()
+
+else()
+
+  # CUDA tests: exclude any _hip.cpp files that may be present in the folder.
+  file(GLOB test_files tests/*.cpp)
+  list(FILTER test_files EXCLUDE REGEX ".*_hip\.cpp$")
+  foreach(file ${test_files})
+    cmake_path(GET file STEM test_name)
+    set_source_files_properties(${file} PROPERTIES LANGUAGE CUDA)
+    add_executable(${test_name} ${file})
+    target_include_directories(${test_name} PRIVATE include)
+    target_compile_options(${test_name} PRIVATE
+      "$<$<COMPILE_LANGUAGE:CUDA>:SHELL:-diag-suppress 20011,20014>"
+    )
+    if(${test_name} MATCHES ".*gpu$")
+      target_link_libraries(${test_name} cuda_battery)
+      # We run the tests using compute-sanitizer to check for memory leaks.
+      add_test(NAME ${test_name} COMMAND compute-sanitizer --error-exitcode 1 $<TARGET_FILE:${test_name}>)
+    else()
+      target_link_libraries(${test_name} cuda_battery gtest_main)
+      gtest_discover_tests(${test_name})
+    endif()
+  endforeach()
+
+endif()
 
 endif()
 

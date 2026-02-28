@@ -1,4 +1,6 @@
-// Copyright 2023 Pierre Talbot
+// Copyright 2026 Ludovic Temgoua Abanda
+// HIP version of inkernel_allocation.cpp.
+// Compiled as HIP language by CMake when HIP=ON.
 
 #include <vector>
 #include <iostream>
@@ -28,13 +30,12 @@ __global__ void grid_vector_copy(mvector* v_ptr) {
   cooperative_groups::this_grid().sync();
 }
 
-
 void increase_heap_size() {
   size_t max_heap_size;
-  cudaDeviceGetLimit(&max_heap_size, cudaLimitMallocHeapSize);
-  CUDAE(cudaDeviceSetLimit(cudaLimitMallocHeapSize, max_heap_size*10));
-  cudaDeviceGetLimit(&max_heap_size, cudaLimitMallocHeapSize);
-  printf("%%GPU_max_heap_size=%zu (%zuMB)\n", max_heap_size, max_heap_size/1000/1000);
+  HIPE(hipDeviceGetLimit(&max_heap_size, hipLimitMallocHeapSize));
+  HIPE(hipDeviceSetLimit(hipLimitMallocHeapSize, max_heap_size * 10));
+  HIPE(hipDeviceGetLimit(&max_heap_size, hipLimitMallocHeapSize));
+  printf("%%GPU_max_heap_size=%zu (%zuMB)\n", max_heap_size, max_heap_size / 1000 / 1000);
 }
 
 int main() {
@@ -43,20 +44,21 @@ int main() {
   auto ptr = vptr.get();
 
   block_vector_copy<<<256, 256>>>(ptr);
-  CUDAEX(cudaDeviceSynchronize());
+  HIPEX(hipDeviceSynchronize());
 
   int dev = 0;
   int supportsCoopLaunch = 0;
-  cudaDeviceGetAttribute(&supportsCoopLaunch, cudaDevAttrCooperativeLaunch, dev);
-  if (supportsCoopLaunch) {
-      void *kernelArgs[] = { &ptr }; // be careful, we need to take the address of the parameter we wish to pass.
-      dim3 dimBlock(256, 1, 1);
-      dim3 dimGrid(256, 1, 1);
-      cudaLaunchCooperativeKernel((void*)grid_vector_copy, dimGrid, dimBlock, kernelArgs);
-      CUDAEX(cudaDeviceSynchronize());
+  HIPEX(hipDeviceGetAttribute(&supportsCoopLaunch, hipDeviceAttributeCooperativeLaunch, dev));
+  if(supportsCoopLaunch) {
+    void *kernelArgs[] = { &ptr };
+    dim3 dimBlock(256, 1, 1);
+    dim3 dimGrid(256, 1, 1);
+    HIPEX(hipLaunchCooperativeKernel((void*)grid_vector_copy, dimGrid, dimBlock, kernelArgs, 0, nullptr));
+    HIPEX(hipDeviceSynchronize());
   } else {
-    std::cout << "Warning: The GPU device does not support launching a CUDA cooperative kernel." << std::endl;
+    std::cout << "Warning: The GPU device does not support launching a cooperative kernel." << std::endl;
   }
+
   mvector expected(100000, 42);
   if(expected != *ptr) {
     std::cout << "Error: the vector was modified by the kernel." << std::endl;

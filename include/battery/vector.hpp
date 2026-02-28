@@ -192,7 +192,7 @@ private:
   CUDA this_type& assignment(const vector<U, Allocator2>& other) {
     reserve(other.size());
     constexpr bool fast_copy =
-      #ifdef __CUDA_ARCH__
+      #ifdef BATTERY_DEVICE_CODE
         std::is_same_v<value_type, U>
         && std::is_same_v<Allocator2, allocator_type>
         && std::is_trivially_copyable_v<value_type>;
