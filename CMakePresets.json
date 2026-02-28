@@ -107,6 +107,50 @@
       "displayName": "CPU Release configuration",
       "description": "Build the project with a CPU compiler such as GCC.",
       "inherits": ["default-cpu","release"]
+    },
+    {
+      "name": "default-hip",
+      "hidden": true,
+      "inherits": "default",
+      "cacheVariables": {
+        "GPU": { "type": "BOOL", "value": "OFF" },
+        "HIP": { "type": "BOOL", "value": "ON" }
+      }
+    },
+    {
+      "name": "default-hip-nvidia",
+      "hidden": true,
+      "inherits": "default-hip",
+      "environment": {
+        "HIP_PLATFORM": "nvidia"
+      },
+      "cacheVariables": {
+        "CMAKE_HIP_ARCHITECTURES": "native"
+      }
+    },
+    {
+      "name": "hip-debug",
+      "displayName": "HIP Debug (AMD ROCm)",
+      "description": "Build using hipcc targeting AMD GPUs.",
+      "inherits": ["default-hip", "debug", "verbose"]
+    },
+    {
+      "name": "hip-release",
+      "displayName": "HIP Release (AMD ROCm)",
+      "description": "Build using hipcc targeting AMD GPUs.",
+      "inherits": ["default-hip", "release"]
+    },
+    {
+      "name": "hip-nvidia-debug",
+      "displayName": "HIP Debug - NVIDIA backend [temporary]",
+      "description": "Build using hipcc with HIP_PLATFORM=nvidia. Used to develop and validate HIP support on NVIDIA hardware before testing on AMD. Remove once AMD testing is established.",
+      "inherits": ["default-hip-nvidia", "debug", "verbose"]
+    },
+    {
+      "name": "hip-nvidia-release",
+      "displayName": "HIP Release - NVIDIA backend [temporary]",
+      "description": "See hip-nvidia-debug. Remove once AMD testing is established.",
+      "inherits": ["default-hip-nvidia", "release"]
     }
   ],
   "buildPresets": [
@@ -125,6 +169,22 @@
     {
       "name": "cpu-release",
       "configurePreset": "cpu-release"
+    },
+    {
+      "name": "hip-debug",
+      "configurePreset": "hip-debug"
+    },
+    {
+      "name": "hip-release",
+      "configurePreset": "hip-release"
+    },
+    {
+      "name": "hip-nvidia-debug",
+      "configurePreset": "hip-nvidia-debug"
+    },
+    {
+      "name": "hip-nvidia-release",
+      "configurePreset": "hip-nvidia-release"
     }
   ],
   "testPresets": [
@@ -143,6 +203,22 @@
     {
       "name": "cpu-release",
       "configurePreset": "cpu-release"
+    },
+    {
+      "name": "hip-debug",
+      "configurePreset": "hip-debug"
+    },
+    {
+      "name": "hip-release",
+      "configurePreset": "hip-release"
+    },
+    {
+      "name": "hip-nvidia-debug",
+      "configurePreset": "hip-nvidia-debug"
+    },
+    {
+      "name": "hip-nvidia-release",
+      "configurePreset": "hip-nvidia-release"
     }
   ],
   "workflowPresets": [
@@ -200,18 +276,41 @@
     {
       "name": "gpu-release",
       "steps": [
-        {
-          "type": "configure",
-          "name": "gpu-release"
-        },
-        {
-          "type": "build",
-          "name": "gpu-release"
-        },
-        {
-          "type": "test",
-          "name": "gpu-release"
-        }
+        { "type": "configure", "name": "gpu-release" },
+        { "type": "build",     "name": "gpu-release" },
+        { "type": "test",      "name": "gpu-release" }
+      ]
+    },
+    {
+      "name": "hip-debug",
+      "steps": [
+        { "type": "configure", "name": "hip-debug" },
+        { "type": "build",     "name": "hip-debug" },
+        { "type": "test",      "name": "hip-debug" }
+      ]
+    },
+    {
+      "name": "hip-release",
+      "steps": [
+        { "type": "configure", "name": "hip-release" },
+        { "type": "build",     "name": "hip-release" },
+        { "type": "test",      "name": "hip-release" }
+      ]
+    },
+    {
+      "name": "hip-nvidia-debug",
+      "steps": [
+        { "type": "configure", "name": "hip-nvidia-debug" },
+        { "type": "build",     "name": "hip-nvidia-debug" },
+        { "type": "test",      "name": "hip-nvidia-debug" }
+      ]
+    },
+    {
+      "name": "hip-nvidia-release",
+      "steps": [
+        { "type": "configure", "name": "hip-nvidia-release" },
+        { "type": "build",     "name": "hip-nvidia-release" },
+        { "type": "test",      "name": "hip-nvidia-release" }
       ]
     }
   ]

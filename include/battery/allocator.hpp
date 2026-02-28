@@ -47,13 +47,92 @@ CUDA inline void operator delete(void* ptr, battery::standard_allocator& p) {
   return p.deallocate(ptr);
 }
 
-#ifdef BATTERY_CUDA_BACKEND
+#ifdef BATTERY_GPU_ENABLED
+
+// ── Internal GPU API wrappers (host-side only) ────────────────────────────
+// These dispatch to the CUDA or HIP runtime API at compile time so that the
+// allocator classes above need no backend-specific knowledge.
+namespace battery { namespace impl {
+
+  NI inline void* gpu_malloc(size_t bytes) {
+    if(bytes == 0) return nullptr;
+    void* p = nullptr;
+    #ifdef BATTERY_CUDA_BACKEND
+      cudaError_t rc = cudaMalloc(&p, bytes);
+      if(rc != cudaSuccess)
+        std::cerr << "gpu_malloc failed: " << cudaGetErrorString(rc) << std::endl;
+    #else
+      hipError_t rc = hipMalloc(&p, bytes);
+      if(rc != hipSuccess)
+        std::cerr << "gpu_malloc failed: " << hipGetErrorString(rc) << std::endl;
+    #endif
+    return p;
+  }
+
+  NI inline void gpu_free(void* p) {
+    if(p == nullptr) return;
+    #ifdef BATTERY_CUDA_BACKEND
+      cudaError_t rc = cudaFree(p);
+      if(rc != cudaSuccess)
+        std::cerr << "gpu_free failed: " << cudaGetErrorString(rc) << std::endl;
+    #else
+      hipError_t rc = hipFree(p);
+      if(rc != hipSuccess)
+        std::cerr << "gpu_free failed: " << hipGetErrorString(rc) << std::endl;
+    #endif
+  }
+
+  NI inline void* gpu_malloc_managed(size_t bytes) {
+    if(bytes == 0) return nullptr;
+    void* p = nullptr;
+    #ifdef BATTERY_CUDA_BACKEND
+      cudaError_t rc = cudaMallocManaged(&p, bytes);
+      if(rc != cudaSuccess)
+        std::cerr << "gpu_malloc_managed failed: " << cudaGetErrorString(rc) << std::endl;
+    #else
+      hipError_t rc = hipMallocManaged(&p, bytes);
+      if(rc != hipSuccess)
+        std::cerr << "gpu_malloc_managed failed: " << hipGetErrorString(rc) << std::endl;
+    #endif
+    return p;
+  }
+
+  NI inline void* gpu_malloc_host(size_t bytes) {
+    if(bytes == 0) return nullptr;
+    void* p = nullptr;
+    #ifdef BATTERY_CUDA_BACKEND
+      cudaError_t rc = cudaMallocHost(&p, bytes);
+      if(rc != cudaSuccess)
+        std::cerr << "gpu_malloc_host failed: " << cudaGetErrorString(rc) << std::endl;
+    #else
+      hipError_t rc = hipMallocHost(&p, bytes);
+      if(rc != hipSuccess)
+        std::cerr << "gpu_malloc_host failed: " << hipGetErrorString(rc) << std::endl;
+    #endif
+    return p;
+  }
+
+  NI inline void gpu_free_host(void* p) {
+    if(p == nullptr) return;
+    #ifdef BATTERY_CUDA_BACKEND
+      cudaError_t rc = cudaFreeHost(p);
+      if(rc != cudaSuccess)
+        std::cerr << "gpu_free_host failed: " << cudaGetErrorString(rc) << std::endl;
+    #else
+      hipError_t rc = hipFreeHost(p);
+      if(rc != hipSuccess)
+        std::cerr << "gpu_free_host failed: " << hipGetErrorString(rc) << std::endl;
+    #endif
+  }
+
+}} // namespace battery::impl
 
 namespace battery {
 
-/** An allocator using the global memory of CUDA.
-This can be used from both the host and device side, but the memory can only be accessed when in a device function.
-Beware that allocation and deallocation must occur on the same side. */
+/** An allocator using the device-global memory of the GPU.
+ * This can be used from both the host and device side, but the memory can
+ * only be accessed when in a device function.
+ * Beware that allocation and deallocation must occur on the same side. */
 class global_allocator {
 public:
   CUDA NI void* allocate(size_t bytes) {
@@ -67,13 +146,7 @@ public:
       }
       return data;
     #else
-      void* data = nullptr;
-      cudaError_t rc = cudaMalloc(&data, bytes);
-      if (rc != cudaSuccess) {
-        std::cerr << "Allocation of global memory failed: " << cudaGetErrorString(rc) << std::endl;
-        return nullptr;
-      }
-      return data;
+      return impl::gpu_malloc(bytes);
     #endif
   }
 
@@ -84,17 +157,15 @@ public:
         std::free(data);
       #endif
     #else
-      cudaError_t rc = cudaFree(data);
-      if (rc != cudaSuccess) {
-        std::cerr << "Free of global memory failed: " << cudaGetErrorString(rc) << std::endl;
-      }
+      impl::gpu_free(data);
     #endif
   }
 
   CUDA bool operator==(const global_allocator&) const { return true; }
 };
 
-/** An allocator using the managed memory of CUDA when the memory is allocated on the host. */
+/** An allocator using the managed (unified) memory of the GPU when the
+ * memory is allocated on the host. */
 class managed_allocator {
 public:
   CUDA NI void* allocate(size_t bytes) {
@@ -103,16 +174,7 @@ public:
       assert(false);
       return nullptr;
     #else
-      if(bytes == 0) {
-        return nullptr;
-      }
-      void* data = nullptr;
-      cudaError_t rc = cudaMallocManaged(&data, bytes);
-      if (rc != cudaSuccess) {
-        std::cerr << "Allocation of managed memory failed: " << cudaGetErrorString(rc) << std::endl;
-        return nullptr;
-      }
-      return data;
+      return impl::gpu_malloc_managed(bytes);
     #endif
   }
 
@@ -121,41 +183,32 @@ public:
       printf("Managed memory cannot be freed in device functions.\n");
       assert(false);
     #else
-      cudaError_t rc = cudaFree(data);
-      if (rc != cudaSuccess) {
-        std::cerr << "Free of managed memory failed: " << cudaGetErrorString(rc) << std::endl;
-      }
+      impl::gpu_free(data);
     #endif
   }
 
   CUDA bool operator==(const managed_allocator&) const { return true; }
 };
 
-/** An allocator using pinned memory for shared access between the host and the device.
- * This type of memory is required on Microsoft Windows, on the Windows Subsystem for Linux (WSL), and on NVIDIA GRID (virtual GPU), because these systems do not support concurrent access to managed memory while a CUDA kernel is running.
+/** An allocator using pinned (page-locked) memory for shared access between
+ * the host and the device.
+ * This type of memory is required on Microsoft Windows, on the Windows
+ * Subsystem for Linux (WSL), and on NVIDIA GRID (virtual GPU), because
+ * these systems do not support concurrent access to managed memory while a
+ * GPU kernel is running.
  *
- * This allocator requires that you first set cudaDeviceMapHost using  cudaSetDeviceFlags.
+ * We suppose unified virtual addressing (UVA) is enabled.
  *
- * We suppose unified virtual addressing (UVA) is enabled (the property `unifiedAddressing` is true).
- *
- * We delegate the allocation to `global_allocator` when the allocation is done on the device, since host memory cannot be allocated in device functions.
- * */
+ * We delegate the allocation to `global_allocator` when the allocation is
+ * done on the device, since host memory cannot be allocated in device functions.
+ */
 class pinned_allocator {
 public:
   CUDA NI void* allocate(size_t bytes) {
     #ifdef BATTERY_DEVICE_CODE
       return global_allocator{}.allocate(bytes);
     #else
-      if(bytes == 0) {
-        return nullptr;
-      }
-      void* data = nullptr;
-      cudaError_t rc = cudaMallocHost(&data, bytes); // pinned
-      if (rc != cudaSuccess) {
-        std::cerr << "Allocation of pinned memory failed: " << cudaGetErrorString(rc) << std::endl;
-        return nullptr;
-      }
-      return data;
+      return impl::gpu_malloc_host(bytes);
     #endif
   }
 
@@ -163,10 +216,7 @@ public:
     #ifdef BATTERY_DEVICE_CODE
       return global_allocator{}.deallocate(data);
     #else
-      cudaError_t rc = cudaFreeHost(data);
-      if (rc != cudaSuccess) {
-        std::cerr << "Free of pinned memory failed: " << cudaGetErrorString(rc) << std::endl;
-      }
+      impl::gpu_free_host(data);
     #endif
   }
 
@@ -199,7 +249,7 @@ CUDA inline void operator delete(void* ptr, battery::pinned_allocator& p) {
   p.deallocate(ptr);
 }
 
-#endif // BATTERY_CUDA_BACKEND
+#endif // BATTERY_GPU_ENABLED
 
 namespace battery {
 

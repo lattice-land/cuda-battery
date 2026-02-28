@@ -5,8 +5,21 @@ if(MSVC)
   set(CMAKE_CONFIGURATION_TYPES "Debug;Release" CACHE STRING "Available configuration types to select")
 endif()
 
-option(GPU "GPU" ON)
-if(GPU)
+option(GPU "Build with CUDA GPU support" ON)
+option(HIP "Build with HIP GPU support (AMD ROCm or NVIDIA via HIP)" OFF)
+
+if(GPU AND HIP)
+  message(FATAL_ERROR "GPU (CUDA) and HIP options are mutually exclusive. Choose one backend.")
+endif()
+
+if(HIP)
+  if(NOT DEFINED CMAKE_HIP_ARCHITECTURES)
+    set(CMAKE_HIP_ARCHITECTURES native CACHE STRING "Targeted HIP architectures")
+  endif()
+  project(cuda-battery
+    HOMEPAGE_URL "https://github.com/lattice-land/cuda-battery"
+    LANGUAGES HIP CXX)
+elseif(GPU)
   if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
     set(CMAKE_CUDA_ARCHITECTURES native CACHE STRING "Targeted CUDA architectures")
   endif()
@@ -41,6 +54,9 @@ target_compile_options(cuda_battery INTERFACE
     "$<$<CXX_COMPILER_ID:GNU,Clang>:-frounding-math>"
     $<$<AND:$<COMPILE_LANGUAGE:CXX>,$<CXX_COMPILER_ID:MSVC>>:/fp:strict>
     "$<$<AND:$<COMPILE_LANGUAGE:CUDA>,$<CUDA_COMPILER_ID:NVIDIA>,$<CXX_COMPILER_ID:MSVC>>:SHELL:--compiler-options /fp:strict>"
+    # HIP compile options (hipcc on AMD ROCm or NVIDIA via HIP_PLATFORM=nvidia)
+    "$<$<COMPILE_LANGUAGE:HIP>:--expt-relaxed-constexpr>"
+    "$<$<AND:$<COMPILE_LANGUAGE:HIP>,$<CONFIG:Debug>>:-ggdb>"
 )
 
 if(REDUCE_PTX_SIZE)
@@ -85,6 +101,18 @@ if(GPU)
     target_link_libraries(${test_name} cuda_battery)
     target_link_options(${test_name} PRIVATE $<$<CXX_COMPILER_ID:MSVC>:/NODEFAULTLIB:LIBCMT>)
     add_test(NAME ${test_name} COMMAND compute-sanitizer --error-exitcode 1 $<TARGET_FILE:${test_name}>)
+  endforeach()
+endif()
+
+# III. HIP GPU Tests (ending with "_hip.cpp")
+if(HIP)
+  file(GLOB hip_test_files tests/*_hip.cpp)
+  foreach(file ${hip_test_files})
+    cmake_path(GET file STEM test_name)
+    set_source_files_properties(${file} PROPERTIES LANGUAGE HIP)
+    add_executable(${test_name} ${file})
+    target_link_libraries(${test_name} cuda_battery)
+    add_test(NAME ${test_name} COMMAND $<TARGET_FILE:${test_name}>)
   endforeach()
 endif()
 
