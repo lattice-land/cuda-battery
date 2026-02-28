@@ -55,7 +55,7 @@ int main() {
       cudaLaunchCooperativeKernel((void*)grid_vector_copy, dimGrid, dimBlock, kernelArgs);
       CUDAEX(cudaDeviceSynchronize());
   } else {
-    std::cout << "Warning: The GPU device does not support launching a CUDA cooperative kernel." << std:endl;
+    std::cout << "Warning: The GPU device does not support launching a CUDA cooperative kernel." << std::endl;
   }
   mvector expected(100000, 42);
   if(expected != *ptr) {
