@@ -84,7 +84,7 @@ namespace impl {
       s1++;
       s2++;
     }
-    return *(const unsigned char*)s1 - *(const unsigned char*)s2;
+    return (unsigned char)*s1 - (unsigned char)*s2;
   }
 }
 
@@ -113,7 +113,7 @@ CUDA inline int strcmp(const char* s1, const char* s2) {
   #endif
 }
 
-template<class T> CUDA INLINE constexpr T min(T a, T b) {
+template<class T> CUDA constexpr T min(T a, T b) {
   if constexpr(std::is_integral_v<T>) {
     #ifdef __CUDA_ARCH__
       // When C++23 is available
@@ -134,7 +134,7 @@ template<class T> CUDA INLINE constexpr T min(T a, T b) {
   }
 }
 
-template<class T> CUDA INLINE constexpr T max(T a, T b) {
+template<class T> CUDA constexpr T max(T a, T b) {
   if constexpr(std::is_integral_v<T>) {
     #ifdef __CUDA_ARCH__
       // When C++23 is available
