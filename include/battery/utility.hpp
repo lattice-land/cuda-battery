@@ -13,6 +13,20 @@
 #include <cfenv>
 #include <bit>
 
+#ifdef __NVCC__
+  #include <cuda/std/numeric>
+#else
+  #include <numeric>
+#endif
+
+namespace battery {
+#ifdef __NVCC__
+  using cuda::std::midpoint;
+#else
+  using std::midpoint;
+#endif
+}
+
 #ifdef __CUDACC__
   #define CUDA_GLOBAL __global__
 
