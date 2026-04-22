@@ -692,53 +692,98 @@ CUDA constexpr T div_down(T x, T y) {
 
 // Truncated division and modulus, by default in C++.
 template <class T>
-CUDA constexpr T tdiv(T x, T y) {
-  static_assert(std::is_integral_v<T>, "tdiv only works on integer values.");
-  return x / y;
+CUDA INLINE constexpr T tdiv(T x, T y) {
+  if constexpr(std::is_same_v<T, float>) {
+    #ifdef __CUDA_ARCH__
+      return ::truncf(x / y);
+    #else
+      return std::trunc(x / y);
+    #endif
+  }
+  else if constexpr(std::is_same_v<T, double>) {
+    #ifdef __CUDA_ARCH__
+      return ::trunc(x / y);
+    #else
+      return std::trunc(x / y);
+    #endif
+  }
+  else {
+    return x / y;
+  }
 }
 
 template <class T>
-CUDA constexpr T tmod(T x, T y) {
-  static_assert(std::is_integral_v<T>, "tdiv only works on integer values.");
+CUDA INLINE constexpr T tmod(T x, T y) {
   return x % y;
 }
 
 // Floor division and modulus, see (Leijen D. (2003). Division and Modulus for Computer Scientists).
 template <class T>
-CUDA constexpr T fdiv(T x, T y) {
-  static_assert(std::is_integral_v<T>, "fdiv only works on integer values.");
-  return x / y - (battery::signum(x % y) == -battery::signum(y));
+CUDA INLINE constexpr T fdiv(T x, T y) {
+  if constexpr(std::is_same_v<T, float>) {
+    #ifdef __CUDA_ARCH__
+      return ::floorf(x / y);
+    #else
+      return std::floor(x / y);
+    #endif
+  }
+  else if constexpr(std::is_same_v<T, double>) {
+    #ifdef __CUDA_ARCH__
+      return ::floor(x / y);
+    #else
+      return std::floor(x / y);
+    #endif
+  }
+  else {
+    return x / y - (battery::signum(x % y) == -battery::signum(y));
+  }
 }
 
 template <class T>
-CUDA constexpr T fmod(T x, T y) {
-  static_assert(std::is_integral_v<T>, "fmod only works on integer values.");
+CUDA INLINE constexpr T fmod(T x, T y) {
   return x % y + y * (battery::signum(x % y) == -battery::signum(y));
 }
 
 // Ceil division and modulus.
 template <class T>
-CUDA constexpr T cdiv(T x, T y) {
-  static_assert(std::is_integral_v<T>, "cdiv only works on integer values.");
-  return x / y + (battery::signum(x % y) == battery::signum(y));
+CUDA INLINE constexpr T cdiv(T x, T y) {
+  if constexpr(std::is_same_v<T, float>) {
+    #ifdef __CUDA_ARCH__
+      return ::ceilf(x / y);
+    #else
+      return std::ceil(x / y);
+    #endif
+  }
+  else if constexpr(std::is_same_v<T, double>) {
+    #ifdef __CUDA_ARCH__
+      return ::ceil(x / y);
+    #else
+      return std::ceil(x / y);
+    #endif
+  }
+  else {
+    return x / y + (battery::signum(x % y) == battery::signum(y));
+  }
 }
 
 template <class T>
-CUDA constexpr T cmod(T x, T y) {
-  static_assert(std::is_integral_v<T>, "cmod only works on integer values.");
+CUDA INLINE constexpr T cmod(T x, T y) {
   return x % y - y * (battery::signum(x % y) == battery::signum(y));
 }
 
 // Euclidean division and modulus, see (Leijen D. (2003). Division and Modulus for Computer Scientists).
 template <class T>
-CUDA constexpr T ediv(T x, T y) {
-  static_assert(std::is_integral_v<T>, "ediv only works on integer values.");
-  return x / y - ((x % y >= 0) ? 0 : battery::signum(y));
+CUDA INLINE constexpr T ediv(T x, T y) {
+  if constexpr(std::is_same_v<T, float> || std::is_same_v<T, double>) {
+    return y > 0 ? fdiv(x, y) : cdiv(x, y);
+  }
+  else {
+    return x / y - ((x % y >= 0) ? 0 : battery::signum(y));
+  }
 }
 
 template <class T>
-CUDA constexpr T emod(T x, T y) {
-  static_assert(std::is_integral_v<T>, "emod only works on integer values.");
+CUDA INLINE constexpr T emod(T x, T y) {
   return x % y + y * ((x % y >= 0) ? 0 : battery::signum(y));
 }
 
