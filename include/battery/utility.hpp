@@ -813,8 +813,8 @@ template<> CUDA NI inline void print(const unsigned short &x) { printf("%d", (in
 template<> CUDA NI inline void print(const unsigned int &x) { printf("%u", x); }
 template<> CUDA NI inline void print(const unsigned long &x) { printf("%lu", x); }
 template<> CUDA NI inline void print(const unsigned long long &x) { printf("%llu", x); }
-template<> CUDA NI inline void print(const float &x) { printf("%f", x); }
-template<> CUDA NI inline void print(const double &x) { printf("%lf", x); }
+template<> CUDA NI inline void print(const float &x) { printf("%.9g", x); }
+template<> CUDA NI inline void print(const double &x) { printf("%.17g", x); }
 template<> CUDA NI inline void print(char const* const &x) { printf("%s", x); }
 
 } // namespace battery
