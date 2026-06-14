@@ -229,6 +229,8 @@ struct limits {
   Overflow: Nothing is done to prevent overflow, it mostly behaves as with `static_cast`. */
 template<class To, class From, bool map_limits = true>
 CUDA NI constexpr To ru_cast(From x) {
+  static_assert(std::is_integral_v<From> || std::is_floating_point_v<From>);
+  static_assert(std::is_integral_v<To> || std::is_floating_point_v<To>);
   if constexpr(std::is_same_v<To, From>) {
     return x;
   }
@@ -325,6 +327,8 @@ CUDA NI constexpr To ru_cast(From x) {
   Overflow: Nothing is done to prevent overflow, it mostly behaves as with `static_cast`. */
 template<class To, class From, bool map_limits=true>
 CUDA NI constexpr To rd_cast(From x) {
+  static_assert(std::is_integral_v<From> || std::is_floating_point_v<From>);
+  static_assert(std::is_integral_v<To> || std::is_floating_point_v<To>);
   if constexpr(std::is_same_v<To, From>) {
     return x;
   }
