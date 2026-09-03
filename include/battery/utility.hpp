@@ -539,8 +539,13 @@ CUDA NI constexpr int countr_one(T x) {
 
 /** Signum function, https://stackoverflow.com/a/4609795/2231159 */
 template <class T>
-CUDA constexpr int signum(T val) {
+CUDA INLINE constexpr int signum(T val) {
   return (T(0) < val) - (val < T(0));
+}
+
+template <class T>
+CUDA INLINE constexpr bool same_sign(T x, T y) {
+  return (x < T(0)) == (y < T(0));
 }
 
 /** Precondition: T is an integer with b >= 0.*/
