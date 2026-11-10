@@ -1,0 +1,68 @@
+name: GPU Simulator
+
+# Optional, non-required check. The hosted runners have no GPU, so this builds
+# the library and runs the GPU tests on a simulated NVIDIA H100
+# (https://github.com/pantheongpu/pantheonsim). A simulator cannot reproduce
+# hardware-specific behavior or timing, so it complements real-GPU testing and
+# does not replace it.
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [ main ]
+    paths:
+      - "include/**"
+      - "tests/**"
+      - "CMakeLists.txt"
+      - ".github/workflows/gpu-sim.yml"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    name: Tests (CUDA 13.0 and simulated H100)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+        with:
+          persist-credentials: false
+
+      - name: Set up the simulated GPU and CUDA toolkit
+        uses: pantheongpu/setup-pantheonsim@ca87fe3143b29166822b923d6050945c5179408c # v0.1.5
+        with:
+          gpu: nvidia/h100
+          cuda-toolkit: "13.0"
+
+      # 90-virtual embeds PTX only, which the simulator runs. The simulator
+      # needs a shared CUDA runtime. No CMAKE_BUILD_TYPE is set on purpose:
+      # Release defines NDEBUG, which would turn the assert() checks in the
+      # GPU tests into no-ops.
+      - name: Configure
+        run: |
+          cmake -S . -B build \
+            -DCMAKE_CUDA_ARCHITECTURES=90-virtual \
+            -DCMAKE_CUDA_RUNTIME_LIBRARY=Shared \
+            -DCUDA_BATTERY_BUILD_TESTS=ON
+
+      - name: Build
+        run: cmake --build build -j3
+
+      - name: CPU tests
+        run: ctest --test-dir build --output-on-failure -E '_gpu$'
+
+      # The GPU tests are registered with compute-sanitizer in front, which
+      # the simulator does not provide, so the test binaries are run directly.
+      - name: GPU tests
+        run: |
+          for t in allocator_test_gpu unique_ptr_test_gpu utility_test_cpu_gpu; do
+            echo "::group::$t"
+            vgpu run ./build/$t
+            echo "::endgroup::"
+          done
